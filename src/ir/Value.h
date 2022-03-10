@@ -7,6 +7,24 @@
 #include <iostream>
 #include "Common.h"
 #include "Range.h"
+#define OPCODE_LIST(S)       \
+S(Alloca, 0)                 \
+S(Phi,    0)                 \
+S(Undef,  0)                 \
+S(Br,     1)                 \
+S(CondBr, 3)                 \
+S(Binary, 2)                 \
+S(Ret,    1)                 \
+S(Call,   0)                 \
+S(Load,   1)                 \
+S(Store,  2)
+
+enum Opcode {
+#define DEFINE_OPCODE(name, c) Opcode##name,
+    OPCODE_LIST(DEFINE_OPCODE)
+#undef DEFINE_OPCODE
+};
+
 class Type;
 class Use;
 
@@ -27,9 +45,12 @@ public:
             delete this;
         }
     }
-    size_t getRefCount() {
+
+    inline size_t getRefCount() {
         return refCount;
     }
+
+    inline Opcode getOpcode();
 
     template <typename UseT>
     struct UseGetter {

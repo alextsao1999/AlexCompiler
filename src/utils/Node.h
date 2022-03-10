@@ -73,6 +73,22 @@ public:
     }
 
 };
+class NodeSentinal : public NodeBase {
+public:
+    constexpr NodeSentinal() {
+        reset();
+    }
+
+    inline constexpr bool empty() const {
+        return getPrevNode() == this;
+    }
+
+    inline constexpr void reset() {
+        setNextNode(this);
+        setPrevNode(this);
+    }
+
+};
 
 template<typename T, typename ParentT>
 class NodeWithParent : public Node<T> {
@@ -112,23 +128,6 @@ public:
     void insertBefore(T *node) {
         assert(node && parent);
         parent->insertBefore(static_cast<T *>(this), node);
-    }
-
-};
-
-class NodeSentinal : public NodeBase {
-public:
-    constexpr NodeSentinal() {
-        reset();
-    }
-
-    inline constexpr bool empty() const {
-        return getPrevNode() == this;
-    }
-
-    inline constexpr void reset() {
-        setNextNode(this);
-        setPrevNode(this);
     }
 
 };
@@ -274,8 +273,10 @@ public:
     }
 
     template<typename ...Args>
-    inline void emplace_front(Args &&...args) {
-        push_front(Traits::newNode(args...));
+    inline reference emplace_front(Args &&...args) {
+        auto *Node = Traits::newNode(args...);
+        push_front(Node);
+        return *Node;
     }
 
     inline void push_back(pointer node) {
@@ -283,13 +284,17 @@ public:
     }
 
     template<typename ...Args>
-    inline void emplace_back(Args &&...args) {
-        push_back(Traits::newNode(args...));
+    inline reference emplace_back(Args &&...args) {
+        auto *Node = Traits::newNode(args...);
+        push_back(Node);
+        return *Node;
     }
 
     template<typename ...Args>
-    inline void emplace(iterator where, Args &&...args) {
-        insert(where, Traits::newNode(args...));
+    inline iterator emplace(iterator where, Args &&...args) {
+        auto *Node = Traits::newNode(args...);
+        insert(where, Node);
+        return Node;
     }
 
     inline void pop_back() {
@@ -332,11 +337,13 @@ public:
         Prev->linkNext(last.getPointer());
     }
 
-    inline void erase(iterator where) {
+    inline iterator erase(iterator where) {
         if (where == end())
-            return;
+            return where;
+        auto *Next = where->getNext();
         remove(where);
         Traits::derefNode(where.getPointer());
+        return Next;
     }
 
     inline void erase(iterator first, iterator last) {
@@ -344,7 +351,7 @@ public:
         delete_range(first, last);
     }
 
-    inline void insert_after(iterator where, pointer node) {
+    inline iterator insert_after(iterator where, pointer node) {
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
@@ -355,9 +362,10 @@ public:
         node->setNext(Next);
         where->setNext(node);
         Traits::refNode(node);
+        return node;
     }
 
-    inline void insert_before(iterator where, pointer node) {
+    inline iterator insert_before(iterator where, pointer node) {
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
@@ -368,6 +376,7 @@ public:
         node->setNext(where.getPointer());
         where->setPrev(node);
         Traits::refNode(node);
+        return node;
     }
 
     inline iterator replace(iterator where, pointer node) {
@@ -428,33 +437,32 @@ public:
     }
 
 protected:
-
     inline void delete_range(iterator first, iterator last) {
         while (first != last) {
-            auto cur = first++;
-            Traits::derefNode(cur.getPointer());
+            auto Cur = first++;
+            Traits::derefNode(Cur.getPointer());
         }
     }
 };
-template<typename T>
-using NodeList = INodeListImpl<T, ListAllocTrait<T>, NodeSentinal>;
+template<typename T, typename Traits = StrongRefTrait<T>>
+using NodeList = INodeListImpl<T, Traits, NodeSentinal>;
 
 template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<NodeTy>>
 class NodeParent {
 public:
-    using NodeList = INodeListImpl<NodeTy, Traits, NodeSentinal>;
+    using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinal>;
 
     NodeParent() = default;
 
-    NodeParent(const NodeList &list) : list(list) {}
+    NodeParent(const NodeListTy &list) : list(list) {}
 
     void append(NodeTy *node) {
         node->setParent(static_cast<ParentTy *>(this));
         list.push_back(node);
     }
 
-    void erase(NodeTy *node) {
-        list.erase(node);
+    auto erase(NodeTy *node) {
+        return list.erase(node);
     }
 
     void insertAfter(NodeTy *node, NodeTy *after) {
@@ -472,16 +480,16 @@ public:
         list.replace(node, newNode);
     }
 
-    NodeList &getSubList() {
+    NodeListTy &getSubList() {
         return list;
     }
 
-    const NodeList &getSubList() const {
+    const NodeListTy &getSubList() const {
         return list;
     }
 
 protected:
-    NodeList list;
+    NodeListTy list;
 };
 
 #endif //DRAGONCOMPILER_INODE_H

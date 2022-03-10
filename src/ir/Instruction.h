@@ -9,26 +9,6 @@
 #include <Node.h>
 #include <Type.h>
 
-#define OPCODE_LIST(S) \
-S(Alloca, 1)           \
-S(Phi, 0)              \
-S(Undef, 0)            \
-S(Br, 1)               \
-S(CondBr, 3)           \
-S(Binary, 2)           \
-S(Ret, 1)              \
-S(IntConst, 0)         \
-S(StrConst, 0)         \
-S(BoolConst, 0)        \
-S(Load, 1)             \
-S(Store, 2)
-
-enum Opcode {
-#define DEFINE_OPCODE(name, c) Opcode##name,
-    OPCODE_LIST(DEFINE_OPCODE)
-#undef DEFINE_OPCODE
-};
-
 static const size_t OpcodeNum[] = {
 #define DEFINE_OPCODE(name, c) c,
         OPCODE_LIST(DEFINE_OPCODE)
@@ -54,9 +34,75 @@ enum BinaryOp {
     Ge,
 };
 
+class Function;
 class BasicBlock;
 
-class Instruction : public NodeWithParent<Instruction, BasicBlock>, public Value {
+class Undef : public Value {
+public:
+    void dumpAsOperand(std::ostream &os) override {
+        os << "undef";
+    }
+};
+
+class Param : public Value {
+public:
+
+};
+
+class Global : public Value {
+    std::string name;
+    Type *type;
+public:
+    Global(const std::string &name, Type *type) : name(name), type(type) {}
+
+    void dumpAsOperand(std::ostream &os) override {
+        os << name;
+    }
+
+    const std::string &getName() const {
+        return name;
+    }
+
+    Type *getType() const {
+        return type;
+    }
+
+};
+class Constant : public Value {
+    Type *type;
+public:
+    Constant(Type *type) : type(type) {
+        incRef();
+    }
+
+    Type *getType() override {
+        return type;
+    }
+
+};
+
+template<typename Ty>
+class ConstantVal : public Constant {
+public:
+    ConstantVal(Type *type, const Ty &val) : Constant(type), val(val) {
+    }
+
+    Ty &getVal() const {
+        return val;
+    }
+
+    void dumpAsOperand(std::ostream &os) override {
+        os << val;
+    }
+
+private:
+    Ty val;
+};
+using IntConstant = ConstantVal<int64_t>;
+using StrConstant = ConstantVal<std::string>;
+using BoolConstant = ConstantVal<bool>;
+
+class Instruction : public Value, public NodeWithParent<Instruction, BasicBlock> {
     Opcode opcode;
     size_t numOperands;
     std::unique_ptr<Use[]> trailingOperands;
@@ -114,15 +160,32 @@ public:
 
 };
 
-class AllocaInst : public OutputInst {
+class AllocaInst : public Instruction {
+    Type *allocatedType;
+    unsigned allocatedSize = 1;
+
 public:
-    AllocaInst() : OutputInst(OpcodeAlloca) {}
-    AllocaInst(Type *type) : OutputInst(OpcodeAlloca, {type}) {}
+    AllocaInst(Type *type) : Instruction(OpcodeAlloca), allocatedType(type) {}
+    AllocaInst(Type *type, unsigned size) : Instruction(OpcodeAlloca), allocatedType(type), allocatedSize(size) {}
 
     Type *getType() override {
-        return getOperand(0)->cast<Type>();
+        return allocatedType;
     }
 
+    inline Type *getAllocatedType() const {
+        return allocatedType;
+    }
+
+    inline unsigned getAllocatedSize() const {
+        return allocatedSize;
+    }
+
+    void dump(std::ostream &os, int level) override {
+        Instruction::dumpAsOperand(os);
+        os << " = alloca ";
+        allocatedType->dump(os);
+        os << ", " << allocatedSize;
+    }
 };
 
 class TerminatorInst : public Instruction {
@@ -135,10 +198,7 @@ public:
     BranchInst() : TerminatorInst(OpcodeBr) {}
     BranchInst(BasicBlock *target);
 
-    BasicBlock *getTarget() {
-        assert(getOperand(0)->isa<BasicBlock>());
-        return getOperand(0)->cast<BasicBlock>();
-    }
+    BasicBlock *getTarget();
 
 };
 
@@ -151,14 +211,25 @@ public:
         return getOperand(0);
     }
 
-    BasicBlock *getTrueTarget() {
-        assert(getOperand(1)->isa<BasicBlock>());
-        return getOperand(1)->cast<BasicBlock>();
+    BasicBlock *getTrueTarget();
+
+    BasicBlock *getFalseTarget();
+
+};
+
+class CallInst : public OutputInst {
+    Function *callee = nullptr;
+public:
+
+    CallInst(Function *callee) : OutputInst(OpcodeCall), callee(callee) {}
+    CallInst(Function *callee, std::initializer_list<Value *> args) : OutputInst(OpcodeCall, args) {}
+
+    Function *getCallee() {
+        return callee;
     }
 
-    BasicBlock *getFalseTarget() {
-        assert(getOperand(2)->isa<BasicBlock>());
-        return getOperand(2)->cast<BasicBlock>();
+    auto args() {
+        return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
     }
 
 };
@@ -170,6 +241,10 @@ public:
 
     Value *getPtr() {
         return getOperand(0);
+    }
+
+    Type *getType() override {
+        return getOperand(0)->getType()->getPointerElementType();
     }
 
 };
@@ -199,52 +274,6 @@ public:
 
     }
 
-};
-
-class IntConstInst : public Instruction {
-    int64_t value = 0;
-public:
-    IntConstInst() : Instruction(OpcodeIntConst) {}
-    IntConstInst(int64_t val) : Instruction(OpcodeIntConst), value(val) {}
-
-    void dumpAsOperand(std::ostream &os) override {
-        os << value;
-    }
-
-    int64_t getVal() {
-        return value;
-    }
-
-};
-
-class StrConstInst : public Instruction {
-    std::string value;
-public:
-    StrConstInst() : Instruction(OpcodeStrConst) {}
-    StrConstInst(std::string val) : Instruction(OpcodeStrConst), value(val) {}
-
-    void dumpAsOperand(std::ostream &os) override {
-        os << value;
-    }
-
-    std::string getVal() {
-        return value;
-    }
-};
-
-class BoolConstInst : public Instruction {
-    bool value = false;
-public:
-    BoolConstInst() : Instruction(OpcodeBoolConst) {}
-    BoolConstInst(bool val) : Instruction(OpcodeBoolConst), value(val) {}
-
-    void dumpAsOperand(std::ostream &os) override {
-        os << value;
-    }
-
-    bool getVal() {
-        return value;
-    }
 };
 
 class BinaryInst : public OutputInst {

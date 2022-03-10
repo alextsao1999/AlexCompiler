@@ -7,7 +7,7 @@
 
 #include <iostream>
 
-#define assert(x) if (!(x)) { std::cout << "Assertion failed: " << x << " " << __FILE__ << ":" << __LINE__ << std::endl; }
+#define assert(x) if (!(x)) { std::cout << "Assertion failed: " << (x) << " " << __FILE__ << ":" << __LINE__ << std::endl; }
 #define unreachable() assert(!"Unreachable here!");
 
 #endif //DRAGONCOMPILER_COMMON_H

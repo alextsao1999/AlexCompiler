@@ -8,6 +8,9 @@
 #include <BasicBlock.h>
 #include <Instruction.h>
 #include <Function.h>
+#include "Module.h"
+#include "Context.h"
+
 class IRBuilder {
 public:
     IRBuilder() {}
@@ -38,12 +41,24 @@ public:
         return instr;
     }
 
+    Context *getContext() {
+        return bb->getParent()->getParent()->getContext();
+    }
+
+    auto *getUndef() {
+        return getContext()->getUndef();
+    }
+
     auto *getInt(int64_t val) {
-        return new IntConstInst(val);
+        return getContext()->getInt(val);
     }
 
     auto *createBr(BasicBlock *target) {
         return insert(new BranchInst(target), "br");
+    }
+
+    auto *createAlloca(Type *ty, std::string_view name) {
+        return insert(new AllocaInst(ty), name);
     }
 
     auto *createAdd(Value *lhs, Value *rhs, std::string_view name = "add") {

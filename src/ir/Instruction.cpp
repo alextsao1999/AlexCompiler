@@ -110,7 +110,22 @@ BranchInst::BranchInst(BasicBlock *target) : TerminatorInst(OpcodeBr, {target}) 
 
 }
 
+BasicBlock *BranchInst::getTarget() {
+    assert(getOperand(0)->isa<BasicBlock>());
+    return getOperand(0)->cast<BasicBlock>();
+}
+
 CondBrInst::CondBrInst(Value *cond, BasicBlock *trueTarget, BasicBlock *falseTarget) : TerminatorInst(OpcodeCondBr,
                                                                                                       {cond, trueTarget,
                                                                                                        falseTarget}) {}
+
+BasicBlock *CondBrInst::getTrueTarget() {
+    assert(getOperand(1)->isa<BasicBlock>());
+    return getOperand(1)->cast<BasicBlock>();
+}
+
+BasicBlock *CondBrInst::getFalseTarget() {
+    assert(getOperand(2)->isa<BasicBlock>());
+    return getOperand(2)->cast<BasicBlock>();
+}
 

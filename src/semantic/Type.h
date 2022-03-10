@@ -10,92 +10,216 @@
 #include <utility>
 #include <vector>
 #include "Value.h"
+class Context;
 
-class Environment {
-public:
-
+enum TypeID {
+    TypeVoid,
+    TypeInt,
+    TypeFloat,
+    TypeDouble,
+    TypeString,
+    TypePointer,
+    TypeArray,
+    TypeFunction,
+    TypeStruct,
+    TypeUnion,
+    TypeEnum,
+    TypeClass,
+    TypeError
 };
 
-class Type : public Value {
+class Type {
 protected:
-    Environment *env = nullptr;
-    std::string name;
+    Context *context = nullptr;
+    TypeID typeId = TypeVoid;
+    Type **containedType = nullptr;
+    int containedTypeCount = 0;
+
 public:
-    Type(Environment *env, const std::string &name) : env(env), name(name) {}
+    Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId), containedType(containedType) {}
+    Type(TypeID typeId, Type **containedType) : context((*containedType)->getContext()), typeId(typeId),
+                                               containedType(containedType), containedTypeCount(1) {}
+    Type(TypeID typeId, Type **containedType, int size) : context((*containedType)->getContext()), typeId(typeId),
+                                               containedType(containedType), containedTypeCount(size) {}
+
+    Type(Context *ctx, TypeID typeId) : context(ctx), typeId(typeId) {}
+
     virtual ~Type() = default;
 
-    virtual unsigned getSize() = 0;
-
-    std::string &getName() {
-        return name;
+    inline Context *getContext() const {
+        return context;
     }
 
-    Environment *getEnv() {
-        return env;
+    inline TypeID getTypeId() const {
+        return typeId;
     }
 
-    const Environment *getEnv() const {
-        return env;
+    inline unsigned getBitSize();
+
+    Type *getPointerElementType() {
+        assert(typeId == TypePointer);
+        return *containedType;
     }
 
-    void dump(std::ostream &os, int level) override {
-        Value::dump(os, level);
+    Type *getStructElementType(unsigned index) {
+        assert(index < containedTypeCount);
+        assert(typeId == TypeStruct);
+        return containedType[index];
     }
 
-    void dumpAsOperand(std::ostream &os) override {
-        os << name;
+    Type *getParameterType(unsigned index) {
+        assert(typeId == TypeFunction);
+        assert((index + 1) < containedTypeCount);
+        return containedType[index + 1];
+    }
+
+    Type *getReturnType() {
+        assert(typeId == TypeFunction);
+        return containedType[0];
+    }
+
+    unsigned getContainedTypeCount() {
+        return containedTypeCount;
+    }
+
+    auto subtypes() {
+        return iter(containedType, containedType + containedTypeCount);
+    }
+
+    auto params() {
+        return iter(containedType + 1, containedType + containedTypeCount);
+    }
+
+    virtual void dump(std::ostream &os) {
+        // dump type id
+        switch (getTypeId()) {
+            case TypeVoid:
+                os << "void";
+                break;
+            case TypeInt:
+                os << "int";
+                break;
+            case TypeFloat:
+                os << "float";
+                break;
+            case TypeDouble:
+                os << "double";
+                break;
+            case TypeString:
+                os << "string";
+                break;
+            case TypePointer:
+                os << "pointer";
+                break;
+            case TypeArray:
+                os << "array";
+                break;
+            case TypeFunction:
+                os << "function";
+                break;
+            case TypeStruct:
+                os << "struct";
+                break;
+            case TypeUnion:
+                os << "union";
+                break;
+            case TypeEnum:
+                os << "enum";
+                break;
+            case TypeClass:
+                os << "class";
+                break;
+            case TypeError:
+                os << "error";
+                break;
+            default:
+                assert(false);
+        }
+
     }
 
 };
 
-class PrimitiveType : public Type {
-    unsigned size;
+class IntegerType : public Type {
+    unsigned bitSize;
 public:
-    PrimitiveType(Environment *env, const std::string &name, unsigned int size) : Type(env, name), size(size) {}
-    ~PrimitiveType() override = default;
+    IntegerType(Context *ctx, unsigned bitSize) : Type(ctx, TypeInt), bitSize(bitSize) {}
 
-    unsigned getSize() override {
-        return size;
+    inline unsigned getBitSize() const {
+        return bitSize;
     }
 
-
+    void dump(std::ostream &os) override {
+        os << "i" << bitSize;
+    }
 
 };
 
-class StructureType : public Type {
+class FunctionType : public Type {
+    std::vector<Type *> types;
+    bool isVarArg = false;
 public:
-    std::vector<std::pair<std::string, Type *>> fields;
-    StructureType(Environment *env, const std::string &name) : Type(env, name) {}
-    ~StructureType() override {}
-
-    void addField(const std::string &name, Type *type) {
-        fields.emplace_back(name, type);
+    FunctionType(std::vector<Type *> types, bool isVarArg = false) : Type(TypeFunction, types.data(), types.size()),
+                                                                     types(std::move(types)), isVarArg(isVarArg) {
     }
-    Type *lookup(const std::string &name) {
-        for (auto &item : fields) {
-            if (item.first == name) {
-                return item.second;
+
+    void dump(std::ostream &os) override {
+        assert(types.size() > 0);
+
+        os << "(";
+        for (auto I = 1; I < types.size(); I++) {
+            if (I > 1) {
+                os << ", ";
             }
+            types[I]->dump(os);
         }
-        return nullptr;
-    }
-    unsigned getSize() override {
-        unsigned size = 0;
-        for (auto &item : fields) {
-            size += item.second->getSize();
-        }
-        return size;
-    }
 
+        if (isVarArg) {
+            if (types.size() > 0) {
+                os << ", ";
+            }
+            os << "...";
+        }
+        os << ") ->";
+        getReturnType()->dump(os);
+
+    }
 };
 
 class PointerType : public Type {
+    Type *elementType;
 public:
-    Type *original = nullptr;
+    PointerType(Type *original) : Type(TypePointer, &elementType), elementType(original) {}
 
-    PointerType(Type *original) : Type(original->getEnv(), original->getName() + "*"), original(original) {
-
+    void dump(std::ostream &os) override {
+        Type::dump(os);
+        os << "*";
     }
 };
+
+class StructType : public Type {
+    std::vector<Type *> elementTypes;
+public:
+    StructType(std::vector<Type *> elementTypes) : Type(TypeStruct, elementTypes.data(), elementTypes.size()),
+                                                   elementTypes(elementTypes) {}
+
+    StructType(Context *ctx) : Type(ctx, TypeStruct) {}
+
+    void dump(std::ostream &os) override {
+        Type::dump(os);
+        os << "{";
+        for (unsigned I = 0; I < elementTypes.size(); I++) {
+            if (I != 0) {
+                os << ", ";
+            }
+            elementTypes[I]->dump(os);
+        }
+        os << "}";
+    }
+
+
+};
+
+
 
 #endif //DRAGONCOMPILER_TYPE_H

@@ -6,22 +6,22 @@
 #include "IRBuilder.h"
 #include "Module.h"
 int main(int argc, char **argv) {
-    auto *M = new Module("test");
+    Context Context;
+    auto M = std::make_unique<Module>("test", Context);
 
     auto *F = M->createFunction("func1");
 
-    auto *BB = BasicBlock::Create(F, "Entry");
-
+    BasicBlock::Create(F, "Entry");
     IRBuilder Builder(F);
 
-    auto *Add = Builder.createAdd(Builder.getInt(1), Builder.getInt(2));
+    auto *A = Builder.createAlloca(Context.getInt32Ty(), "A");
+
+    auto *Add = Builder.createAdd(Builder.getInt(1), A);
     auto *Mul = Builder.createMul(Add, Builder.getInt(6));
     auto *Load = Builder.createLoad(Mul, "val");
     auto *Ret = Builder.createRet(Load);
 
     F->dump(std::cout);
-
-    delete M;
 
     return 0;
 }

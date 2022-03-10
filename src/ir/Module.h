@@ -12,36 +12,42 @@
 
 #include "Node.h"
 #include "Function.h"
-
+class Context;
 class Module : public NodeParent<Module, Function> {
 public:
-    explicit Module(std::string_view name) : name(name) {}
+    explicit Module(std::string_view name, Context &context) : name(name), context(&context) {}
 
-    Function *createFunction(std::string_view fn) {
-        Function *F = new Function(fn);
+    inline Function *createFunction(std::string_view fn) {
+        Function *F = new Function(this, fn);
         append(F);
         functions.emplace(fn, F);
         return F;
-    }
-
-    Function *getFunction(const std::string &fn) {
-        return functions.at(fn);
     }
 
     const std::string &getName() const {
         return name;
     }
 
-    auto begin() {
-        return functions.begin();
+    Function *getFunction(const std::string &fn) {
+        return functions.at(fn);
     }
 
-    auto end() {
-        return functions.end();
+    Context *getContext() const {
+        return context;
+    }
+
+    inline auto begin() {
+        return getSubList().begin();
+    }
+
+    inline auto end() {
+        return getSubList().end();
     }
 
 private:
+    Context *context = nullptr;
     std::map<std::string, Function *> functions;
+    std::map<std::string, Value *> globals;
 
     std::string name;
 

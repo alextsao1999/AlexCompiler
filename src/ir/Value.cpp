@@ -3,6 +3,8 @@
 //
 
 #include "Value.h"
+#include "Instruction.h"
+
 Value::Value() {
     //std::cout << "alloc" << this << std::endl;
 }
@@ -18,5 +20,10 @@ Value::~Value() {
 
 bool Value::isOnlyUsedOnce() {
     return users && users->next == nullptr;
+}
+
+Opcode Value::getOpcode() {
+    assert(isa<Instruction>());
+    return cast<Instruction>()->getOpcode();
 }
 

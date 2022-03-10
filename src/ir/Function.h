@@ -13,10 +13,16 @@ class Function : public NodeParent<Function, BasicBlock>, public NodeWithParent<
 public:
     static Function *Create(Module *module, std::string_view name);
 public:
-    Function(std::string_view name) : name(name) {}
+    Function(Module *m, std::string_view name) : module(m), name(name) {}
 
     const std::string &getName() const {
         return name;
+    }
+
+    inline Context *getContext() const;
+
+    inline Type *getType() const {
+        return type;
     }
 
     auto &getBasicBlockList() {
@@ -47,6 +53,8 @@ public:
 private:
     std::string name;
     SymbolTable<Instruction> symbolTable;
+    Module *module = nullptr;
+    Type *type = nullptr;
 
 };
 

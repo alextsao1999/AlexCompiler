@@ -3,3 +3,11 @@
 //
 
 #include "PassManager.h"
+#include "Module.h"
+
+void FunctionPass::run(Module *module) {
+    for (auto &Function : *module) {
+        runOnFunction(&Function);
+    }
+
+}
