@@ -4,7 +4,9 @@
 
 #ifndef DRAGONIR_PASSMANAGER_H
 #define DRAGONIR_PASSMANAGER_H
+#include <memory>
 #include <vector>
+#include <unordered_map>
 
 class Module;
 class Function;
@@ -22,21 +24,19 @@ public:
 };
 
 class PassManager {
-    std::vector<Pass *> passes;
+    std::vector<std::unique_ptr<Pass>> passes;
 public:
     PassManager() = default;
 
     void addPass(Pass *pass) {
-        passes.push_back(pass);
+        passes.emplace_back(pass);
     }
 
     void run(Module *module) {
-        for (auto *Pass : passes) {
+        for (auto &Pass : passes) {
             Pass->run(module);
         }
     }
-
-
 
 };
 

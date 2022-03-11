@@ -19,6 +19,7 @@ class Context {
     std::map<Type *, std::string> typeNames;
     std::map<int64_t, std::unique_ptr<IntConstant>> intSlots;
     std::map<std::pair<std::vector<Type *>, bool>, std::unique_ptr<FunctionType>> functionTypes;
+    std::map<Type *, std::unique_ptr<PointerType>> pointerTypes;
 
 public:
     Context() = default;
@@ -54,6 +55,13 @@ public:
         return &i32Ty;
     }
 
+    PointerType *getPointerTy(Type *ty) {
+        auto &PtrTy = pointerTypes[ty];
+        if (!PtrTy)
+            PtrTy = std::make_unique<PointerType>(ty);
+        return PtrTy.get();
+    }
+
     FunctionType *getFunctionTy(std::vector<Type *> &types, bool isVarArg = false) {
         auto &FT = functionTypes[std::make_pair(types, isVarArg)];
         if (FT)
@@ -67,6 +75,10 @@ public:
         std::vector<Type *> Vec{returnTy};
         Vec.insert(Vec.end(), types.begin(), types.end());
         return getFunctionTy(Vec, isVarArg);
+    }
+
+    FunctionType *getVoidFunTy() {
+        return getFunctionTy(getVoidTy());
     }
 
     Undef *getUndef() {

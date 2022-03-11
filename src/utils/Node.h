@@ -269,7 +269,7 @@ public:
     }
 
     inline void push_front(pointer node) {
-        insert(end(), node);
+        insert_after(end(), node);
     }
 
     template<typename ...Args>
@@ -280,20 +280,20 @@ public:
     }
 
     inline void push_back(pointer node) {
-        insert(--end(), node);
+        insert_before(end(), node);
     }
 
     template<typename ...Args>
     inline reference emplace_back(Args &&...args) {
         auto *Node = Traits::newNode(args...);
-        push_back(Node);
+        insert_before(Node);
         return *Node;
     }
 
     template<typename ...Args>
     inline iterator emplace(iterator where, Args &&...args) {
         auto *Node = Traits::newNode(args...);
-        insert(where, Node);
+        insert_before(where, Node);
         return Node;
     }
 
@@ -310,11 +310,18 @@ public:
     }
 
     inline void push_back(T &&node) {
-        insert(--end(), Traits::cloneNode(std::move(node)));
+        insert_before(end(), Traits::cloneNode(std::move(node)));
     }
 
-    inline void insert(iterator where, pointer node) {
-        insert_after(where, node);
+    inline iterator insert(iterator where, pointer node) {
+        return insert_before(where, node);
+    }
+
+    template<typename It>
+    inline void insert(iterator where, It begin, It end) {
+        for (; begin != end; ++begin) {
+            insert(where, *begin);
+        }
     }
 
     inline size_t size() const {
@@ -352,6 +359,7 @@ public:
     }
 
     inline iterator insert_after(iterator where, pointer node) {
+        // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
@@ -366,6 +374,7 @@ public:
     }
 
     inline iterator insert_before(iterator where, pointer node) {
+        // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
@@ -443,6 +452,7 @@ protected:
             Traits::derefNode(Cur.getPointer());
         }
     }
+
 };
 template<typename T, typename Traits = StrongRefTrait<T>>
 using NodeList = INodeListImpl<T, Traits, NodeSentinal>;

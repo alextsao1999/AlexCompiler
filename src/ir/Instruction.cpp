@@ -78,10 +78,10 @@ void Instruction::dump(std::ostream &os, int level) {
     }
 
     os << " ";
-    for (auto &Op: operands()) {
-        Op->dumpAsOperand(os);
-        os << " ";
-    }
+
+    DUMP_OS(os, operands(), V, {
+        V->dumpAsOperand(os);
+    });
 
 }
 

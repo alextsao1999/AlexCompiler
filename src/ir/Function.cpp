@@ -5,9 +5,9 @@
 #include "Function.h"
 #include "Module.h"
 
-Function *Function::Create(Module *module, std::string_view name) {
+Function *Function::Create(Module *module, std::string_view name, Type *type) {
     assert(module);
-    return module->createFunction(name);
+    return module->createFunction(name, type);
 }
 
 Context *Function::getContext() const {

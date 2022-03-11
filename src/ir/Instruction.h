@@ -55,16 +55,16 @@ class Global : public Value {
 public:
     Global(const std::string &name, Type *type) : name(name), type(type) {}
 
-    void dumpAsOperand(std::ostream &os) override {
-        os << name;
-    }
-
     const std::string &getName() const {
         return name;
     }
 
     Type *getType() const {
         return type;
+    }
+
+    void dumpAsOperand(std::ostream &os) override {
+        os << name;
     }
 
 };
@@ -129,7 +129,7 @@ public:
     size_t getOperandNum() const { return numOperands; }
 
     Value *getOperand(size_t i) {
-        return getTrailingOperand()[i].getUser();
+        return getTrailingOperand()[i].getValue();
     }
 
     void setOperand(size_t i, Use use) { getTrailingOperand()[i] = std::move(use); }
@@ -140,6 +140,11 @@ public:
 
     void dump(std::ostream &os, int level = 0) override;
     void dumpAsOperand(std::ostream &os) override {
+        if (auto *Ty = getType()) {
+            Ty->dump(os);
+            os << " ";
+        }
+
         os << "%" << getName();
     }
 
@@ -153,8 +158,7 @@ class OutputInst : public Instruction {
 public:
     using Instruction::Instruction;
     void dump(std::ostream &os, int level) override {
-        dumpAsOperand(os);
-        os << " = ";
+        os << "%" << getName() << " = ";
         Instruction::dump(os, level);
     }
 
@@ -169,7 +173,7 @@ public:
     AllocaInst(Type *type, unsigned size) : Instruction(OpcodeAlloca), allocatedType(type), allocatedSize(size) {}
 
     Type *getType() override {
-        return allocatedType;
+        return allocatedType->getPointerType();
     }
 
     inline Type *getAllocatedType() const {
@@ -181,8 +185,7 @@ public:
     }
 
     void dump(std::ostream &os, int level) override {
-        Instruction::dumpAsOperand(os);
-        os << " = alloca ";
+        os << "%" << getName() << " = alloca ";
         allocatedType->dump(os);
         os << ", " << allocatedSize;
     }
@@ -244,7 +247,12 @@ public:
     }
 
     Type *getType() override {
-        return getOperand(0)->getType()->getPointerElementType();
+        if (auto *LoadTy = getOperand(0)->getType()) {
+            if (LoadTy->isPointerType()) {
+                return LoadTy->getPointerElementType();
+            }
+        }
+        return nullptr;
     }
 
 };
@@ -273,6 +281,11 @@ public:
         //getTrailingOperand()[getOperandNum() - 1] = Use(val, bb);
 
     }
+
+};
+
+class UnaryInst : public Instruction {
+public:
 
 };
 

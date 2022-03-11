@@ -9,20 +9,32 @@
 #include <BasicBlock.h>
 #include <SymbolTable.h>
 class Module;
+class Type;
 class Function : public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module>, public Value {
 public:
-    static Function *Create(Module *module, std::string_view name);
+    static Function *Create(Module *module, std::string_view name, Type *type);
 public:
-    Function(Module *m, std::string_view name) : module(m), name(name) {}
+    Function(Module *m, std::string_view name, Type *ft) : module(m), name(name), type(ft) {
+
+    }
 
     const std::string &getName() const {
         return name;
+    }
+
+    Type *getType() override {
+        return type;
     }
 
     inline Context *getContext() const;
 
     inline Type *getType() const {
         return type;
+    }
+
+    BasicBlock *getEntryBlock() {
+        assert(!list.empty());
+        return list.begin().getPointer();
     }
 
     auto &getBasicBlockList() {
@@ -39,6 +51,8 @@ public:
         return BB;
     }
 
+
+
     void dump(std::ostream &os, int level = 0) override {
         os << "Function: " << getName() << std::endl;
         for (auto &BB: list) {
@@ -52,9 +66,13 @@ public:
 
 private:
     std::string name;
-    SymbolTable<Instruction> symbolTable;
-    Module *module = nullptr;
     Type *type = nullptr;
+
+    Module *module = nullptr;
+    Function *outer = nullptr; // 函数的外部函数
+
+
+    SymbolTable<Instruction> symbolTable;
 
 };
 

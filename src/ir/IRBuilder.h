@@ -53,6 +53,10 @@ public:
         return getContext()->getInt(val);
     }
 
+    auto *createCondBr(Value *cond, BasicBlock *ifTrue, BasicBlock *ifFalse) {
+        return insert(new CondBrInst(cond, ifTrue, ifFalse));
+    }
+
     auto *createBr(BasicBlock *target) {
         return insert(new BranchInst(target), "br");
     }
@@ -87,6 +91,10 @@ public:
 
     auto *createRet(Value *val) {
         return insert(new RetInst(val));
+    }
+
+    auto *createRet() {
+        return insert(new RetInst());
     }
 
 private:

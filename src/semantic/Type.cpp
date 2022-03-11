@@ -3,6 +3,7 @@
 //
 
 #include "Type.h"
+#include "Context.h"
 
 unsigned Type::getBitSize() {
     switch (getTypeId()) {
@@ -15,4 +16,9 @@ unsigned Type::getBitSize() {
     }
     unreachable();
     return 0;
+}
+
+Type *Type::getPointerType() {
+    assert(getContext());
+    return getContext()->getPointerTy(this);
 }

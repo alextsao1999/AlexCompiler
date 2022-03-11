@@ -14,7 +14,7 @@ S(Undef,  0)                 \
 S(Br,     1)                 \
 S(CondBr, 3)                 \
 S(Binary, 2)                 \
-S(Ret,    1)                 \
+S(Ret,    0)                 \
 S(Call,   0)                 \
 S(Load,   1)                 \
 S(Store,  2)
@@ -217,6 +217,10 @@ public:
         return value;
     }
 
+    inline Value *getValue() {
+        return value;
+    }
+
     inline const Use *getNext() const {
         return next;
     }
@@ -324,12 +328,7 @@ inline std::ostream &dump_iter(std::ostream &os, ForwIt begin, ForwIt end, F f, 
         os << f(*iter);
     }
     return os;
-};
-
-template<typename C, typename F>
-inline std::ostream &dump_container(std::ostream &os, C container, F f) {
-    return dump_iter(os, container.begin(), container.end(), f);
-};
+}
 
 template<typename ForwIt, typename F, typename S = std::string>
 inline void dump_os(ForwIt begin, ForwIt end, F f, S s = ", ") {
@@ -338,15 +337,36 @@ inline void dump_os(ForwIt begin, ForwIt end, F f, S s = ", ") {
         if (iter == end) {
             f(*cur);
             break;
-        } else {
-            f(*cur) << s;
         }
+        f(*cur) << s;
     }
 }
 
-#define DumpF(ARG, BODY) ([&](ARG) -> decltype(auto) {{BODY}; return os;})
+template<typename ForwIt, typename F, typename S = std::string>
+inline void dump_os(std::ostream &os, ForwIt begin, ForwIt end, F f, S s = ", ") {
+    for (auto iter = begin; iter != end; ) {
+        auto cur = iter++;
+        if (iter == end) {
+            f(*cur);
+            break;
+        }
+        f(*cur);
+        os << s;
+    }
+}
+
 template<typename C, typename F, typename S = std::string>
 inline void dump_os(C c, F f, S s = ", ") {
     dump_os(c.begin(), c.end(), std::move(f), s);
 }
+
+template<typename C, typename F, typename S = std::string>
+inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
+    dump_os(os, c.begin(), c.end(), std::move(f), s);
+    return os;
+}
+
+#define DUMP_ITER(OS, C, ARG, BODY) dump_os(C, ([&](auto &ARG) -> decltype(auto) {{BODY}; return OS;}));
+#define DUMP_OS(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto &ARG) -> decltype(auto) {{BODY;}}))
+
 #endif //DRAGONIR_VALUE_H

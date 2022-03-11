@@ -33,14 +33,14 @@ protected:
     Context *context = nullptr;
     TypeID typeId = TypeVoid;
     Type **containedType = nullptr;
-    int containedTypeCount = 0;
+    unsigned containedTypeCount = 0;
 
 public:
-    Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId), containedType(containedType) {}
-    Type(TypeID typeId, Type **containedType) : context((*containedType)->getContext()), typeId(typeId),
-                                               containedType(containedType), containedTypeCount(1) {}
-    Type(TypeID typeId, Type **containedType, int size) : context((*containedType)->getContext()), typeId(typeId),
-                                               containedType(containedType), containedTypeCount(size) {}
+    Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId),
+                                                              containedType(containedType), containedTypeCount(1) {}
+
+    Type(TypeID typeId, Type **containedType, unsigned size) : context((*containedType)->getContext()), typeId(typeId),
+                                                              containedType(containedType), containedTypeCount(size) {}
 
     Type(Context *ctx, TypeID typeId) : context(ctx), typeId(typeId) {}
 
@@ -56,8 +56,14 @@ public:
 
     inline unsigned getBitSize();
 
+    inline bool isPointerType() const {
+        return typeId == TypePointer;
+    }
+
+    Type *getPointerType();
+
     Type *getPointerElementType() {
-        assert(typeId == TypePointer);
+        assert(typeId == TypePointer && containedType);
         return *containedType;
     }
 
@@ -189,10 +195,11 @@ public:
 class PointerType : public Type {
     Type *elementType;
 public:
-    PointerType(Type *original) : Type(TypePointer, &elementType), elementType(original) {}
+    PointerType(Type *original) : Type(original->getContext(), TypePointer, &elementType), elementType(original) {}
 
     void dump(std::ostream &os) override {
-        Type::dump(os);
+        assert(elementType);
+        elementType->dump(os);
         os << "*";
     }
 };
