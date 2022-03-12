@@ -10,7 +10,7 @@
 #include <SymbolTable.h>
 class Module;
 class Type;
-class Function : public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module>, public Value {
+class Function : public Value, public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module> {
 public:
     static Function *Create(Module *module, std::string_view name, Type *type);
 public:
@@ -69,7 +69,6 @@ private:
 
     Module *module = nullptr;
     Function *outer = nullptr; // 函数的外部函数
-
 
     SymbolTable<Instruction> symbolTable;
 

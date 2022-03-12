@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
     auto *FalseBB = BasicBlock::Create(F, "br.false");
     auto *Leave = BasicBlock::Create(F, "leave");
 
-    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(22));
+    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(66));
     Builder.createCondBr(Cmp, TrueBB, FalseBB);
 
     Builder.setInsertPoint(TrueBB);

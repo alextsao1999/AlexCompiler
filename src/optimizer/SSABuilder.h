@@ -124,7 +124,7 @@ public:
         // rename phi nodes
         for (auto &Instr: bb->getPhis()) {
             auto *Phi = Instr.cast<PhiInst>();
-            auto *Alloca = phiStatus[Phi].allocaFor;
+            auto *Alloca = phiStatus[Phi].getAlloca();
             varStatus[Alloca].push(Phi);
         }
 
@@ -208,6 +208,16 @@ public:
     }
 
     void install() {
+        std::vector<Instruction *> NeedToRemove;
+        for (auto &[Alloca, VarState]: varStatus) {
+            for (auto &Use: Alloca->getUsersAs<Instruction>()) {
+                NeedToRemove.push_back(&Use);
+            }
+            NeedToRemove.push_back(Alloca->cast<Instruction>());
+        }
+        for (auto &Inst: NeedToRemove) {
+            Inst->eraseFromParent();
+        }
         for (auto &[Value, PhiState] : phiStatus) {
             if (PhiState.isUseless()) {
                 Value->eraseFromParent();

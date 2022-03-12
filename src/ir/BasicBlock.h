@@ -10,7 +10,7 @@
 #include <Instruction.h>
 class Function;
 
-class BasicBlock : public NodeWithParent<BasicBlock, Function>, public NodeParent<BasicBlock, Instruction>, public Value {
+class BasicBlock : public Value, public NodeWithParent<BasicBlock, Function>, public NodeParent<BasicBlock, Instruction> {
     friend class Dominance;
 public:
     static BasicBlock *Create(Function *parent, std::string_view name);

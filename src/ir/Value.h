@@ -126,7 +126,7 @@ public:
         return iter(UserIterator(users), UserIterator());
     }
 
-    template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename range = typename UserAsIter::wrapper>
+    template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename range = typename UserAsIter::range>
     range getUsersAs() {
         return iter(UserAsIter(users), UserAsIter());
     }
