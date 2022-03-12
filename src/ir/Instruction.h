@@ -46,6 +46,11 @@ public:
 
 class Param : public Value {
 public:
+    std::string name;
+
+    void dumpAsOperand(std::ostream &os) override {
+        std::cout << name;
+    }
 
 };
 
@@ -64,10 +69,11 @@ public:
     }
 
     void dumpAsOperand(std::ostream &os) override {
-        os << name;
+        os << "%" << name;
     }
 
 };
+
 class Constant : public Value {
     Type *type;
 public:
@@ -103,13 +109,29 @@ using StrConstant = ConstantVal<std::string>;
 using BoolConstant = ConstantVal<bool>;
 
 class Instruction : public Value, public NodeWithParent<Instruction, BasicBlock> {
+protected:
     Opcode opcode;
     size_t numOperands;
     std::unique_ptr<Use[]> trailingOperands;
 public:
+    Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : opcode(opcode), numOperands(OpcodeNum[opcode]) {}
-    Instruction(Opcode opcode, size_t numTrailingOperands) : opcode(opcode), trailingOperands(new Use[numTrailingOperands]) {}
-    Instruction(Opcode opcode, std::initializer_list<Value *> values);
+    Instruction(Opcode opcode, std::initializer_list<Value *> values) : opcode(opcode), numOperands(values.size()),
+                                                                        trailingOperands(new Use[values.size()]) {
+        auto *Operand = getTrailingOperand();
+        for (auto &Value: values) {
+            new(Operand++) Use(this, Value);
+        }
+    }
+
+    Instruction(Opcode opcode, size_t numTrailingOperands) : opcode(opcode), numOperands(numTrailingOperands) {
+        // allocate memory for trailing operands
+        trailingOperands = std::unique_ptr<Use[]>(new Use[numTrailingOperands]);
+        // construct the trailing operands
+        for (size_t I = 0; I < numTrailingOperands; I++) {
+            new(&trailingOperands[I]) Use(this);
+        }
+    }
 
     const std::string &getName();
     void setName(std::string_view name);
@@ -128,7 +150,7 @@ public:
     Opcode getOpcode() const { return opcode; }
     size_t getOperandNum() const { return numOperands; }
 
-    Value *getOperand(size_t i) {
+    Value *getOperand(size_t i) const {
         return getTrailingOperand()[i].getValue();
     }
 
@@ -144,13 +166,11 @@ public:
             Ty->dump(os);
             os << " ";
         }
-
         os << "%" << getName();
     }
 
 protected:
-    inline Use *getTrailingOperand() { return trailingOperands.get(); }
-    inline const Use *getTrailingOperand() const { return trailingOperands.get(); }
+    inline Use *getTrailingOperand() const { return trailingOperands.get(); }
 
 };
 
@@ -262,11 +282,11 @@ public:
     StoreInst() : Instruction(OpcodeStore) {}
     StoreInst(Value *ptr, Value *val) : Instruction(OpcodeStore, {ptr, val}) {}
 
-    Value *getPtr() {
+    Value *getPtr() const {
         return getOperand(0);
     }
 
-    Value *getVal() {
+    Value *getVal() const {
         return getOperand(1);
     }
 
@@ -274,13 +294,18 @@ public:
 
 class PhiInst : public OutputInst {
 public:
+    static PhiInst *Create(BasicBlock *bb);
+public:
     PhiInst() : OutputInst(OpcodePhi) {}
     PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
+    ~PhiInst() override = default;
 
-    void addIncoming(Value *val, BasicBlock *bb) {
-        //getTrailingOperand()[getOperandNum() - 1] = Use(val, bb);
+    void fill(std::map<BasicBlock *, Value *> &values);
 
-    }
+    void dump(std::ostream &os, int level) override;
+
+private:
+    std::unique_ptr<Use[]> incomingBlocks;
 
 };
 

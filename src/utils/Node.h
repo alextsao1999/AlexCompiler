@@ -145,6 +145,7 @@ public:
     using range = IterRange<NodeIter>;
 
     NodeIter() {}
+    NodeIter(const NodeIter &RHS) : cursor(RHS.cursor) {}
     NodeIter(Ty *cursor) : cursor(cursor) {}
     NodeIter(const Ty *cursor) : cursor(const_cast<Ty *>(cursor)) {}
 
@@ -461,6 +462,7 @@ template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<No
 class NodeParent {
 public:
     using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinal>;
+    using iterator = typename NodeListTy::iterator;
 
     NodeParent() = default;
 

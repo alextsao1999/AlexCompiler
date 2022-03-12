@@ -11,3 +11,8 @@ BasicBlock *BasicBlock::Create(Function *parent, std::string_view name) {
     parent->getBasicBlockList().push_back(BB);
     return BB;
 }
+
+Context *BasicBlock::getContext() {
+    assert(getParent());
+    return getParent()->getContext();
+}

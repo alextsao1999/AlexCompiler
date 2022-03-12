@@ -81,6 +81,51 @@ public:
         return insert(new BinaryInst(Div, lhs, rhs), name);
     }
 
+    // create binary
+    auto *createAnd(Value *lhs, Value *rhs, std::string_view name = "and") {
+        return insert(new BinaryInst(And, lhs, rhs), name);
+    }
+
+    auto *createOr(Value *lhs, Value *rhs, std::string_view name = "or") {
+        return insert(new BinaryInst(Or, lhs, rhs), name);
+    }
+
+    auto *createXor(Value *lhs, Value *rhs, std::string_view name = "xor") {
+        return insert(new BinaryInst(Xor, lhs, rhs), name);
+    }
+
+    auto *createShl(Value *lhs, Value *rhs, std::string_view name = "shl") {
+        return insert(new BinaryInst(Shl, lhs, rhs), name);
+    }
+
+    auto *createShr(Value *lhs, Value *rhs, std::string_view name = "shr") {
+        return insert(new BinaryInst(Shr, lhs, rhs), name);
+    }
+
+    auto *createEq(Value *lhs, Value *rhs, std::string_view name = "eq") {
+        return insert(new BinaryInst(Eq, lhs, rhs), name);
+    }
+
+    auto *createNe(Value *lhs, Value *rhs, std::string_view name = "ne") {
+        return insert(new BinaryInst(Ne, lhs, rhs), name);
+    }
+
+    auto *createLt(Value *lhs, Value *rhs, std::string_view name = "lt") {
+        return insert(new BinaryInst(Lt, lhs, rhs), name);
+    }
+
+    auto *createLe(Value *lhs, Value *rhs, std::string_view name = "le") {
+        return insert(new BinaryInst(Le, lhs, rhs), name);
+    }
+
+    auto *createGt(Value *lhs, Value *rhs, std::string_view name = "gt") {
+        return insert(new BinaryInst(Gt, lhs, rhs), name);
+    }
+
+    auto *createGe(Value *lhs, Value *rhs, std::string_view name = "ge") {
+        return insert(new BinaryInst(Ge, lhs, rhs), name);
+    }
+
     auto *createLoad(Value *ptr, std::string_view name = "load") {
         return insert(new LoadInst(ptr), name);
     }

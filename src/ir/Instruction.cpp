@@ -95,14 +95,8 @@ void Instruction::setName(std::string_view name) {
     ST.setName(this, name);
 }
 
-Instruction::Instruction(Opcode opcode, std::initializer_list<Value *> values) : opcode(opcode), trailingOperands(new Use[values.size()]) {
-    numOperands = values.size();
-    auto *Operand = getTrailingOperand();
-    for (auto &Value: values) {
-        Operand->setUser(this);
-        Operand->set(Value);
-        Operand++;
-    }
+Instruction::Instruction(BasicBlock *parent, Opcode opcode) : opcode(opcode), numOperands(OpcodeNum[opcode]) {
+    parent->append(this);
 }
 
 
@@ -129,3 +123,25 @@ BasicBlock *CondBrInst::getFalseTarget() {
     return getOperand(2)->cast<BasicBlock>();
 }
 
+PhiInst *PhiInst::Create(BasicBlock *bb) {
+    auto *Phi = new PhiInst();
+    bb->addPhi(Phi);
+    return Phi;
+}
+
+void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
+    numOperands = values.size();
+    trailingOperands = std::unique_ptr<Use[]>(new Use[numOperands]);
+    incomingBlocks = std::unique_ptr<Use[]>(new Use[numOperands]);
+
+    int I = 0;
+    for (auto &[block, value] : values) {
+        new(&incomingBlocks[I]) Use(this, block);
+        new(&trailingOperands[I]) Use(this, value);
+        I++;
+    }
+}
+
+void PhiInst::dump(std::ostream &os, int level) {
+    OutputInst::dump(os, level);
+}

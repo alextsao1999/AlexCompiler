@@ -18,7 +18,9 @@ public:
 
     void runOnFunction(Function *function) override {
         visited.clear();
+        bbIndex.clear();
         bbReorder.clear();
+
         // compute reverse post order
         std::function<void(BasicBlock * bb)> DFS = [&](BasicBlock *bb) {
             visited.insert(bb);
@@ -70,7 +72,7 @@ public:
                 for (auto &Pred: BB->getPredecessors()) {
                     auto *Runner = Pred;
                     while (Runner != BB->getDominator()) {
-                        Runner->addDF(BB);
+                        Runner->addDomFrontier(BB);
                         Runner = Runner->getDominator();
                     }
                 }
@@ -79,7 +81,7 @@ public:
 
         for (auto &Item : bbReorder) {
             if (auto *Dom = Item->getDominator()) {
-                Dom->doms.insert(Item);
+                Dom->domChildren.insert(Item);
             }
         }
 
@@ -96,9 +98,6 @@ public:
         }
         return b1;
     }
-
-
-
 
 };
 

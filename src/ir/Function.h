@@ -26,13 +26,13 @@ public:
         return type;
     }
 
-    inline Context *getContext() const;
+    Context *getContext() const;
 
     inline Type *getType() const {
         return type;
     }
 
-    BasicBlock *getEntryBlock() {
+    BasicBlock *getEntryBlock() const {
         assert(!list.empty());
         return list.begin().getPointer();
     }
@@ -50,7 +50,6 @@ public:
         list.push_back(BB);
         return BB;
     }
-
 
 
     void dump(std::ostream &os, int level = 0) override {

@@ -12,28 +12,28 @@ template<typename T>
 class SymbolTable {
 public:
 
-    bool hasName(T *Item) const {
-        return NameTable.template count(Item);
+    bool hasName(T *item) const {
+        return nameTable.template count(item);
     }
 
-    void setName(T *Item, std::string_view Name) {
-        NameTable[Item] = Name;
+    void setName(T *item, std::string_view name) {
+        nameTable[item] = name;
     }
 
-    const std::string &getName(T *Item) {
+    const std::string &getName(T *item) {
         // allocate a temp name if not found
-        auto it = NameTable.find(Item);
-        if (it == NameTable.end()) {
-            NameTable[Item] = std::to_string(Count++);
-            return NameTable[Item];
+        auto It = nameTable.find(item);
+        if (It == nameTable.end()) {
+            nameTable[item] = std::to_string(count++);
+            return nameTable[item];
         }
-        return it->second;
+        return It->second;
     }
 
 private:
-    size_t Count = 0;
-    std::map<std::string, T *> ValueTable;
-    std::map<T *, std::string> NameTable;
+    size_t count = 0;
+    std::map<std::string, T *> valueTable;
+    std::map<T *, std::string> nameTable;
 
 };
 

@@ -7,6 +7,8 @@
 #include "Module.h"
 #include "PassManager.h"
 #include "Dominance.h"
+#include "SSABuilder.h"
+
 int main(int argc, char **argv) {
     Context Context;
     auto M = std::make_unique<Module>("test", Context);
@@ -17,28 +19,30 @@ int main(int argc, char **argv) {
     IRBuilder Builder(F);
 
     auto *A = Builder.createAlloca(Context.getInt32Ty(), "test");
-
-    auto *Add = Builder.createAdd(Builder.getInt(1), A);
-    auto *Mul = Builder.createMul(Add, Builder.getInt(6));
-    auto *Load = Builder.createLoad(Mul, "val");
-
+    Builder.createStore(A, Builder.getInt(22));
 
     auto *TrueBB = BasicBlock::Create(F, "br.true");
     auto *FalseBB = BasicBlock::Create(F, "br.false");
     auto *Leave = BasicBlock::Create(F, "leave");
-    Builder.createCondBr(Load, TrueBB, FalseBB);
+
+    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(22));
+    Builder.createCondBr(Cmp, TrueBB, FalseBB);
 
     Builder.setInsertPoint(TrueBB);
+    Builder.createStore(A, Builder.getInt(33));
     Builder.createBr(Leave);
 
     Builder.setInsertPoint(FalseBB);
+    Builder.createStore(A, Builder.getInt(44));
     Builder.createBr(Leave);
 
     Builder.setInsertPoint(Leave);
-    Builder.createRet();
+    auto *Load = Builder.createLoad(A);
+    Builder.createRet(Load);
 
     PassManager PM;
     PM.addPass(new Dominance());
+    PM.addPass(new SSABuilder());
     PM.run(M.get());
 
     F->dump(std::cout);

@@ -32,26 +32,7 @@ class Value {
     template<class Ty>
     friend class ListRefTrait;
     friend class Use;
-protected:
-    Use *users = nullptr;
-    size_t refCount = 0;
 public:
-    void incRef() {
-        refCount++;
-    }
-    void decRef() {
-        refCount--;
-        if (refCount == 0) {
-            delete this;
-        }
-    }
-
-    inline size_t getRefCount() {
-        return refCount;
-    }
-
-    inline Opcode getOpcode();
-
     template <typename UseT>
     struct UseGetter {
         using value_type = UseT;
@@ -105,9 +86,30 @@ public:
 
     using UseIterator = UseIteratorImpl<Use, UseGetter<Use>>;
     using UserIterator = UseIteratorImpl<Use, UserGetter<Use, Value>>;
+protected:
+    Use *users = nullptr;
+    size_t refCount = 0;
+public:
     Value();
     virtual ~Value();
     virtual Type *getType() { return nullptr; }
+
+    // memory management
+    void incRef() {
+        refCount++;
+    }
+    void decRef() {
+        refCount--;
+        if (refCount == 0) {
+            delete this;
+        }
+    }
+
+    inline size_t getRefCount() {
+        return refCount;
+    }
+
+    Opcode getOpcode();
 
     bool isOnlyUsedOnce();
 
@@ -124,8 +126,8 @@ public:
         return iter(UserIterator(users), UserIterator());
     }
 
-    template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename wrapper = typename UserAsIter::wrapper>
-    wrapper getUsersAs() {
+    template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename range = typename UserAsIter::wrapper>
+    range getUsersAs() {
         return iter(UserAsIter(users), UserAsIter());
     }
 
@@ -233,11 +235,11 @@ public:
         return value;
     }
 
-    Use &operator=(const Use &rhs) {
+    /*Use &operator=(const Use &rhs) {
         parent = rhs.parent;
         set(rhs.value);
         return *this;
-    }
+    }*/
 
     inline Value *operator->() {
         return value;
