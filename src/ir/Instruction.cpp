@@ -1,12 +1,12 @@
 //
 // Created by Alex on 2022/3/8.
 //
-
+#include <algorithm>
 #include "Instruction.h"
 #include "BasicBlock.h"
 #include "Function.h"
 
-void Instruction::dump(std::ostream &os, int level) {
+void Instruction::dump(std::ostream &os) {
     // dump opcode
     if (opcode == OpcodeBinary) {
         auto *Bin = this->cast<BinaryInst>();
@@ -64,17 +64,20 @@ void Instruction::dump(std::ostream &os, int level) {
                 os << "???";
                 break;
         }
-
     } else {
+        std::string opcodeStr;
         switch (opcode) {
             default: unreachable();
-#define OPCODE(NAME, COUNT) \
+#define OPCODE(NAME, COUNT, CLASS) \
         case Opcode##NAME: \
-            os << #NAME; \
+            opcodeStr = #NAME; \
             break;
             OPCODE_LIST(OPCODE)
 #undef OPCODE
         }
+        // lowercase of opcodeStr
+        std::transform(opcodeStr.begin(), opcodeStr.end(), opcodeStr.begin(), ::tolower);
+        os << opcodeStr;
     }
 
     os << " ";
@@ -91,14 +94,14 @@ const std::string &Instruction::getName() {
 }
 
 void Instruction::setName(std::string_view name) {
+    assert(getParent() && getParent()->getParent());
     auto &ST = getParent()->getParent()->getSymbolTable();
     ST.setName(this, name);
 }
 
-Instruction::Instruction(BasicBlock *parent, Opcode opcode) : opcode(opcode), numOperands(OpcodeNum[opcode]) {
+Instruction::Instruction(BasicBlock *parent, Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {
     parent->append(this);
 }
-
 
 BranchInst::BranchInst(BasicBlock *target) : TerminatorInst(OpcodeBr, {target}) {
 
@@ -135,10 +138,18 @@ void CondBrInst::setFalseTarget(BasicBlock *target) {
     setOperand(2, target);
 }
 
-PhiInst *PhiInst::Create(BasicBlock *bb) {
+PhiInst *PhiInst::Create(BasicBlock *bb, StrView name) {
     auto *Phi = new PhiInst();
     bb->addPhi(Phi);
+    Phi->setName(name);
     return Phi;
+}
+
+PhiInst::PhiInst(const PhiInst &other) : OutputInst(other) {
+    incomingBlocks = std::unique_ptr<Use[]>(new Use[getOperandNum()]);
+    for (unsigned I = 0; I < getOperandNum(); ++I) {
+        new(&incomingBlocks[I]) Use(this, other.getIncomingBlock(I));
+    }
 }
 
 void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
@@ -154,23 +165,48 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
     }
 }
 
-BasicBlock *PhiInst::getIncomingBlock(Use &use) {
+BasicBlock *PhiInst::getIncomingBlock(Use &use) const {
     auto Index = &use - getTrailingOperand();
     assert(Index >= 0 && Index < numOperands);
     return incomingBlocks[Index]->cast<BasicBlock>();
 }
 
-BasicBlock *PhiInst::getIncomingBlock(size_t i) {
+BasicBlock *PhiInst::getIncomingBlock(size_t i) const {
     assert(i < numOperands);
     return incomingBlocks[i]->cast<BasicBlock>();
 }
 
-void PhiInst::dump(std::ostream &os, int level) {
-    os << "%" << getName() << " = phi ";
+void PhiInst::setIncomingBlock(size_t i, BasicBlock *bb) {
+    assert(i < numOperands);
+    incomingBlocks[i].set(bb);
+}
+
+void PhiInst::dump(std::ostream &os) {
+    dumpName(os) << " = phi ";
     DUMP_REF(os, operands(), V, {
         getIncomingBlock(V)->dumpAsOperand(os);
-        os << " ";
+        os << " : ";
         V->dumpAsOperand(os);
     });
+}
 
+Instruction *Instruction::clone() const {
+    switch (getOpcode()) {
+        default: unreachable();
+#define OPCODE(NAME, COUNT, CLASS) \
+        case Opcode##NAME: \
+            return new CLASS(*cast<CLASS>());
+        OPCODE_LIST(OPCODE)
+#undef OPCODE
+    }
+}
+
+void CallInst::dump(std::ostream &os) {
+    dumpName(os) << " = call ";
+    callee->dumpAsOperand(os);
+    os << "(";
+    DUMP_REF(os, operands(), V, {
+        V->dumpAsOperand(os);
+    });
+    os << ")";
 }

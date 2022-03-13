@@ -10,7 +10,7 @@
 #include <Type.h>
 
 static const size_t OpcodeNum[] = {
-#define DEFINE_OPCODE(name, c) c,
+#define DEFINE_OPCODE(name, c, k) c,
         OPCODE_LIST(DEFINE_OPCODE)
 #undef DEFINE_OPCODE
 };
@@ -62,7 +62,8 @@ public:
     }
 
     void dumpAsOperand(std::ostream &os) override {
-        std::cout << "%" << name;
+        type->dump(os);
+        os << " %" << name;
     }
 
 };
@@ -88,6 +89,7 @@ public:
 };
 
 class Constant : public Value {
+protected:
     Type *type;
 public:
     Constant(Type *type) : type(type) {
@@ -111,7 +113,8 @@ public:
     }
 
     void dumpAsOperand(std::ostream &os) override {
-        os << val;
+        type->dump(os);
+        os << " " << val;
     }
 
 private:
@@ -129,21 +132,26 @@ protected:
 public:
     Instruction() {}
     Instruction(BasicBlock *parent, Opcode opcode);
-    Instruction(Opcode opcode) : opcode(opcode), numOperands(OpcodeNum[opcode]) {}
-    Instruction(Opcode opcode, std::initializer_list<Value *> values) : opcode(opcode), numOperands(values.size()),
+    Instruction(Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {}
+    Instruction(Opcode opcode, const std::vector<Value *> &values) : opcode(opcode), numOperands(values.size()),
                                                                         trailingOperands(new Use[values.size()]) {
         auto *Operand = getTrailingOperand();
         for (auto &Value: values) {
             new(Operand++) Use(this, Value);
         }
     }
-
     Instruction(Opcode opcode, size_t numTrailingOperands) : opcode(opcode), numOperands(numTrailingOperands) {
         // allocate memory for trailing operands
         trailingOperands = std::unique_ptr<Use[]>(new Use[numTrailingOperands]);
         // construct the trailing operands
         for (size_t I = 0; I < numTrailingOperands; I++) {
             new(&trailingOperands[I]) Use(this);
+        }
+    }
+    Instruction(const Instruction &other) : Instruction(other.opcode, other.numOperands) {
+        // copy trailing operands
+        for (size_t I = 0; I < numOperands; I++) {
+            setOperand(I, other.getOperand(I));
         }
     }
 
@@ -170,23 +178,28 @@ public:
 
     void setOperand(size_t i, Value *value) { getTrailingOperand()[i].set(value); }
 
-    auto operands() {
-        return IterRange<Use *>(getTrailingOperand(), getTrailingOperand() + getOperandNum());
+    IterRange<Use *> operands() const {
+        return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
     }
 
     virtual unsigned getNumSuccessors() const { return 0; }
     virtual BasicBlock *getSuccessor(unsigned i) const { return nullptr; }
     virtual void setSuccessor(unsigned i, BasicBlock *bb) {}
 
-    void dump(std::ostream &os, int level = 0) override;
+    void dump(std::ostream &os) override;
     void dumpAsOperand(std::ostream &os) override {
         if (auto *Ty = getType()) {
             Ty->dump(os);
             os << " ";
         }
+        dumpName(os);
+    }
+    inline std::ostream &dumpName(std::ostream &os) {
         os << "%" << getName();
+        return os;
     }
 
+    Instruction *clone() const;
 protected:
     inline Use *getTrailingOperand() const { return trailingOperands.get(); }
 
@@ -195,9 +208,9 @@ protected:
 class OutputInst : public Instruction {
 public:
     using Instruction::Instruction;
-    void dump(std::ostream &os, int level) override {
-        os << "%" << getName() << " = ";
-        Instruction::dump(os, level);
+    void dump(std::ostream &os) override {
+        dumpName(os) << " = ";
+        Instruction::dump(os);
     }
 
 };
@@ -205,8 +218,9 @@ public:
 class AllocaInst : public Instruction {
     Type *allocatedType;
     unsigned allocatedSize = 1;
-
 public:
+    AllocaInst(const AllocaInst &other) : Instruction(other), allocatedType(other.allocatedType),
+                                          allocatedSize(other.allocatedSize) {}
     AllocaInst(Type *type) : Instruction(OpcodeAlloca), allocatedType(type) {}
     AllocaInst(Type *type, unsigned size) : Instruction(OpcodeAlloca), allocatedType(type), allocatedSize(size) {}
 
@@ -222,8 +236,8 @@ public:
         return allocatedSize;
     }
 
-    void dump(std::ostream &os, int level) override {
-        os << "%" << getName() << " = alloca ";
+    void dump(std::ostream &os) override {
+        dumpName(os) << " = alloca ";
         allocatedType->dump(os);
         os << ", " << allocatedSize;
     }
@@ -238,6 +252,7 @@ class BranchInst : public TerminatorInst {
 public:
     BranchInst() : TerminatorInst(OpcodeBr) {}
     BranchInst(BasicBlock *target);
+    BranchInst(const BranchInst &other) : TerminatorInst(other) {}
 
     BasicBlock *getTarget() const;
     void setTarget(BasicBlock *target);
@@ -259,6 +274,7 @@ class CondBrInst : public TerminatorInst {
 public:
     CondBrInst() : TerminatorInst(OpcodeCondBr) {}
     CondBrInst(Value *cond, BasicBlock *trueTarget, BasicBlock *falseTarget);
+    CondBrInst(const CondBrInst &other) : TerminatorInst(other) {}
 
     Value *getCond() const {
         return getOperand(0);
@@ -293,12 +309,18 @@ public:
 class CallInst : public OutputInst {
     Function *callee = nullptr;
 public:
-
     CallInst(Function *callee) : OutputInst(OpcodeCall), callee(callee) {}
-    CallInst(Function *callee, std::initializer_list<Value *> args) : OutputInst(OpcodeCall, args) {}
+    CallInst(Function *callee, const std::vector<Value *> &args) : OutputInst(OpcodeCall, args), callee(callee) {}
+    CallInst(const CallInst &other) : OutputInst(other), callee(other.callee) {}
 
-    Function *getCallee() {
+    Function *getCallee() const {
         return callee;
+    }
+
+    void dump(std::ostream &os) override;
+
+    Value *getArg(unsigned i) const {
+        return getOperand(i);
     }
 
     auto args() {
@@ -311,6 +333,7 @@ class LoadInst : public OutputInst {
 public:
     LoadInst() : OutputInst(OpcodeLoad) {}
     LoadInst(Value *ptr) : OutputInst(OpcodeLoad, {ptr}) {}
+    LoadInst(const LoadInst &other) : OutputInst(other) {}
 
     Value *getPtr() const {
         return getOperand(0);
@@ -331,6 +354,7 @@ class StoreInst : public Instruction {
 public:
     StoreInst() : Instruction(OpcodeStore) {}
     StoreInst(Value *ptr, Value *val) : Instruction(OpcodeStore, {ptr, val}) {}
+    StoreInst(const StoreInst &other) : Instruction(other) {}
 
     Value *getPtr() const {
         return getOperand(0);
@@ -344,17 +368,24 @@ public:
 
 class PhiInst : public OutputInst {
 public:
-    static PhiInst *Create(BasicBlock *bb);
+    static PhiInst *Create(BasicBlock *bb, StrView name = "");
 public:
     PhiInst() : OutputInst(OpcodePhi) {}
     PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
+    PhiInst(const PhiInst &other);
     ~PhiInst() override = default;
 
     void fill(std::map<BasicBlock *, Value *> &values);
-    BasicBlock *getIncomingBlock(Use &use);
-    BasicBlock *getIncomingBlock(size_t i);
+    BasicBlock *getIncomingBlock(Use &use) const;
+    BasicBlock *getIncomingBlock(size_t i) const;
 
-    void dump(std::ostream &os, int level) override;
+    void setIncomingBlock(size_t i, BasicBlock *bb);
+
+    IterRange<Use *> incomings() const {
+        return iter(incomingBlocks.get(), incomingBlocks.get() + getOperandNum());
+    }
+
+    void dump(std::ostream &os) override;
 
 private:
     std::unique_ptr<Use[]> incomingBlocks;
@@ -371,6 +402,7 @@ class BinaryInst : public OutputInst {
 public:
     BinaryInst() : OutputInst(OpcodeBinary) {}
     BinaryInst(BinaryOp op, Value *lhs, Value *rhs) : OutputInst(OpcodeBinary, {lhs, rhs}), op(op) {}
+    BinaryInst(const BinaryInst &other) : OutputInst(other), op(other.op) {}
 
     BinaryOp getOp() {
         return op;
@@ -390,8 +422,14 @@ class RetInst : public TerminatorInst {
 public:
     RetInst() : TerminatorInst(OpcodeRet) {}
     RetInst(Value *val) : TerminatorInst(OpcodeRet, {val}) {}
+    RetInst(const RetInst &other) : TerminatorInst(other) {}
+
+    bool isVoidRet() const {
+        return getOperandNum() == 0;
+    }
 
     Value *getRetVal() const {
+        assert(getOperandNum() == 1);
         return getOperand(0);
     }
 

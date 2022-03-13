@@ -347,6 +347,10 @@ public:
         first->linkPrev(End);
     }
 
+    inline void extract(iterator first, iterator last) {
+        remove(first, last);
+    }
+
     inline void inject_before(iterator where, pointer node) {
         auto Prev = where->getPrev();
         auto End = node->getPrev();

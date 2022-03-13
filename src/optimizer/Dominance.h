@@ -31,6 +31,7 @@ public:
             }
             bbIndex[bb] = bbReorder.size();
             bbReorder.push_back(bb);
+            bb->clearDomInfo();
         };
 
         DFS(function->getEntryBlock());
@@ -58,15 +59,6 @@ public:
         } while (Changed);
 
         // dominance frontier
-
-        /*for (auto &BB: bbReorder) {
-            for (auto &Succ: BB->getSuccessors()) {
-                if (BB->getDominator() != Succ) {
-                    Succ->addDF(BB);
-                }
-            }
-        }*/
-
         for (auto &BB: bbReorder) {
             if (BB->hasMultiplePredecessor()) {
                 for (auto *Pred: BB->preds()) {

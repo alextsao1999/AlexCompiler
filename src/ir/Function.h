@@ -14,10 +14,10 @@ class Type;
 class Function : public Value, public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module> {
 public:
     static Function *Create(Module *module, std::string_view name, Type *type);
+    static Function *Create(std::string_view name, Type *type);
 public:
-    Function(Module *m, std::string_view name, Type *ft) : module(m), name(name), type(ft) {
-        // FIXME: Module contains function?
-    }
+    Function(Module *m, std::string_view name, Type *ft);
+    Function(std::string_view name, Type *ft) : name(name), type(ft) {}
 
     const std::string &getName() const {
         return name;
@@ -27,10 +27,21 @@ public:
         return type;
     }
 
-    Context *getContext() const;
+    inline Type *getReturnType() const {
+        return type->getReturnType();
+    }
 
     inline Type *getType() const {
         return type;
+    }
+
+    Module *getModule() const {
+        return module;
+    }
+
+    Context *getContext() const {
+        assert(getType());
+        return getType()->getContext();
     }
 
     BasicBlock *getEntryBlock() const {
@@ -56,15 +67,51 @@ public:
         return params.emplace_back(new Param(paramName, paramType)).get();
     }
 
+    Param *getParam(unsigned index) {
+        assert(index < params.size());
+        return params[index].get();
+    }
+
+    void eraseParam(unsigned index) {
+        assert(index < params.size());
+        params.erase(params.begin() + index);
+    }
+
+    auto &getParams() {
+        return params;
+    }
+
     template<typename InstTy, typename FnTy>
     void forEach(FnTy fn) {
-        for (auto &BB: getSubList()) {
+        auto BBIt = list.begin();
+        auto BBEnd = list.end();
+        if (BBIt == BBEnd) {
+            return;
+        }
+        do {
+            auto &BB = *BBIt++;
+            auto InstIt = BB.getSubList().begin();
+            auto InstEnd = BB.getSubList().end();
+
+            if (InstIt == InstEnd) {
+                continue;
+            }
+            do {
+                auto &Inst = *InstIt++;
+                if (auto *I = Inst.template as<InstTy>()) {
+                    fn(I);
+                }
+            } while (InstIt != InstEnd);
+        } while (BBIt != BBEnd);
+
+
+        /*for (auto &BB: getSubList()) {
             for (auto &Inst: BB.getInstrs()) {
                 if (auto *Val = Inst.as<InstTy>()) {
                     fn(Val);
                 }
             }
-        }
+        }*/
     }
 
     /// return true if the function is a declaration
@@ -72,26 +119,27 @@ public:
         return false;
     }
 
-    void dump(std::ostream &os, int level = 0) override {
-        os << "Function: " << getName() << " ";
+    /// dump the function
+    void dump(std::ostream &os) override {
+        os << "def " << getName();
 
         // dump params
-        /*size_t I = 0;
+        size_t I = 0;
         os << "(";
         for (;I < params.size(); ++I) {
             if(I > 0) os << ", ";
-            type->getParameterType(I)->dump(os);
             params[I]->dumpAsOperand(os);
         }
         os << ") -> ";
-        type->getReturnType()->dump(os);*/
+        type->getReturnType()->dump(os);
 
-        type->dump(os);
+        //type->dump(os);
 
-        os << std::endl;
-        for (auto &BB: list) {
+        os << " {" << std::endl;
+        DUMP_REF_S(os, list, "\n", BB, {
             BB.dump(os);
-        }
+        });
+        os << "}" << std::endl;
     }
     void dumpAsOperand(std::ostream &os) override {
         os << "@" << getName();

@@ -44,12 +44,20 @@ public:
         return getSubList().end();
     }
 
+    void dump(std::ostream &os) {
+        os << "Module: " << name;
+        for (auto &F : *this) {
+            os << std::endl;
+            F.dump(os);
+        }
+    }
+
 private:
+    std::string name;
+
     Context *context = nullptr;
     std::map<std::string, Function *> functions;
     std::map<std::string, Value *> globals;
-
-    std::string name;
 
 };
 

@@ -10,7 +10,10 @@ Function *Function::Create(Module *module, std::string_view name, Type *type) {
     return module->createFunction(name, type);
 }
 
-Context *Function::getContext() const {
-    assert(module);
-    return module->getContext();
+Function::Function(Module *m, std::string_view name, Type *ft) : module(m), name(name), type(ft) {
+    // FIXME: Module contains function?
+}
+
+Function *Function::Create(std::string_view name, Type *type) {
+    return new Function(name, type);
 }

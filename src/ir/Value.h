@@ -5,24 +5,24 @@
 #ifndef DRAGONIR_VALUE_H
 #define DRAGONIR_VALUE_H
 #include <iostream>
+#include <sstream>
 #include "Common.h"
 #include "Range.h"
 #define OPCODE_LIST(S)       \
-S(Alloca, 0)                 \
-S(Phi,    0)                 \
-S(Undef,  0)                 \
-S(Br,     1)                 \
-S(CondBr, 3)                 \
-S(Unary,  1)                 \
-S(Binary, 2)                 \
-S(GEP,    2)                 \
-S(Ret,    0)                 \
-S(Call,   0)                 \
-S(Load,   1)                 \
-S(Store,  2)
+S(Alloca, 0, AllocaInst)     \
+S(Phi,    0, PhiInst)        \
+S(Br,     1, BranchInst)     \
+S(CondBr, 3, CondBrInst)     \
+S(Unary,  1, UnaryInst)      \
+S(Binary, 2, BinaryInst)     \
+S(GEP,    2, Instruction)    \
+S(Ret,    0, RetInst)        \
+S(Call,   0, CallInst)       \
+S(Load,   1, LoadInst)       \
+S(Store,  2, StoreInst)
 
 enum Opcode {
-#define DEFINE_OPCODE(name, c) Opcode##name,
+#define DEFINE_OPCODE(name, c, k) Opcode##name,
     OPCODE_LIST(DEFINE_OPCODE)
 #undef DEFINE_OPCODE
 };
@@ -145,14 +145,16 @@ public:
         return iter(UserAsIter(users), UserAsIter());
     }
 
-    inline void dumpStd() {
-        dump(std::cout, 0);
+    inline std::string dumpToString() {
+        std::stringstream SS;
+        dump(SS);
+        // Trim the string
+        std::string Str = SS.str();
+        Str.erase(Str.find_last_not_of(" \n\r\t") + 1);
+        return std::move(Str);
     }
 
-    virtual void dump(std::ostream &os, int level = 0) {
-        std::string Indent(level * 4, ' ');
-        os << Indent;
-    }
+    virtual void dump(std::ostream &os) {}
     virtual void dumpAsOperand(std::ostream &os) {}
 
     template<typename T>
@@ -379,7 +381,7 @@ inline void dump_os(std::ostream &os, ForwIt begin, ForwIt end, F f, S s = ", ")
 }
 
 template<typename C, typename F, typename S = std::string>
-inline void dump_os(C c, F f, S s = ", ") {
+inline void dump_os(C &c, F f, S s = ", ") {
     dump_os(c.begin(), c.end(), std::move(f), s);
 }
 
@@ -392,5 +394,6 @@ inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
 #define DUMP_ITER(OS, C, ARG, BODY) dump_os(C, ([&](auto ARG) -> decltype(auto) {{BODY}; return OS;}));
 #define DUMP_REF(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto &ARG) -> decltype(auto) {BODY;}))
 #define DUMP_PTR(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto *ARG) -> decltype(auto) {BODY;}))
+#define DUMP_REF_S(OS, C, S, ARG, BODY) dump_os(OS, C.begin(), C.end(), ([&](auto &ARG) {BODY;}), S)
 
 #endif //DRAGONIR_VALUE_H

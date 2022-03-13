@@ -16,8 +16,16 @@ public:
         return nameTable.template count(item);
     }
 
-    void setName(T *item, std::string_view name) {
-        nameTable[item] = name;
+    void setName(T *item, StrView name) {
+        if (name.empty()) {
+            nameTable.erase(item);
+        } else {
+
+            /*auto &Count = countTable[std::string(name)];
+            nameTable[item] = std::string(name) + "." + std::to_string(Count++);*/
+
+            nameTable[item] = name;
+        }
     }
 
     const std::string &getName(T *item) {
@@ -32,6 +40,7 @@ public:
 
 private:
     size_t count = 0;
+    std::map<std::string, size_t> countTable;
     std::map<std::string, T *> valueTable;
     std::map<T *, std::string> nameTable;
 

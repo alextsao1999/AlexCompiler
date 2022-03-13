@@ -8,12 +8,12 @@
 #include "PassManager.h"
 #include "Dominance.h"
 #include "SSABuilder.h"
+#include "Inliner.h"
 
-int main(int argc, char **argv) {
-    Context Context;
-    auto M = std::make_unique<Module>("test", Context);
+static Context Context;
 
-    auto *F = M->createFunction("func1", Context.getVoidFunTy());
+Function *createFunc1() {
+    auto *F = new Function("func1", Context.getFunctionTy(Context.getInt32Ty(), {Context.getInt32Ty()}));
     auto *ParamX = F->addParam("x", Context.getInt32Ty());
 
     BasicBlock::Create(F, "entry");
@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     Builder.createCondBr(Cmp, TrueBB, FalseBB);
 
     Builder.setInsertPoint(TrueBB);
-    Builder.createStore(A, Builder.getInt(33));
+    Builder.createStore(A, ParamX);
     Builder.createBr(Leave);
 
     Builder.setInsertPoint(FalseBB);
@@ -41,12 +41,30 @@ int main(int argc, char **argv) {
     auto *Load = Builder.createLoad(A);
     Builder.createRet(Load);
 
+    return F;
+}
+
+int main(int argc, char **argv) {
+    auto M = std::make_unique<Module>("test", Context);
+
+    auto *Func1 = createFunc1();
+    M->append(Func1);
+
+    auto *Main = Function::Create(M.get(), "main", Context.getFunctionTy(Context.getInt32Ty(), {}));
+    BasicBlock *Entry = BasicBlock::Create(Main, "entry");
+    IRBuilder Builder(Main);
+    auto *Alloca = Builder.createAlloca(Context.getInt32Ty(), "value");
+    auto *Ret = Builder.createCall(Func1, {Builder.getInt(666)}, "call");
+    auto *Store = Builder.createStore(Alloca, Ret);
+    Builder.createRet(Builder.createLoad(Alloca));
+
     PassManager PM;
+    PM.addPass(new Inliner());
     PM.addPass(new Dominance());
     PM.addPass(new SSABuilder());
     PM.run(M.get());
 
-    F->dump(std::cout);
+    M->dump(std::cout);
 
     return 0;
 }

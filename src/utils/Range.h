@@ -11,6 +11,7 @@ class IterRange {
     Iter _end;
 public:
     IterRange() {}
+    IterRange(const IterRange &r) : _begin(r._begin), _end(r._end) {}
     IterRange(Iter begin, Iter anEnd) : _begin(begin), _end(anEnd) {}
     Iter begin() const { return _begin; }
     Iter end() const { return _end; }

@@ -42,7 +42,7 @@ public:
     }
 
     Context *getContext() {
-        return bb->getParent()->getParent()->getContext();
+        return bb->getParent()->getContext();
     }
 
     auto *getUndef() {
@@ -58,81 +58,86 @@ public:
     }
 
     auto *createBr(BasicBlock *target) {
-        return insert(new BranchInst(target), "br");
+        return insert(new BranchInst(target));
     }
 
-    auto *createAlloca(Type *ty, std::string_view name) {
+    auto *createAlloca(Type *ty, StrView name = "") {
         return insert(new AllocaInst(ty), name);
     }
 
-    auto *createAdd(Value *lhs, Value *rhs, std::string_view name = "add") {
+    auto *createAdd(Value *lhs, Value *rhs, StrView name = "add") {
         return insert(new BinaryInst(Add, lhs, rhs), name);
     }
 
-    auto *createSub(Value *lhs, Value *rhs, std::string_view name = "sub") {
+    auto *createSub(Value *lhs, Value *rhs, StrView name = "sub") {
         return insert(new BinaryInst(Sub, lhs, rhs), name);
     }
 
-    auto *createMul(Value *lhs, Value *rhs, std::string_view name = "mul") {
+    auto *createMul(Value *lhs, Value *rhs, StrView name = "mul") {
         return insert(new BinaryInst(Mul, lhs, rhs), name);
     }
 
-    auto *createDiv(Value *lhs, Value *rhs, std::string_view name = "div") {
+    auto *createDiv(Value *lhs, Value *rhs, StrView name = "div") {
         return insert(new BinaryInst(Div, lhs, rhs), name);
     }
 
     // create binary
-    auto *createAnd(Value *lhs, Value *rhs, std::string_view name = "and") {
+    auto *createAnd(Value *lhs, Value *rhs, StrView name = "and") {
         return insert(new BinaryInst(And, lhs, rhs), name);
     }
 
-    auto *createOr(Value *lhs, Value *rhs, std::string_view name = "or") {
+    auto *createOr(Value *lhs, Value *rhs, StrView name = "or") {
         return insert(new BinaryInst(Or, lhs, rhs), name);
     }
 
-    auto *createXor(Value *lhs, Value *rhs, std::string_view name = "xor") {
+    auto *createXor(Value *lhs, Value *rhs, StrView name = "xor") {
         return insert(new BinaryInst(Xor, lhs, rhs), name);
     }
 
-    auto *createShl(Value *lhs, Value *rhs, std::string_view name = "shl") {
+    auto *createShl(Value *lhs, Value *rhs, StrView name = "shl") {
         return insert(new BinaryInst(Shl, lhs, rhs), name);
     }
 
-    auto *createShr(Value *lhs, Value *rhs, std::string_view name = "shr") {
+    auto *createShr(Value *lhs, Value *rhs, StrView name = "shr") {
         return insert(new BinaryInst(Shr, lhs, rhs), name);
     }
 
-    auto *createEq(Value *lhs, Value *rhs, std::string_view name = "eq") {
+    auto *createEq(Value *lhs, Value *rhs, StrView name = "eq") {
         return insert(new BinaryInst(Eq, lhs, rhs), name);
     }
 
-    auto *createNe(Value *lhs, Value *rhs, std::string_view name = "ne") {
+    auto *createNe(Value *lhs, Value *rhs, StrView name = "ne") {
         return insert(new BinaryInst(Ne, lhs, rhs), name);
     }
 
-    auto *createLt(Value *lhs, Value *rhs, std::string_view name = "lt") {
+    auto *createLt(Value *lhs, Value *rhs, StrView name = "lt") {
         return insert(new BinaryInst(Lt, lhs, rhs), name);
     }
 
-    auto *createLe(Value *lhs, Value *rhs, std::string_view name = "le") {
+    auto *createLe(Value *lhs, Value *rhs, StrView name = "le") {
         return insert(new BinaryInst(Le, lhs, rhs), name);
     }
 
-    auto *createGt(Value *lhs, Value *rhs, std::string_view name = "gt") {
+    auto *createGt(Value *lhs, Value *rhs, StrView name = "gt") {
         return insert(new BinaryInst(Gt, lhs, rhs), name);
     }
 
-    auto *createGe(Value *lhs, Value *rhs, std::string_view name = "ge") {
+    auto *createGe(Value *lhs, Value *rhs, StrView name = "ge") {
         return insert(new BinaryInst(Ge, lhs, rhs), name);
     }
 
-    auto *createLoad(Value *ptr, std::string_view name = "load") {
+    auto *createLoad(Value *ptr, StrView name = "load") {
         return insert(new LoadInst(ptr), name);
     }
 
     auto *createStore(Value *ptr, Value *val) {
         return insert(new StoreInst(ptr, val));
     }
+
+    auto *createCall(Function *func, const std::vector<Value *> &args, StrView name = "call") {
+        return insert(new CallInst(func, args), name);
+    }
+
 
     auto *createRet(Value *val) {
         return insert(new RetInst(val));

@@ -145,9 +145,13 @@ public:
     }
 
     void append(Instruction *node) {
-        assert(!getTerminator());
-        NodeParent::append(node);
-        addInstr(node);
+        if (getTerminator()) {
+            assert(!node->isTerminator());
+            insertBefore(getTerminator(), node);
+        } else {
+            NodeParent::append(node);
+            addInstr(node);
+        }
     }
 
     void insertAfter(Instruction *node, Instruction *after) {
@@ -166,17 +170,21 @@ public:
         addInstr(before);
     }
 
-    BasicBlock *split(Instruction *i) {
-        BasicBlock *NewBB = new BasicBlock(getName() + ".split");
+    BasicBlock *split(Instruction *i, std::string newName = "") {
+        if (newName.empty()) {
+            newName = getName() + ".split";
+        }
+        BasicBlock *NewBB = new BasicBlock(newName);
         insertBeforeThis(NewBB);
 
         auto I = list.begin();
-        list.remove(list.begin(), i);
+        list.extract(list.begin(), i);
 
         auto &NewBBList = NewBB->getSubList();
         NewBBList.inject_before(NewBBList.end(), I.getPointer());
 
         replaceAllUsesWith(NewBB);
+        NewBB->append(new BranchInst(this));
         return NewBB;
     }
 
@@ -245,27 +253,27 @@ public:
         return iter(succ_iterator(this, 0), succ_iterator(this));
     }
 
-    void dump(std::ostream &os, int level = 0) override {
-        os << name << ":    " ;
+    void dump(std::ostream &os) override {
+        os << name << ": " ;
 
-        DUMP_REF(os << "Doms=(", domChildren, V, {
+        DUMP_PTR(os << "preds=(", preds(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_REF(os << "DF=(", getDomFrontier(), V, {
+        DUMP_PTR(os << "succs=(", succs(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_PTR(os << "Pred=(", preds(), V, {
+        DUMP_PTR(os << "doms=(", domChildren, V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_PTR(os << "Succ=(", succs(), V, {
+        DUMP_PTR(os << "df=(", getDomFrontier(), V, {
             V->dumpAsOperand(os);
-        }) << ")  ";
+        }) << ")";
 
         if (getDominator()) {
-            os << "idom = ";
+            os << "  idom=";
             getDominator()->dumpAsOperand(os);
         }
 
@@ -275,8 +283,6 @@ public:
             Instr.dump(os);
             os << std::endl;
         }
-
-        os << std::endl;
 
     }
     void dumpAsOperand(std::ostream &os) override {
@@ -319,6 +325,11 @@ private:
             default:
                 break;
         }
+    }
+    inline void clearDomInfo() {
+        dominator = nullptr;
+        domFrontier.clear();
+        domChildren.clear();
     }
 
 private:

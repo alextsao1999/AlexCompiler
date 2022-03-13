@@ -107,7 +107,8 @@ public:
 
                 for (auto *D: BB->getDomFrontier()) {
                     if (InWorklist[D] != Value) {
-                        auto *PhiNode = PhiInst::Create(D);
+                        StrView Name = Value->cast<Instruction>()->getName();
+                        auto *PhiNode = PhiInst::Create(D, Name);
                         phiStatus[PhiNode].setAlloca(Value);
                         InWorklist[D] = Value;
                         Worklist.push_back(D);
