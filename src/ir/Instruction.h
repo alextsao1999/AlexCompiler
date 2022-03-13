@@ -313,6 +313,17 @@ public:
     CallInst(Function *callee, const std::vector<Value *> &args) : OutputInst(OpcodeCall, args), callee(callee) {}
     CallInst(const CallInst &other) : OutputInst(other), callee(other.callee) {}
 
+    Type *getType() override {
+        return getReturnType();
+    }
+
+    Type *getReturnType() const {
+        assert(getCalleeType());
+        return getCalleeType()->getReturnType();
+    }
+
+    Type *getCalleeType() const;
+
     Function *getCallee() const {
         return callee;
     }
@@ -406,6 +417,10 @@ public:
 
     BinaryOp getOp() {
         return op;
+    }
+
+    Type *getType() override {
+        return Type::getMaxType(getLHS()->getType(), getRHS()->getType());
     }
 
     Value *getLHS() {

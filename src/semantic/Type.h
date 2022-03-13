@@ -34,7 +34,18 @@ protected:
     TypeID typeId = TypeVoid;
     Type **containedType = nullptr;
     unsigned containedTypeCount = 0;
-
+public:
+    static Type *getMaxType(Type *type1, Type *type2) {
+        assert(type1 && type2);
+        assert(type1->getTypeId() == type2->getTypeId());
+        TypeID TypeId = type1->getTypeId();
+        switch (TypeId) {
+            case TypeInt:
+                return type1->getBitSize() > type2->getBitSize() ? type1 : type2;
+            default:
+                return type1;
+        }
+    }
 public:
     Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId),
                                                               containedType(containedType), containedTypeCount(1) {}
@@ -227,6 +238,19 @@ public:
 
 };
 
+
+inline unsigned Type::getBitSize() {
+    switch (getTypeId()) {
+        case TypeVoid:
+            return 0;
+        case TypeInt:
+            return static_cast<IntegerType *>(this)->getBitSize();
+        default:
+            break;
+    }
+    unreachable();
+    return 0;
+}
 
 
 #endif //DRAGONCOMPILER_TYPE_H

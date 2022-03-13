@@ -7,7 +7,7 @@
 #include "Module.h"
 #include "PassManager.h"
 #include "Dominance.h"
-#include "SSABuilder.h"
+#include "SSAConstructor.h"
 #include "Inliner.h"
 
 static Context Context;
@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
     PassManager PM;
     PM.addPass(new Inliner());
     PM.addPass(new Dominance());
-    PM.addPass(new SSABuilder());
+    PM.addPass(new SSAConstructor());
     PM.run(M.get());
 
     M->dump(std::cout);

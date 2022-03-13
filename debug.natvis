@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+    <Type Name="nlohmann::basic_json&lt;*&gt;">
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::null">null</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::object">{*(m_value.object)}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::array">{*(m_value.array)}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::string">{*(m_value.string)}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::boolean">{m_value.boolean}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::number_integer">{m_value.number_integer}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::number_unsigned">{m_value.number_unsigned}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::number_float">{m_value.number_float}</DisplayString>
+        <DisplayString Condition="m_type == nlohmann::detail::value_t::discarded">discarded</DisplayString>
+        <Expand>
+            <ExpandedItem Condition="m_type == nlohmann::detail::value_t::object">
+                *(m_value.object),view(simple)
+            </ExpandedItem>
+            <ExpandedItem Condition="m_type == nlohmann::detail::value_t::array">
+                *(m_value.array),view(simple)
+            </ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="std::pair&lt;*, nlohmann::basic_json&lt;*&gt;&gt;" IncludeView="MapHelper">
+        <DisplayString>{second}</DisplayString>
+        <Expand>
+            <ExpandedItem>second</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="std::shared_ptr&lt;*&gt;">
+        <DisplayString Condition="_Ptr == 0">empty</DisplayString>
+        <DisplayString Condition="_Ptr != 0">{*_Ptr}</DisplayString>
+        <Expand>
+            <ExpandedItem>_Ptr</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="INodeListImpl&lt;*,*,*&gt;">
+        <Expand>
+            <CustomListItems MaxItemsPerView="5000" ExcludeView="Test">
+                <Variable Name="iter" InitialValue="sentinal.next" />
+                <Variable Name="end" InitialValue="&amp;sentinal" />
+                <Loop>
+                    <Break Condition="iter == end"/>
+                    <Item>*(($T1 *)(iter))</Item>
+                    <Exec>iter = iter->next</Exec>
+                </Loop>
+            </CustomListItems>
+        </Expand>
+    </Type>
+    <Type Name="Value" Inheritable="false">
+        <Expand>
+            <LinkedListItems>
+                <HeadPointer>users</HeadPointer>
+                <NextPointer>next</NextPointer>
+                <ValueNode>parent</ValueNode>
+            </LinkedListItems>
+        </Expand>
+    </Type>
+    <Type Name="NodeParent&lt;*,*,*&gt;" Inheritable="false">
+        <Expand>
+            <ExpandedItem>list</ExpandedItem>
+        </Expand>
+    </Type>
+    <Type Name="Instruction" Inheritable="true">
+        <Expand>
+
+            <ExpandItem Name="Opcode">opcode</ExpandItem>
+            <IndexListItems>
+                <Size>numOperands</Size>
+                <ValueNode>*(trailingOperands._Mypair._Myval2[$i].value)</ValueNode>
+            </IndexListItems>
+
+            <!--<ArrayItems>
+                <Size>numOperands</Size>
+                <ValuePointer>trailingOperands._Mypair._Myval2</ValuePointer>
+            </ArrayItems>-->
+        </Expand>
+    </Type>
+
+</AutoVisualizer>

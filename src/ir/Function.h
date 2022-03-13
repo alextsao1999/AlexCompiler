@@ -23,7 +23,7 @@ public:
         return name;
     }
 
-    Type *getType() override {
+    inline Type *getType() override {
         return type;
     }
 
@@ -90,18 +90,19 @@ public:
         }
         do {
             auto &BB = *BBIt++;
-            auto InstIt = BB.getSubList().begin();
+            auto InstIter = BB.getSubList().begin();
             auto InstEnd = BB.getSubList().end();
 
-            if (InstIt == InstEnd) {
+            if (InstIter == InstEnd) {
                 continue;
             }
             do {
-                auto &Inst = *InstIt++;
+                auto &Inst = *InstIter;
+                InstIter++;
                 if (auto *I = Inst.template as<InstTy>()) {
                     fn(I);
                 }
-            } while (InstIt != InstEnd);
+            } while (InstIter != InstEnd);
         } while (BBIt != BBEnd);
 
 
@@ -141,8 +142,11 @@ public:
         });
         os << "}" << std::endl;
     }
+
     void dumpAsOperand(std::ostream &os) override {
-        os << "@" << getName();
+        assert(getReturnType());
+        getReturnType()->dump(os);
+        os << " @" << getName();
     }
 
 private:

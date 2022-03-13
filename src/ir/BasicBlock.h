@@ -72,7 +72,6 @@ public:
         }
 
     };
-
     class SuccIter {
     public:
         using iterator_category = std::forward_iterator_tag;
@@ -99,6 +98,10 @@ public:
             return idx >= instr->getNumSuccessors();
         }
 
+        inline void set(BasicBlock *bb) {
+            instr->setSuccessor(idx, bb);
+        }
+
         inline SuccIter &operator++() {
             assert(!atEnd());
             ++idx;
@@ -122,7 +125,6 @@ public:
     };
     using pred_iterator = PredIter<BasicBlock, Value::UserIterator>;
     using succ_iterator = SuccIter;
-
 public:
     BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {}
     explicit BasicBlock(std::string_view name) : name(name) {}
@@ -177,27 +179,25 @@ public:
         BasicBlock *NewBB = new BasicBlock(newName);
         insertBeforeThis(NewBB);
 
-        auto I = list.begin();
-        list.extract(list.begin(), i);
+        auto First = list.begin();
+        list.extract(First, i);
 
-        auto &NewBBList = NewBB->getSubList();
-        NewBBList.inject_before(NewBBList.end(), I.getPointer());
+        if (First != i) {
+            auto &NewBBList = NewBB->getSubList();
+            NewBBList.inject_before(NewBBList.end(), First.getPointer());
+        }
 
         replaceAllUsesWith(NewBB);
         NewBB->append(new BranchInst(this));
         return NewBB;
     }
 
-    auto begin() {
+    inline auto begin() {
         return getSubList().begin();
     }
 
-    auto end() {
+    inline auto end() {
         return getSubList().end();
-    }
-
-    Instruction *getTerminator() {
-        return terminator;
     }
 
     inline BasicBlock *getDominator() {
@@ -212,10 +212,14 @@ public:
         return domChildren;
     }
 
-    void addPhi(Instruction *phi) {
+    inline void addPhi(Instruction *phi) {
         assert(phi->getOpcode() == OpcodePhi);
         phi->setParent(this);
         lastPhi = list.insert_after(lastPhi, phi);
+    }
+
+    inline bool hasPhi() const {
+        return lastPhi != list.end();
     }
 
     auto getPhis() {
@@ -232,6 +236,18 @@ public:
         return iter(++iterator(lastPhi), list.end());
     }
 
+    Instruction *getTerminator() {
+        return terminator;
+    }
+
+    unsigned getNumSuccessors() {
+        return terminator ? terminator->getNumSuccessors() : 0;
+    }
+
+    bool hasMultipleSuccessors() {
+        return getNumSuccessors() > 1;
+    }
+
     bool hasMultiplePredecessor() {
         auto Begin = pred_iterator(this);
         auto End = pred_iterator();
@@ -246,6 +262,14 @@ public:
 
     auto preds() {
         return iter(pred_iterator(this), pred_iterator());
+    }
+
+    auto preds_begin() {
+        return pred_iterator(this);
+    }
+
+    auto preds_end() {
+        return pred_iterator();
     }
 
     auto succs() {

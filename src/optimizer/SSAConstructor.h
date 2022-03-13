@@ -68,7 +68,7 @@ struct PhiStatus {
 
 };
 
-class SSABuilder : public FunctionPass {
+class SSAConstructor : public FunctionPass {
 public:
     std::map<Value *, VarStatus> varStatus; // Var state for alloca
     std::map<PhiInst *, PhiStatus> phiStatus; // Phi state for phi inst
@@ -130,7 +130,11 @@ public:
         // rename phi nodes
         for (auto &Instr: bb->getPhis()) {
             auto *Phi = Instr.cast<PhiInst>();
+            if (phiStatus.find(Phi) == phiStatus.end()) {
+                continue;
+            }
             auto *Alloca = phiStatus[Phi].getAlloca();
+            assert(Alloca);
             varStatus[Alloca].push(Phi);
         }
 
@@ -155,9 +159,15 @@ public:
         for (auto *Succ: bb->succs()) {
             for (auto &Instr: Succ->getPhis()) {
                 auto *Phi = Instr.cast<PhiInst>();
-                if (auto *Alloca = phiStatus[Phi].getAlloca()) {
+                auto Iter = phiStatus.find(Phi);
+                if (Iter == phiStatus.end()) {
+                    continue;
+                }
+                auto &PhiState = Iter->second;
+                if (auto *Alloca = PhiState.getAlloca()) {
+                    assert(Alloca);
                     auto *Val = varStatus[Alloca].top();
-                    phiStatus[Phi].addIncoming(bb, Val);
+                    PhiState.addIncoming(bb, Val);
                 }
             }
         }
@@ -169,7 +179,11 @@ public:
         // Pop all versions
         for (auto &Instr: bb->getPhis()) {
             auto *Phi = Instr.cast<PhiInst>();
+            if (phiStatus.find(Phi) == phiStatus.end()) {
+                continue;
+            }
             auto *Alloca = phiStatus[Phi].getAlloca();
+            assert(Alloca);
             varStatus[Alloca].pop();
         }
 
@@ -188,7 +202,11 @@ public:
         for (auto &Inst : bb->getInstrs()) {
             for (auto &Op : Inst.operands()) {
                 if (auto *Var = Op->as<PhiInst>()) {
-                    phiStatus[Var].setUseless(false);
+                    auto Iter = phiStatus.find(Var);
+                    if (Iter == phiStatus.end()) {
+                        continue;
+                    }
+                    Iter->second.setUseless(false);
                     phiStack.push_back(Var);
                 }
             }

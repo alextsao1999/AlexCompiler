@@ -210,3 +210,7 @@ void CallInst::dump(std::ostream &os) {
     });
     os << ")";
 }
+
+Type *CallInst::getCalleeType() const {
+    return callee->getType();
+}

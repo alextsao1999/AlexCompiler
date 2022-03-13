@@ -6,7 +6,7 @@
 #include "Function.h"
 #include "IRBuilder.h"
 #include "Dominance.h"
-#include "SSABuilder.h"
+#include "SSAConstructor.h"
 
 Context Context;
 
@@ -29,7 +29,7 @@ const lest::test Specification[] = {
                                          "ret i32 %load");
 
             auto *DomPass = new Dominance();
-            auto *SSAPass = new SSABuilder();
+            auto *SSAPass = new SSAConstructor();
 
             DomPass->runOnFunction(F);
             SSAPass->runOnFunction(F);
@@ -73,7 +73,7 @@ const lest::test Specification[] = {
 
             PassManager PM;
             PM.addPass(new Dominance());
-            PM.addPass(new SSABuilder());
+            PM.addPass(new SSAConstructor());
             PM.run(M.get());
 
             F->dump(std::cout);
