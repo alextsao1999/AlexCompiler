@@ -14,18 +14,19 @@ int main(int argc, char **argv) {
     auto M = std::make_unique<Module>("test", Context);
 
     auto *F = M->createFunction("func1", Context.getVoidFunTy());
+    auto *ParamX = F->addParam("x", Context.getInt32Ty());
 
-    BasicBlock::Create(F, "Entry");
+    BasicBlock::Create(F, "entry");
     IRBuilder Builder(F);
 
     auto *A = Builder.createAlloca(Context.getInt32Ty(), "test");
-    Builder.createStore(A, Builder.getInt(22));
+    Builder.createStore(A, ParamX);
 
-    auto *TrueBB = BasicBlock::Create(F, "br.true");
-    auto *FalseBB = BasicBlock::Create(F, "br.false");
+    auto *TrueBB = BasicBlock::Create(F, "if.true");
+    auto *FalseBB = BasicBlock::Create(F, "if.false");
     auto *Leave = BasicBlock::Create(F, "leave");
 
-    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(66));
+    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(66), "cmp");
     Builder.createCondBr(Cmp, TrueBB, FalseBB);
 
     Builder.setInsertPoint(TrueBB);

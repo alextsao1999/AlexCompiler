@@ -16,7 +16,9 @@ struct VarStatus {
     void push(Value *var) {
         assert(var);
         stack.push_back(var);
-        counter++;
+        if (auto *Instr = var->as<Instruction>()) {
+            counter++;
+        }
     }
 
     Value *pop() {
@@ -114,7 +116,10 @@ public:
             }
         }
 
+        // rename phi nodes
         rename(function->getEntryBlock());
+
+        // prune unless phi nodes
         prune(function->getEntryBlock());
 
         install();
@@ -146,7 +151,7 @@ public:
         }
 
         // insert phi nodes
-        for (auto &Succ: bb->getSuccessors()) {
+        for (auto *Succ: bb->succs()) {
             for (auto &Instr: Succ->getPhis()) {
                 auto *Phi = Instr.cast<PhiInst>();
                 if (auto *Alloca = phiStatus[Phi].getAlloca()) {
@@ -208,6 +213,7 @@ public:
     }
 
     void install() {
+        // erase instructions related to alloca
         std::vector<Instruction *> NeedToRemove;
         for (auto &[Alloca, VarState]: varStatus) {
             for (auto &Use: Alloca->getUsersAs<Instruction>()) {
@@ -218,6 +224,8 @@ public:
         for (auto &Inst: NeedToRemove) {
             Inst->eraseFromParent();
         }
+
+        // install phi nodes
         for (auto &[Value, PhiState] : phiStatus) {
             if (PhiState.isUseless()) {
                 Value->eraseFromParent();

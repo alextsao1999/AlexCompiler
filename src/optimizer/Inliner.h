@@ -6,10 +6,23 @@
 #define DRAGON_INLINER_H
 
 #include "PassManager.h"
+#include "Function.h"
+
+class BlockCopyer {
+
+};
 
 class Inliner : public FunctionPass {
 public:
     void runOnFunction(Function *function) override {
+        if (function->isDeclaration()) {
+            return;
+        }
+        function->forEach<CallInst>([&](CallInst *inst) {
+            Function *Callee = inst->getCallee();
+            assert(!Callee->isDeclaration());
+
+        });
 
     }
 };

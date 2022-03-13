@@ -120,12 +120,12 @@ public:
         parent->erase(static_cast<T *>(this));
     }
 
-    void insertAfter(T *node) {
+    void insertAfterThis(T *node) {
         assert(node && parent);
         parent->insertAfter(static_cast<T *>(this), node);
     }
 
-    void insertBefore(T *node) {
+    void insertBeforeThis(T *node) {
         assert(node && parent);
         parent->insertBefore(static_cast<T *>(this), node);
     }
@@ -336,13 +336,43 @@ public:
         Next->setPrev(Prev);
         Prev->setNext(Next);
 
-        where->setPrev(nullptr);
-        where->setNext(nullptr);
+        where->linkNext(where.getPointer());
     }
 
     inline void remove(iterator first, iterator last) {
+        auto End = last->getPrev();
         auto Prev = first->getPrev();
         Prev->linkNext(last.getPointer());
+
+        first->linkPrev(End);
+    }
+
+    inline void inject_before(iterator where, pointer node) {
+        auto Prev = where->getPrev();
+        auto End = node->getPrev();
+
+        Prev->linkNext(node);
+        End->linkNext(where.getPointer());
+    }
+
+    inline void inject_after(iterator where, pointer node) {
+        auto Next = where->getNext();
+        auto End = node->getPrev();
+
+        where->linkNext(node);
+        End->linkNext(Next);
+    }
+
+    inline void inject_before(iterator where, pointer first, pointer last) {
+        auto Prev = where->getPrev();
+        last->linkNext(where.getPointer());
+        first->linkPrev(Prev);
+    }
+
+    inline void inject_after(iterator where, pointer first, pointer last) {
+        auto Next = where->getNext();
+        first->linkPrev(where.getPointer());
+        last->linkNext(Next);
     }
 
     inline iterator erase(iterator where) {
@@ -360,6 +390,7 @@ public:
     }
 
     inline iterator insert_after(iterator where, pointer node) {
+        assert(node);
         // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
@@ -375,6 +406,7 @@ public:
     }
 
     inline iterator insert_before(iterator where, pointer node) {
+        assert(node);
         // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
@@ -448,10 +480,18 @@ public:
 
 protected:
     inline void delete_range(iterator first, iterator last) {
-        while (first != last) {
+        /*while (first != last) {
             auto Cur = first++;
             Traits::derefNode(Cur.getPointer());
+        }*/
+        if (first == last) {
+            return;
         }
+        do {
+            auto Cur = first++;
+            Traits::derefNode(Cur.getPointer());
+        } while (first != last);
+
     }
 
 };

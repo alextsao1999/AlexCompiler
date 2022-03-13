@@ -186,7 +186,7 @@ public:
             }
             os << "...";
         }
-        os << ") ->";
+        os << ") -> ";
         getReturnType()->dump(os);
 
     }

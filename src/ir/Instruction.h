@@ -45,11 +45,24 @@ public:
 };
 
 class Param : public Value {
-public:
     std::string name;
+    Type *type;
+public:
+    Param() : type(nullptr) {}
+    Param(std::string_view name, Type *type) : name(name), type(type) {
+        incRef();
+    }
+
+    std::string &getName() {
+        return name;
+    }
+
+    Type *getType() override {
+        return type;
+    }
 
     void dumpAsOperand(std::ostream &os) override {
-        std::cout << name;
+        std::cout << "%" << name;
     }
 
 };
@@ -114,6 +127,7 @@ protected:
     size_t numOperands;
     std::unique_ptr<Use[]> trailingOperands;
 public:
+    Instruction() {}
     Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : opcode(opcode), numOperands(OpcodeNum[opcode]) {}
     Instruction(Opcode opcode, std::initializer_list<Value *> values) : opcode(opcode), numOperands(values.size()),
@@ -154,11 +168,15 @@ public:
         return getTrailingOperand()[i].getValue();
     }
 
-    void setOperand(size_t i, Use use) { getTrailingOperand()[i] = std::move(use); }
+    void setOperand(size_t i, Value *value) { getTrailingOperand()[i].set(value); }
 
     auto operands() {
         return IterRange<Use *>(getTrailingOperand(), getTrailingOperand() + getOperandNum());
     }
+
+    virtual unsigned getNumSuccessors() const { return 0; }
+    virtual BasicBlock *getSuccessor(unsigned i) const { return nullptr; }
+    virtual void setSuccessor(unsigned i, BasicBlock *bb) {}
 
     void dump(std::ostream &os, int level = 0) override;
     void dumpAsOperand(std::ostream &os) override {
@@ -221,8 +239,20 @@ public:
     BranchInst() : TerminatorInst(OpcodeBr) {}
     BranchInst(BasicBlock *target);
 
-    BasicBlock *getTarget();
+    BasicBlock *getTarget() const;
+    void setTarget(BasicBlock *target);
 
+    unsigned int getNumSuccessors() const override {
+        return 1;
+    }
+
+    BasicBlock *getSuccessor(unsigned int i) const override {
+        return getTarget();
+    }
+
+    void setSuccessor(unsigned int i, BasicBlock *bb) override {
+        setTarget(bb);
+    }
 };
 
 class CondBrInst : public TerminatorInst {
@@ -230,13 +260,33 @@ public:
     CondBrInst() : TerminatorInst(OpcodeCondBr) {}
     CondBrInst(Value *cond, BasicBlock *trueTarget, BasicBlock *falseTarget);
 
-    Value *getCond() {
+    Value *getCond() const {
         return getOperand(0);
     }
 
-    BasicBlock *getTrueTarget();
+    BasicBlock *getTrueTarget() const;
 
-    BasicBlock *getFalseTarget();
+    BasicBlock *getFalseTarget() const;
+
+    void setTrueTarget(BasicBlock *bb);
+
+    void setFalseTarget(BasicBlock *bb);
+
+    unsigned int getNumSuccessors() const override {
+        return 2;
+    }
+
+    BasicBlock *getSuccessor(unsigned int i) const override {
+        return i == 0 ? getTrueTarget() : getFalseTarget();
+    }
+
+    void setSuccessor(unsigned int i, BasicBlock *bb) override {
+        if (i == 0) {
+            setTrueTarget(bb);
+        } else {
+            setFalseTarget(bb);
+        }
+    }
 
 };
 
@@ -262,7 +312,7 @@ public:
     LoadInst() : OutputInst(OpcodeLoad) {}
     LoadInst(Value *ptr) : OutputInst(OpcodeLoad, {ptr}) {}
 
-    Value *getPtr() {
+    Value *getPtr() const {
         return getOperand(0);
     }
 
@@ -301,6 +351,8 @@ public:
     ~PhiInst() override = default;
 
     void fill(std::map<BasicBlock *, Value *> &values);
+    BasicBlock *getIncomingBlock(Use &use);
+    BasicBlock *getIncomingBlock(size_t i);
 
     void dump(std::ostream &os, int level) override;
 
@@ -339,7 +391,7 @@ public:
     RetInst() : TerminatorInst(OpcodeRet) {}
     RetInst(Value *val) : TerminatorInst(OpcodeRet, {val}) {}
 
-    Value *getRetVal() {
+    Value *getRetVal() const {
         return getOperand(0);
     }
 

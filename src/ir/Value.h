@@ -13,7 +13,9 @@ S(Phi,    0)                 \
 S(Undef,  0)                 \
 S(Br,     1)                 \
 S(CondBr, 3)                 \
+S(Unary,  1)                 \
 S(Binary, 2)                 \
+S(GEP,    2)                 \
 S(Ret,    0)                 \
 S(Call,   0)                 \
 S(Load,   1)                 \
@@ -63,21 +65,23 @@ public:
         using range = IterRange<UseIteratorImpl>;
         UseIteratorImpl() {}
         UseIteratorImpl(UseT *use) : use(use) {}
-        bool operator==(const UseIteratorImpl &rhs) {
+        bool operator==(const UseIteratorImpl &rhs) const {
             return use == rhs.use;
         }
-        bool operator!=(const UseIteratorImpl &rhs) {
+        bool operator!=(const UseIteratorImpl &rhs) const {
             return !operator==(rhs);
         }
-        Use &getUse() { return *use; }
-        const Use &getUse() const { return *use; }
-        pointer operator->() { return F()(use); }
-        reference operator*() { return *operator->(); }
+        bool atEnd() const {
+            return use == nullptr;
+        }
+        Use &getUse() const { return *use; }
+        pointer operator->() const { return F()(use); }
+        reference operator*() const { return *operator->(); }
         UseIteratorImpl &operator++() {
             use = use->next;
             return *this;
         }
-        UseIteratorImpl operator++(int) {
+        UseIteratorImpl operator++(int) const {
             auto back = *this;
             ++*this;
             return back;
@@ -94,7 +98,7 @@ public:
     virtual ~Value();
     virtual Type *getType() { return nullptr; }
 
-    // memory management
+    /// memory management
     void incRef() {
         refCount++;
     }
@@ -104,14 +108,16 @@ public:
             delete this;
         }
     }
-
     inline size_t getRefCount() {
         return refCount;
     }
 
+    /// Get opcode of instruction
     Opcode getOpcode();
 
     bool isOnlyUsedOnce();
+
+    void replaceAllUsesWith(Value *newVal);
 
     inline Use *getLastUse() {
         return users;
@@ -124,6 +130,14 @@ public:
 
     UserIterator::range getUsers() {
         return iter(UserIterator(users), UserIterator());
+    }
+
+    UserIterator user_begin() const {
+        return UserIterator(users);
+    }
+
+    UserIterator user_end() const {
+        return UserIterator();
     }
 
     template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename range = typename UserAsIter::range>
@@ -147,6 +161,13 @@ public:
     inline T *cast() { return static_cast<T *>(this); }
     template <typename T>
     inline bool isa() { return dynamic_cast<T *>(this); }
+
+    template<typename T>
+    inline const T *as() const { return dynamic_cast<const T *>(this); }
+    template <typename T>
+    inline const T *cast() const { return static_cast<const T *>(this); }
+    template <typename T>
+    inline bool isa() const { return dynamic_cast<const T *>(this); }
 
 };
 
@@ -368,7 +389,8 @@ inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
     return os;
 }
 
-#define DUMP_ITER(OS, C, ARG, BODY) dump_os(C, ([&](auto &ARG) -> decltype(auto) {{BODY}; return OS;}));
-#define DUMP_OS(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto &ARG) -> decltype(auto) {{BODY;}}))
+#define DUMP_ITER(OS, C, ARG, BODY) dump_os(C, ([&](auto ARG) -> decltype(auto) {{BODY}; return OS;}));
+#define DUMP_REF(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto &ARG) -> decltype(auto) {BODY;}))
+#define DUMP_PTR(OS, C, ARG, BODY) dump_os(OS, C, ([&](auto *ARG) -> decltype(auto) {BODY;}))
 
 #endif //DRAGONIR_VALUE_H

@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by Alex on 2022/3/8.
 //
 
@@ -14,6 +14,115 @@ class BasicBlock : public Value, public NodeWithParent<BasicBlock, Function>, pu
     friend class Dominance;
 public:
     static BasicBlock *Create(Function *parent, std::string_view name);
+    template<typename BBTy, typename UseIt>
+    class PredIter {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = BBTy;
+        using difference_type = std::ptrdiff_t;
+        using pointer = BBTy *;
+        using reference = BBTy *;
+    public:
+        UseIt iter;
+        PredIter() {}
+        inline PredIter(BBTy *bb) : iter(bb->user_begin()) {
+            advance();
+        }
+
+        inline void advance() {
+            while (!iter.atEnd()) {
+                if (iter->template as<TerminatorInst>()) {
+                    break;
+                }
+                ++iter;
+            }
+        }
+
+        inline bool operator==(const PredIter &other) const {
+            return iter == other.iter;
+        }
+
+        inline bool operator!=(const PredIter &other) const {
+            return iter != other.iter;
+        }
+
+        inline bool atEnd() const {
+            return iter.atEnd();
+        }
+
+        inline PredIter &operator++() {
+            assert(!atEnd());
+            ++iter;
+            advance();
+            return *this;
+        }
+
+        PredIter operator++(int) {
+            PredIter Tmp = *this;
+            ++(*this);
+            return Tmp;
+        }
+
+        inline pointer operator->() const {
+            return iter->template cast<Instruction>()->getParent();
+        }
+
+        inline reference operator*() const {
+            return iter->template cast<Instruction>()->getParent();
+        }
+
+    };
+
+    class SuccIter {
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = BasicBlock;
+        using difference_type = std::ptrdiff_t;
+        using pointer = BasicBlock *;
+        using reference = BasicBlock *;
+    public:
+        Instruction *instr;
+        unsigned idx;
+
+        SuccIter(BasicBlock *bb) : instr(bb->getTerminator()), idx(bb->getTerminator()->getNumSuccessors()) {}
+        SuccIter(BasicBlock *bb, unsigned idx) : instr(bb->getTerminator()), idx(idx) {}
+
+        inline bool operator==(const SuccIter &other) const {
+            return std::tie(instr, idx) == std::tie(other.instr, other.idx);
+        }
+
+        inline bool operator!=(const SuccIter &other) const {
+            return std::tie(instr, idx) != std::tie(other.instr, other.idx);
+        }
+
+        inline bool atEnd() const {
+            return idx >= instr->getNumSuccessors();
+        }
+
+        inline SuccIter &operator++() {
+            assert(!atEnd());
+            ++idx;
+            return *this;
+        }
+
+        SuccIter operator++(int) {
+            SuccIter Tmp = *this;
+            ++(*this);
+            return Tmp;
+        }
+
+        inline pointer operator->() const {
+            return instr->getSuccessor(idx);
+        }
+
+        inline reference operator*() const {
+            return instr->getSuccessor(idx);
+        }
+
+    };
+    using pred_iterator = PredIter<BasicBlock, Value::UserIterator>;
+    using succ_iterator = SuccIter;
+
 public:
     BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {}
     explicit BasicBlock(std::string_view name) : name(name) {}
@@ -57,6 +166,20 @@ public:
         addInstr(before);
     }
 
+    BasicBlock *split(Instruction *i) {
+        BasicBlock *NewBB = new BasicBlock(getName() + ".split");
+        insertBeforeThis(NewBB);
+
+        auto I = list.begin();
+        list.remove(list.begin(), i);
+
+        auto &NewBBList = NewBB->getSubList();
+        NewBBList.inject_before(NewBBList.end(), I.getPointer());
+
+        replaceAllUsesWith(NewBB);
+        return NewBB;
+    }
+
     auto begin() {
         return getSubList().begin();
     }
@@ -67,14 +190,6 @@ public:
 
     Instruction *getTerminator() {
         return terminator;
-    }
-
-    auto &getPredecessors() {
-        return predecessors;
-    }
-
-    auto &getSuccessors() {
-        return successors;
     }
 
     inline BasicBlock *getDominator() {
@@ -109,22 +224,43 @@ public:
         return iter(++iterator(lastPhi), list.end());
     }
 
+    bool hasMultiplePredecessor() {
+        auto Begin = pred_iterator(this);
+        auto End = pred_iterator();
+        unsigned Count = 0;
+        for (auto I = Begin; I != End; ++I) {
+            if (++Count >= 2) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    auto preds() {
+        return iter(pred_iterator(this), pred_iterator());
+    }
+
+    auto succs() {
+        assert(getTerminator());
+        return iter(succ_iterator(this, 0), succ_iterator(this));
+    }
+
     void dump(std::ostream &os, int level = 0) override {
         os << name << ":    " ;
 
-        DUMP_OS(os << "Doms=(", domChildren, V, {
+        DUMP_REF(os << "Doms=(", domChildren, V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_OS(os << "DF=(", getDomFrontier(), V, {
+        DUMP_REF(os << "DF=(", getDomFrontier(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_OS(os << "Pred=(", getPredecessors(), V, {
+        DUMP_PTR(os << "Pred=(", preds(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
-        DUMP_OS(os << "Succ=(", getSuccessors(), V, {
+        DUMP_PTR(os << "Succ=(", succs(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
@@ -159,25 +295,11 @@ private:
             case OpcodePhi:
                 lastPhi = instr;
                 break;
+            case OpcodeBr:
+            case OpcodeCondBr:
             case OpcodeRet:
                 terminator = instr;
                 break;
-            case OpcodeBr: {
-                auto *Br = static_cast<BranchInst *>(instr);
-                successors.insert(Br->getTarget());
-                Br->getTarget()->predecessors.insert(this);
-                terminator = instr;
-                break;
-            }
-            case OpcodeCondBr: {
-                auto *Br = static_cast<CondBrInst *>(instr);
-                successors.insert(Br->getTrueTarget());
-                successors.insert(Br->getFalseTarget());
-                Br->getTrueTarget()->predecessors.insert(this);
-                Br->getFalseTarget()->predecessors.insert(this);
-                terminator = instr;
-                break;
-            }
             default:
                 break;
         }
@@ -189,25 +311,11 @@ private:
                 if (lastPhi == instr)
                     lastPhi--;
                 break;
+            case OpcodeBr:
+            case OpcodeCondBr:
             case OpcodeRet:
                 terminator = nullptr;
                 break;
-            case OpcodeBr: {
-                auto *Br = static_cast<BranchInst *>(instr);
-                successors.erase(Br->getTarget());
-                Br->getTarget()->predecessors.erase(this);
-                terminator = nullptr;
-                break;
-            }
-            case OpcodeCondBr: {
-                auto *Br = static_cast<CondBrInst *>(instr);
-                successors.erase(Br->getTrueTarget());
-                successors.erase(Br->getFalseTarget());
-                Br->getTrueTarget()->predecessors.erase(this);
-                Br->getFalseTarget()->predecessors.erase(this);
-                terminator = nullptr;
-                break;
-            }
             default:
                 break;
         }
@@ -215,8 +323,6 @@ private:
 
 private:
     std::string name;
-    std::set<BasicBlock *> predecessors;
-    std::set<BasicBlock *> successors;
     std::set<BasicBlock *> domFrontier;
     std::set<BasicBlock *> domChildren;
     BasicBlock *dominator = nullptr;

@@ -79,7 +79,7 @@ void Instruction::dump(std::ostream &os, int level) {
 
     os << " ";
 
-    DUMP_OS(os, operands(), V, {
+    DUMP_REF(os, operands(), V, {
         V->dumpAsOperand(os);
     });
 
@@ -104,23 +104,35 @@ BranchInst::BranchInst(BasicBlock *target) : TerminatorInst(OpcodeBr, {target}) 
 
 }
 
-BasicBlock *BranchInst::getTarget() {
+BasicBlock *BranchInst::getTarget() const {
     assert(getOperand(0)->isa<BasicBlock>());
     return getOperand(0)->cast<BasicBlock>();
+}
+
+void BranchInst::setTarget(BasicBlock *target) {
+    setOperand(0, target);
 }
 
 CondBrInst::CondBrInst(Value *cond, BasicBlock *trueTarget, BasicBlock *falseTarget) : TerminatorInst(OpcodeCondBr,
                                                                                                       {cond, trueTarget,
                                                                                                        falseTarget}) {}
 
-BasicBlock *CondBrInst::getTrueTarget() {
+BasicBlock *CondBrInst::getTrueTarget() const {
     assert(getOperand(1)->isa<BasicBlock>());
     return getOperand(1)->cast<BasicBlock>();
 }
 
-BasicBlock *CondBrInst::getFalseTarget() {
+BasicBlock *CondBrInst::getFalseTarget() const {
     assert(getOperand(2)->isa<BasicBlock>());
     return getOperand(2)->cast<BasicBlock>();
+}
+
+void CondBrInst::setTrueTarget(BasicBlock *target) {
+    setOperand(1, target);
+}
+
+void CondBrInst::setFalseTarget(BasicBlock *target) {
+    setOperand(2, target);
 }
 
 PhiInst *PhiInst::Create(BasicBlock *bb) {
@@ -142,6 +154,23 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
     }
 }
 
+BasicBlock *PhiInst::getIncomingBlock(Use &use) {
+    auto Index = &use - getTrailingOperand();
+    assert(Index >= 0 && Index < numOperands);
+    return incomingBlocks[Index]->cast<BasicBlock>();
+}
+
+BasicBlock *PhiInst::getIncomingBlock(size_t i) {
+    assert(i < numOperands);
+    return incomingBlocks[i]->cast<BasicBlock>();
+}
+
 void PhiInst::dump(std::ostream &os, int level) {
-    OutputInst::dump(os, level);
+    os << "%" << getName() << " = phi ";
+    DUMP_REF(os, operands(), V, {
+        getIncomingBlock(V)->dumpAsOperand(os);
+        os << " ";
+        V->dumpAsOperand(os);
+    });
+
 }

@@ -24,7 +24,7 @@ public:
         // compute reverse post order
         std::function<void(BasicBlock * bb)> DFS = [&](BasicBlock *bb) {
             visited.insert(bb);
-            for (auto &Succ: bb->getSuccessors()) {
+            for (auto *Succ: bb->succs()) {
                 if (visited.find(Succ) == visited.end()) {
                     DFS(Succ);
                 }
@@ -41,7 +41,7 @@ public:
             Changed = false;
             for (auto &BB: iter_reverse(bbReorder)) {
                 BasicBlock *IDom = nullptr;
-                for (auto &Pred: BB->getPredecessors()) {
+                for (auto *Pred: BB->preds()) {
                     if (IDom == nullptr) {
                         IDom = Pred;
                     } else {
@@ -68,8 +68,8 @@ public:
         }*/
 
         for (auto &BB: bbReorder) {
-            if (BB->getPredecessors().size() >= 2) {
-                for (auto &Pred: BB->getPredecessors()) {
+            if (BB->hasMultiplePredecessor()) {
+                for (auto *Pred: BB->preds()) {
                     auto *Runner = Pred;
                     while (Runner != BB->getDominator()) {
                         Runner->addDomFrontier(BB);

@@ -27,3 +27,12 @@ Opcode Value::getOpcode() {
     return cast<Instruction>()->getOpcode();
 }
 
+void Value::replaceAllUsesWith(Value *newVal) {
+    Use *Cur = users;
+    while (Cur) {
+        auto *Next = Cur->getNext();
+        Cur->set(newVal);
+        Cur = Next;
+    }
+}
+
