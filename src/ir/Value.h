@@ -9,6 +9,7 @@
 #include "Common.h"
 #include "Range.h"
 #define OPCODE_LIST(S)       \
+S(Nop,    0, Instruction)     \
 S(Alloca, 0, AllocaInst)     \
 S(Phi,    0, PhiInst)        \
 S(Br,     1, BranchInst)     \

@@ -16,6 +16,7 @@ static const size_t OpcodeNum[] = {
 };
 
 enum BinaryOp {
+    None,
     Add,
     Sub,
     Mul,
@@ -33,6 +34,19 @@ enum BinaryOp {
     Gt,
     Ge,
 };
+
+inline bool isCommutative(BinaryOp op) {
+    switch (op) {
+        case Add:
+        case Mul:
+        case And:
+        case Or:
+        case Xor:
+            return true;
+        default:
+            return false;
+    }
+}
 
 class Function;
 class BasicBlock;
@@ -178,6 +192,14 @@ public:
 
     void setOperand(size_t i, Value *value) { getTrailingOperand()[i].set(value); }
 
+    inline auto begin() {
+        return getTrailingOperand();
+    }
+
+    inline auto end() {
+        return getTrailingOperand() + getOperandNum();
+    }
+
     IterRange<Use *> operands() const {
         return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
     }
@@ -202,6 +224,7 @@ public:
     Instruction *clone() const;
 protected:
     inline Use *getTrailingOperand() const { return trailingOperands.get(); }
+    inline Use *getUse(size_t i) const { return getTrailingOperand() + i; }
 
 };
 
@@ -389,6 +412,14 @@ public:
     void fill(std::map<BasicBlock *, Value *> &values);
     BasicBlock *getIncomingBlock(Use &use) const;
     BasicBlock *getIncomingBlock(size_t i) const;
+    Use *findIncoming(BasicBlock *bb) {
+        for (auto I = 0; I < getOperandNum(); ++I) {
+            if (getIncomingBlock(I) == bb) {
+                return getUse(I);
+            }
+        }
+        return nullptr;
+    }
 
     void setIncomingBlock(size_t i, BasicBlock *bb);
 
