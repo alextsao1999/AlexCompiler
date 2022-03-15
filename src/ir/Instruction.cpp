@@ -163,6 +163,12 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
         new(&trailingOperands[I]) Use(this, value);
         I++;
     }
+
+    // make sure all the types of incoming values are the same
+    assert(numOperands >= 1 && std::all_of(begin(), end(), [&](auto &arg) {
+        return arg.getValue()->getType() == begin()->getValue()->getType();
+    }));
+
 }
 
 BasicBlock *PhiInst::getIncomingBlock(Use &use) const {
@@ -184,8 +190,11 @@ void PhiInst::setIncomingBlock(size_t i, BasicBlock *bb) {
 void PhiInst::dump(std::ostream &os) {
     dumpName(os) << " = phi ";
     DUMP_REF(os, operands(), V, {
-        getIncomingBlock(V)->dumpAsOperand(os);
-        os << " : ";
+        if (auto *Block = getIncomingBlock(V))
+            Block->dumpAsOperand(os);
+        else
+            os << "null";
+        os << " -> ";
         V->dumpAsOperand(os);
     });
 }

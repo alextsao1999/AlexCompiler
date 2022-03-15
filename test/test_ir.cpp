@@ -10,6 +10,34 @@
 
 Context Context;
 
+auto SplitAndTrim(const std::string &str) -> std::string {
+    std::vector<std::string> Res;
+    std::stringstream SS(str);
+    std::string Item;
+    while (std::getline(SS, Item)) {
+        Res.push_back(Item);
+    }
+    static const char *TrimChars = " \t\r\n";
+    // Trim Each Line
+    for (auto &Line: Res) {
+        Line.erase(Line.find_last_not_of(TrimChars) + 1);
+        Line.erase(0, Line.find_first_not_of(TrimChars));
+    }
+    // Remove Empty Line
+    Res.erase(std::remove_if(Res.begin(), Res.end(), [](const std::string &str) {
+        return str.empty();
+    }), Res.end());
+    // Join the Res
+    std::stringstream SSRes;
+    for (auto &Line: Res) {
+        SSRes << Line << "\n";
+    }
+    return SSRes.str();
+};
+
+#define EXPECT_EQ_VALUE(V, EXPECTED) \
+    EXPECT(SplitAndTrim(V->dumpToString()) == SplitAndTrim(EXPECTED))
+
 const lest::test Specification[] = {
         CASE("BasicBlock Test") {
             Function *F = new Function("test", Context.getVoidFunTy());
@@ -22,11 +50,13 @@ const lest::test Specification[] = {
             BB->insertAfter(Alloca, Builder.createStore(Alloca, Context.getInt(22)));
             Builder.createRet(Builder.createLoad(Alloca));
 
-            EXPECT(BB->dumpToString() == "BB: preds=()  succs=()  doms=()  df=()\n"
-                                         "%V = alloca i32, 1\n"
-                                         "store i32* %V, i32 22\n"
-                                         "%load = load i32* %V\n"
-                                         "ret i32 %load");
+            EXPECT_EQ_VALUE(BB, R"(
+                BB:
+                    %V = alloca i32, 1
+                    store i32* %V, i32 22
+                    %load = load i32* %V
+                    ret i32 %load
+            )");
 
             auto *DomPass = new Dominance();
             auto *SSAPass = new SSAConstructor();
@@ -34,8 +64,10 @@ const lest::test Specification[] = {
             DomPass->runOnFunction(F);
             SSAPass->runOnFunction(F);
 
-            EXPECT(BB->dumpToString() == "BB: preds=()  succs=()  doms=()  df=()\n"
-                                         "ret i32 22");
+            EXPECT_EQ_VALUE(BB, R"(
+                BB:
+                    ret i32 22
+            )");
 
             delete F;
         },
@@ -76,7 +108,24 @@ const lest::test Specification[] = {
             PM.addPass(new SSAConstructor());
             PM.run(M.get());
 
-            F->dump(std::cout);
+            EXPECT_EQ_VALUE(F, R"(
+                def func1(i32 %x) -> void {
+                    entry:
+                        %cmp = ne i32 %x, i32 66
+                        condbr i32 %cmp, %if.true, %if.false
+
+                    if.true:
+                        br %leave
+
+                    if.false:
+                        br %leave
+
+                    leave:
+                        %test = phi %if.true : i32 33, %if.false : i32 44
+                        ret %test
+                }
+            )");
+
         },
 
 };

@@ -9,6 +9,10 @@
 #include "Dominance.h"
 #include "SSAConstructor.h"
 #include "Inliner.h"
+#include "GVN.h"
+#include "BranchElim.h"
+#include "ADCE.h"
+#include "SSADestructor.h"
 
 static Context Context;
 
@@ -26,7 +30,8 @@ Function *createFunc1() {
     auto *FalseBB = BasicBlock::Create(F, "if.false");
     auto *Leave = BasicBlock::Create(F, "leave");
 
-    auto *Cmp = Builder.createNe(Builder.createLoad(A), Builder.getInt(66), "cmp");
+    auto *Add = Builder.createAdd(Builder.createLoad(A), Builder.getInt(1));
+    auto *Cmp = Builder.createNe(Builder.getInt(77), Builder.getInt(66), "cmp");
     Builder.createCondBr(Cmp, TrueBB, FalseBB);
 
     Builder.setInsertPoint(TrueBB);
@@ -34,7 +39,7 @@ Function *createFunc1() {
     Builder.createBr(Leave);
 
     Builder.setInsertPoint(FalseBB);
-    Builder.createStore(A, Builder.getInt(44));
+    Builder.createStore(A, Builder.createAdd(Builder.createLoad(A), Builder.getInt(1)));
     Builder.createBr(Leave);
 
     Builder.setInsertPoint(Leave);
@@ -55,13 +60,20 @@ int main(int argc, char **argv) {
     IRBuilder Builder(Main);
     auto *Alloca = Builder.createAlloca(Context.getInt32Ty(), "value");
     auto *Ret = Builder.createCall(Func1, {Builder.getInt(666)}, "call");
-    auto *Store = Builder.createStore(Alloca, Ret);
+    Builder.createStore(Alloca, Ret);
     Builder.createRet(Builder.createLoad(Alloca));
 
     PassManager PM;
+    // add passes
     PM.addPass(new Inliner());
     PM.addPass(new Dominance());
     PM.addPass(new SSAConstructor());
+    PM.addPass(new GVN());
+    PM.addPass(new BranchElim());
+    PM.addPass(new ADCE());
+    PM.addPass(new SSADestructor());
+
+    // run passes
     PM.run(M.get());
 
     M->dump(std::cout);

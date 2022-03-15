@@ -10,6 +10,7 @@
 #include "PassManager.h"
 #include "Function.h"
 #include "Instruction.h"
+#include "ConstantFolder.h"
 struct VNExpr {
     Value *lhs = nullptr;
     Value *rhs = nullptr;
@@ -61,7 +62,6 @@ public:
 
 class GVN : public FunctionPass {
 public:
-    VNTable<Value *> vnTable;
     std::map<Value *, Value *> mapVN;
     std::vector<Instruction *> needToDelete;
 
@@ -97,6 +97,12 @@ public:
             }
 
             if (auto *BinOp = Inst.as<BinaryInst>()) {
+                ConstantFolder Folder(BinOp);
+                if (Folder.canFold()) {
+                    needToDelete.push_back(BinOp);
+                    mapVN[BinOp] = Folder.fold();
+                    continue;
+                }
                 if (auto *Res = Scope.get(BinOp)) {
                     // Scope中之前已经存在相关表达式 x -> y op z 将x的user都替换为之前计算的结果
                     mapVN[BinOp] = Res;
@@ -107,7 +113,6 @@ public:
                     Scope.set(BinOp, BinOp);
                 }
             }
-
         }
 
         for (auto *Succ : bb->succs()) {
@@ -141,20 +146,22 @@ public:
         }
         auto *Begin = phi->begin();
         auto *End = phi->end();
-
+        auto *BeginVN = getVN(Begin->getValue());
+        if (!BeginVN)
+            return false;
         return std::all_of(Begin, End, [&](auto &i) -> bool {
-            return getVN(Begin->getValue()) == getVN(i.getValue());
+            return BeginVN == getVN(i.getValue());
         });
     }
 
     bool isRedundant(BasicBlock *bb, Instruction *phi) {
         assert(phi->getOpcode() == OpcodePhi);
+        auto *PhiVN = getVN(phi);
         for (auto &Phi: bb->getPhis()) {
             if (phi == &Phi) {
                 continue;
             }
-            auto *PhiVN = getVN(phi);
-            if (PhiVN && getVN(&Phi) == PhiVN) {
+            if (!PhiVN && getVN(&Phi) == PhiVN) {
                 return true;
             }
         }

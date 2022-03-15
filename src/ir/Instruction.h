@@ -9,12 +9,6 @@
 #include <Node.h>
 #include <Type.h>
 
-static const size_t OpcodeNum[] = {
-#define DEFINE_OPCODE(name, c, k) c,
-        OPCODE_LIST(DEFINE_OPCODE)
-#undef DEFINE_OPCODE
-};
-
 enum BinaryOp {
     None,
     Add,
@@ -122,7 +116,7 @@ public:
     ConstantVal(Type *type, const Ty &val) : Constant(type), val(val) {
     }
 
-    Ty &getVal() const {
+    Ty &getVal() {
         return val;
     }
 
@@ -172,6 +166,20 @@ public:
     const std::string &getName();
     void setName(std::string_view name);
 
+    inline bool hasSideEffects() const {
+        switch (opcode) {
+            case OpcodeRet:
+            case OpcodeBr:
+            case OpcodeCall:
+            case OpcodeCondBr:
+            case OpcodeLoad:
+            case OpcodeStore:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     inline bool isTerminator() const {
         switch (opcode) {
             case OpcodeBr:
@@ -187,6 +195,7 @@ public:
     size_t getOperandNum() const { return numOperands; }
 
     Value *getOperand(size_t i) const {
+        assert(i < numOperands);
         return getTrailingOperand()[i].getValue();
     }
 
@@ -235,7 +244,6 @@ public:
         dumpName(os) << " = ";
         Instruction::dump(os);
     }
-
 };
 
 class AllocaInst : public Instruction {
@@ -264,6 +272,182 @@ public:
         allocatedType->dump(os);
         os << ", " << allocatedSize;
     }
+};
+
+class StoreInst : public Instruction {
+public:
+    StoreInst() : Instruction(OpcodeStore) {}
+    StoreInst(Value *ptr, Value *val) : Instruction(OpcodeStore, {ptr, val}) {}
+    StoreInst(const StoreInst &other) : Instruction(other) {}
+
+    Value *getPtr() const {
+        return getOperand(0);
+    }
+
+    Value *getVal() const {
+        return getOperand(1);
+    }
+
+};
+
+class LoadInst : public OutputInst {
+public:
+    LoadInst() : OutputInst(OpcodeLoad) {}
+    LoadInst(Value *ptr) : OutputInst(OpcodeLoad, {ptr}) {}
+    LoadInst(const LoadInst &other) : OutputInst(other) {}
+
+    Value *getPtr() const {
+        return getOperand(0);
+    }
+
+    Type *getType() override {
+        if (auto *LoadTy = getOperand(0)->getType()) {
+            if (LoadTy->isPointerType()) {
+                return LoadTy->getPointerElementType();
+            }
+        }
+        return nullptr;
+    }
+
+};
+
+class CopyInst : public OutputInst {
+public:
+    CopyInst() : OutputInst(OpcodeCopy) {}
+    CopyInst(Value *val) : OutputInst(OpcodeCopy, {val}) {}
+    CopyInst(const CopyInst &other) : OutputInst(other) {}
+
+    Type *getType() override {
+        assert(getVal());
+        return getVal()->getType();
+    }
+
+    Value *getVal() const {
+        return getOperand(0);
+    }
+};
+
+class CastInst : public OutputInst {
+    Type *targetType;
+public:
+    CastInst() : OutputInst(OpcodeCast) {}
+    CastInst(const CastInst &other) : OutputInst(other), targetType(other.targetType) {}
+    CastInst(Type *type) : OutputInst(OpcodeCast), targetType(type) {}
+
+    Type *getType() override {
+        return targetType;
+    }
+
+    Type *getTargetType() const {
+        return targetType;
+    }
+
+    Value *getVal() const {
+        return getOperand(0);
+    }
+};
+
+class PhiInst : public OutputInst {
+public:
+    static PhiInst *Create(BasicBlock *bb, StrView name = "");
+public:
+    PhiInst() : OutputInst(OpcodePhi) {}
+    PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
+    PhiInst(const PhiInst &other);
+    ~PhiInst() override = default;
+
+    Type *getType() override {
+        assert(numOperands > 0 && getOperand(0));
+        return getOperand(0)->getType();
+    }
+
+    void fill(std::map<BasicBlock *, Value *> &values);
+    BasicBlock *getIncomingBlock(Use &use) const;
+    BasicBlock *getIncomingBlock(size_t i) const;
+    Use *findIncoming(BasicBlock *bb) {
+        for (auto I = 0; I < getOperandNum(); ++I) {
+            if (getIncomingBlock(I) == bb) {
+                return getUse(I);
+            }
+        }
+        return nullptr;
+    }
+
+    void setIncomingBlock(size_t i, BasicBlock *bb);
+
+    IterRange<Use *> incomings() const {
+        return iter(incomingBlocks.get(), incomingBlocks.get() + getOperandNum());
+    }
+
+    void dump(std::ostream &os) override;
+
+private:
+    std::unique_ptr<Use[]> incomingBlocks;
+
+};
+
+class CallInst : public OutputInst {
+    Function *callee = nullptr;
+public:
+    CallInst(Function *callee) : OutputInst(OpcodeCall), callee(callee) {}
+    CallInst(Function *callee, const std::vector<Value *> &args) : OutputInst(OpcodeCall, args), callee(callee) {}
+    CallInst(const CallInst &other) : OutputInst(other), callee(other.callee) {}
+
+    Type *getType() override {
+        return getReturnType();
+    }
+
+    Type *getReturnType() const {
+        assert(getCalleeType());
+        return getCalleeType()->getReturnType();
+    }
+
+    Type *getCalleeType() const;
+
+    Function *getCallee() const {
+        return callee;
+    }
+
+    void dump(std::ostream &os) override;
+
+    Value *getArg(unsigned i) const {
+        return getOperand(i);
+    }
+
+    auto args() {
+        return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
+    }
+
+};
+
+class UnaryInst : public OutputInst {
+public:
+
+};
+
+class BinaryInst : public OutputInst {
+    BinaryOp op;
+public:
+    BinaryInst() : OutputInst(OpcodeBinary) {}
+    BinaryInst(BinaryOp op, Value *lhs, Value *rhs) : OutputInst(OpcodeBinary, {lhs, rhs}), op(op) {}
+    BinaryInst(const BinaryInst &other) : OutputInst(other), op(other.op) {}
+
+    BinaryOp getOp() {
+        return op;
+    }
+
+    Type *getType() override {
+        return Type::getMaxType(getLHS()->getType(), getRHS()->getType());
+    }
+
+    Value *getLHS() {
+        return getOperand(0);
+    }
+
+    Value *getRHS() {
+        return getOperand(1);
+    }
+
 };
 
 class TerminatorInst : public Instruction {
@@ -325,141 +509,6 @@ public:
         } else {
             setFalseTarget(bb);
         }
-    }
-
-};
-
-class CallInst : public OutputInst {
-    Function *callee = nullptr;
-public:
-    CallInst(Function *callee) : OutputInst(OpcodeCall), callee(callee) {}
-    CallInst(Function *callee, const std::vector<Value *> &args) : OutputInst(OpcodeCall, args), callee(callee) {}
-    CallInst(const CallInst &other) : OutputInst(other), callee(other.callee) {}
-
-    Type *getType() override {
-        return getReturnType();
-    }
-
-    Type *getReturnType() const {
-        assert(getCalleeType());
-        return getCalleeType()->getReturnType();
-    }
-
-    Type *getCalleeType() const;
-
-    Function *getCallee() const {
-        return callee;
-    }
-
-    void dump(std::ostream &os) override;
-
-    Value *getArg(unsigned i) const {
-        return getOperand(i);
-    }
-
-    auto args() {
-        return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
-    }
-
-};
-
-class LoadInst : public OutputInst {
-public:
-    LoadInst() : OutputInst(OpcodeLoad) {}
-    LoadInst(Value *ptr) : OutputInst(OpcodeLoad, {ptr}) {}
-    LoadInst(const LoadInst &other) : OutputInst(other) {}
-
-    Value *getPtr() const {
-        return getOperand(0);
-    }
-
-    Type *getType() override {
-        if (auto *LoadTy = getOperand(0)->getType()) {
-            if (LoadTy->isPointerType()) {
-                return LoadTy->getPointerElementType();
-            }
-        }
-        return nullptr;
-    }
-
-};
-
-class StoreInst : public Instruction {
-public:
-    StoreInst() : Instruction(OpcodeStore) {}
-    StoreInst(Value *ptr, Value *val) : Instruction(OpcodeStore, {ptr, val}) {}
-    StoreInst(const StoreInst &other) : Instruction(other) {}
-
-    Value *getPtr() const {
-        return getOperand(0);
-    }
-
-    Value *getVal() const {
-        return getOperand(1);
-    }
-
-};
-
-class PhiInst : public OutputInst {
-public:
-    static PhiInst *Create(BasicBlock *bb, StrView name = "");
-public:
-    PhiInst() : OutputInst(OpcodePhi) {}
-    PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
-    PhiInst(const PhiInst &other);
-    ~PhiInst() override = default;
-
-    void fill(std::map<BasicBlock *, Value *> &values);
-    BasicBlock *getIncomingBlock(Use &use) const;
-    BasicBlock *getIncomingBlock(size_t i) const;
-    Use *findIncoming(BasicBlock *bb) {
-        for (auto I = 0; I < getOperandNum(); ++I) {
-            if (getIncomingBlock(I) == bb) {
-                return getUse(I);
-            }
-        }
-        return nullptr;
-    }
-
-    void setIncomingBlock(size_t i, BasicBlock *bb);
-
-    IterRange<Use *> incomings() const {
-        return iter(incomingBlocks.get(), incomingBlocks.get() + getOperandNum());
-    }
-
-    void dump(std::ostream &os) override;
-
-private:
-    std::unique_ptr<Use[]> incomingBlocks;
-
-};
-
-class UnaryInst : public Instruction {
-public:
-
-};
-
-class BinaryInst : public OutputInst {
-    BinaryOp op;
-public:
-    BinaryInst() : OutputInst(OpcodeBinary) {}
-    BinaryInst(BinaryOp op, Value *lhs, Value *rhs) : OutputInst(OpcodeBinary, {lhs, rhs}), op(op) {}
-    BinaryInst(const BinaryInst &other) : OutputInst(other), op(other.op) {}
-
-    BinaryOp getOp() {
-        return op;
-    }
-
-    Type *getType() override {
-        return Type::getMaxType(getLHS()->getType(), getRHS()->getType());
-    }
-
-    Value *getLHS() {
-        return getOperand(0);
-    }
-
-    Value *getRHS() {
-        return getOperand(1);
     }
 
 };

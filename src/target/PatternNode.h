@@ -7,8 +7,13 @@
 
 
 class PatternNode {
+public:
 
 };
 
+class PatternNodeUse {
+public:
+
+};
 
 #endif //DRAGON_PATTERNNODE_H

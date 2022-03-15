@@ -5,8 +5,15 @@
 #ifndef DRAGON_CALLGRAPH_H
 #define DRAGON_CALLGRAPH_H
 
-
-class CallGraph {
+#include "PassManager.h"
+#include "Function.h"
+class CallGraph : public FunctionPass {
+public:
+    void runOnFunction(Function *function) override {
+        function->forEach<CallInst>([&](CallInst *callInst) {
+            function->addCallee(callInst->getCallee());
+        });
+    }
 
 };
 

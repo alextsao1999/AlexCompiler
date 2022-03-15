@@ -77,15 +77,15 @@ public:
         return getFunctionTy(Vec, isVarArg);
     }
 
-    FunctionType *getVoidFunTy() {
+    inline FunctionType *getVoidFunTy() {
         return getFunctionTy(getVoidTy());
     }
 
-    Undef *getUndef() {
+    inline Undef *getUndef() {
         return &undefInstance;
     }
 
-    Constant *getInt(int64_t value) {
+    inline Constant *getInt(int64_t value) {
         auto It = intSlots.find(value);
         if (It != intSlots.end()) {
             return It->second.get();

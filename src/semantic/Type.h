@@ -49,10 +49,8 @@ public:
 public:
     Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId),
                                                               containedType(containedType), containedTypeCount(1) {}
-
     Type(TypeID typeId, Type **containedType, unsigned size) : context((*containedType)->getContext()), typeId(typeId),
                                                               containedType(containedType), containedTypeCount(size) {}
-
     Type(Context *ctx, TypeID typeId) : context(ctx), typeId(typeId) {}
 
     virtual ~Type() = default;
@@ -67,35 +65,63 @@ public:
 
     inline unsigned getBitSize();
 
+    inline bool isIntegerType() const {
+        return typeId == TypeInt;
+    }
+
+    inline bool isFloatType() const {
+        return typeId == TypeFloat || typeId == TypeDouble;
+    }
+
+    inline bool isNumericType() const {
+        return isIntegerType() || isFloatType();
+    }
+
     inline bool isPointerType() const {
         return typeId == TypePointer;
     }
 
+    inline bool isArrayType() const {
+        return typeId == TypeArray;
+    }
+
+    inline bool isFunctionType() const {
+        return typeId == TypeFunction;
+    }
+
+    inline bool isStructType() const {
+        return typeId == TypeStruct;
+    }
+
+    inline bool isUnionType() const {
+        return typeId == TypeUnion;
+    }
+
     Type *getPointerType();
 
-    Type *getPointerElementType() {
+    Type *getPointerElementType() const {
         assert(typeId == TypePointer && containedType);
         return *containedType;
     }
 
-    Type *getStructElementType(unsigned index) {
+    Type *getStructElementType(unsigned index) const {
         assert(index < containedTypeCount);
         assert(typeId == TypeStruct);
         return containedType[index];
     }
 
-    Type *getParameterType(unsigned index) {
+    Type *getParameterType(unsigned index) const {
         assert(typeId == TypeFunction);
         assert((index + 1) < containedTypeCount);
         return containedType[index + 1];
     }
 
-    Type *getReturnType() {
+    Type *getReturnType() const {
         assert(typeId == TypeFunction);
         return containedType[0];
     }
 
-    unsigned getContainedTypeCount() {
+    unsigned getContainedTypeCount() const {
         return containedTypeCount;
     }
 

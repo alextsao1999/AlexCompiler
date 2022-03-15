@@ -147,7 +147,30 @@ public:
         return insert(new RetInst());
     }
 
+    // simple form of create instruction
+    auto *call(Function *func, const std::vector<Value *> &args, StrView name = "call") {
+        return insert(new CallInst(func, args), name);
+    }
+
+    auto *store(Value *ptr, Value *val) {
+        return insert(new StoreInst(ptr, val));
+    }
+
+    auto *load(Value *ptr, StrView name = "load") {
+        return insert(new LoadInst(ptr), name);
+    }
+
+    auto *ret(Value *val) {
+        return insert(new RetInst(val));
+    }
+
+    auto *bin(BinaryOp op, Value *lhs, Value *rhs, StrView name) {
+        return insert(new BinaryInst(op, lhs, rhs), name);
+    }
+
+
 private:
+    /// Insert point
     BasicBlock *bb;
 };
 

@@ -10,9 +10,25 @@
 class SSADestructor : public FunctionPass {
 public:
     void runOnFunction(Function *function) override {
-        splitCriticalEdge(function);
+        //splitCriticalEdge(function);
+        isolatePhiByCopy(function);
     }
 
+    void isolatePhiByCopy(Function *function) {
+        for (auto &BB: *function) {
+            for (auto &Inst: BB.getPhis()) {
+                auto *Phi = Inst.cast<PhiInst>();
+                for (auto &Use: Inst.operands()) {
+                    auto *Value = Use.getValue();
+                    auto *IncomingBB = Phi->getIncomingBlock(Use);
+                    assert(IncomingBB);
+                    auto *CopyedValue = new CopyInst(Value);
+                    IncomingBB->append(CopyedValue);
+                    Use.set(CopyedValue);
+                }
+            }
+        }
+    }
     void splitCriticalEdge(Function *function) {
         std::vector<BasicBlock *> Worklist;
         for (auto &BB: function->getBasicBlockList()) {

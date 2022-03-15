@@ -336,19 +336,25 @@ public:
         Next->setPrev(Prev);
         Prev->setNext(Next);
 
-        where->linkNext(where.getPointer());
+        //where->linkNext(where.getPointer());
     }
 
     inline void remove(iterator first, iterator last) {
-        auto End = last->getPrev();
+        //auto End = last->getPrev();
         auto Prev = first->getPrev();
         Prev->linkNext(last.getPointer());
+        //first->linkPrev(End);
+    }
 
-        first->linkPrev(End);
+    inline void extract(iterator where) {
+        remove(where);
+        where->linkNext(where.getPointer());
     }
 
     inline void extract(iterator first, iterator last) {
+        auto End = last->getPrev();
         remove(first, last);
+        first->linkPrev(End);
     }
 
     inline void inject_before(iterator where, pointer node) {
@@ -393,18 +399,36 @@ public:
         delete_range(first, last);
     }
 
+    inline iterator insert_after_without_ref(iterator where, pointer node) {
+        assert(node);
+        // no unlink
+        auto Next = where->getNext();
+        Next->setPrev(node);
+        node->setPrev(where.getPointer());
+        node->setNext(Next);
+        where->setNext(node);
+
+        return node;
+    }
+
+    inline iterator insert_before_without_ref(iterator where, pointer node) {
+        assert(node);
+        // no unlink
+        auto Prev = where->getPrev();
+        Prev->setNext(node);
+        node->setPrev(Prev);
+        node->setNext(where.getPointer());
+        where->setPrev(node);
+        return node;
+    }
+
     inline iterator insert_after(iterator where, pointer node) {
         assert(node);
         // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
-
-        auto Next = where->getNext();
-        Next->setPrev(node);
-        node->setPrev(where.getPointer());
-        node->setNext(Next);
-        where->setNext(node);
+        insert_after_without_ref(where, node);
         Traits::refNode(node);
         return node;
     }
@@ -415,12 +439,7 @@ public:
         if (node->getPrev() && node->getNext()) {
             remove(node);
         }
-
-        auto Prev = where->getPrev();
-        Prev->setNext(node);
-        node->setPrev(Prev);
-        node->setNext(where.getPointer());
-        where->setPrev(node);
+        insert_before_without_ref(where, node);
         Traits::refNode(node);
         return node;
     }
@@ -513,22 +532,47 @@ public:
     NodeParent(const NodeListTy &list) : list(list) {}
 
     void append(NodeTy *node) {
-        node->setParent(static_cast<ParentTy *>(this));
-        list.push_back(node);
+        if (auto *OldParent = node->getParent()) {
+            // 之前有父节点, 先从父节点中移除
+            OldParent->remove(node);
+            node->setParent(static_cast<ParentTy *>(this));
+            list.insert_before_without_ref(list.end(), node);
+        } else {
+            node->setParent(static_cast<ParentTy *>(this));
+            list.push_back(node);
+        }
     }
 
     auto erase(NodeTy *node) {
         return list.erase(node);
     }
 
+    void remove(NodeTy *node) {
+        list.remove(node);
+    }
+
     void insertAfter(NodeTy *node, NodeTy *after) {
-        after->setParent(static_cast<ParentTy *>(this));
-        list.insert_after(node, after);
+        if (auto *OldParent = after->getParent()) {
+            // 之前有父节点, 先从父节点中移除
+            OldParent->remove(after);
+            after->setParent(static_cast<ParentTy *>(this));
+            list.insert_after_without_ref(node, after);
+        } else {
+            after->setParent(static_cast<ParentTy *>(this));
+            list.insert_after(node, after);
+        }
     }
 
     void insertBefore(NodeTy *node, NodeTy *before) {
-        before->setParent(static_cast<ParentTy *>(this));
-        list.insert_before(node, before);
+        if (auto *OldParent = before->getParent()) {
+            // 之前有父节点, 先从父节点中移除
+            OldParent->remove(before);
+            before->setParent(static_cast<ParentTy *>(this));
+            list.insert_before_without_ref(node, before);
+        } else {
+            before->setParent(static_cast<ParentTy *>(this));
+            list.insert_before(node, before);
+        }
     }
 
     void replace(NodeTy *node, NodeTy *newNode) {

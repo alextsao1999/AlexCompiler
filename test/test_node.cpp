@@ -39,20 +39,20 @@ const lest::test Specification[] = {
 
             auto It = List.begin() + 1;
             auto ItEnd = NodeListImpl::iterator(It) + 3;
-            List.remove(It, ItEnd);
+            List.extract(It, ItEnd);
             EXPECT(Join(List) == "1,5");
 
             List.inject_before(List.begin() + 1, It.getPointer());
             EXPECT(Join(List) == "1,2,3,4,5");
 
-            List.remove(It, ItEnd);
+            List.extract(It, ItEnd);
             List.inject_after(List.begin(), It.getPointer());
             EXPECT(Join(List) == "1,2,3,4,5");
 
             auto MoveOut = [&](size_t i, size_t n) {
                 auto It = List.begin() + i;
                 auto ItEnd = It + n;
-                List.remove(It, ItEnd);
+                List.extract(It, ItEnd);
                 return It;
             };
 
@@ -64,28 +64,28 @@ const lest::test Specification[] = {
             NewList.inject_before(NewList.end(), I.getPointer());
             EXPECT(Join(NewList) == "2,3");
 
-            NewList.remove(I, NewList.end());
+            NewList.extract(I, NewList.end());
             EXPECT(Join(NewList) == "");
 
             NewList.inject_after(NewList.end(), I.getPointer());
             EXPECT(Join(NewList) == "2,3");
 
-            NewList.remove(I, NewList.end());
+            NewList.extract(I, NewList.end());
             List.inject_after(List.begin(), I.getPointer());
             EXPECT(Join(List) == "1,2,3,4,5");
 
             I = List.begin();
-            List.remove(List.begin(), List.end());
+            List.extract(List.begin(), List.end());
             NewList.inject_after(NewList.end(), I.getPointer());
             EXPECT(Join(NewList) == "1,2,3,4,5");
 
             I = NewList.begin();
-            NewList.remove(I);
+            NewList.extract(I);
             List.inject_after(List.begin(), I.getPointer());
             EXPECT((Join(List) == "1" && Join(NewList) == "2,3,4,5"));
 
             I = NewList.begin();
-            NewList.remove(I);
+            NewList.extract(I);
             List.inject_before(List.end(), I.getPointer());
             EXPECT(Join(List) == "1,2");
             EXPECT(Join(NewList) == "3,4,5");

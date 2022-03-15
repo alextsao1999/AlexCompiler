@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by Alex on 2022/3/8.
 //
 
@@ -41,9 +41,9 @@ struct PhiStatus {
     bool useless = true; // 用来标记Phi语句是否被使用
     std::map<BasicBlock *, Value *> incomings; // 标记来边和对应的SSA值
 
-    void setAlloca(Value *A) {
+    void setAlloca(Value *a) {
         assert(allocaFor == nullptr);
-        allocaFor = A;
+        allocaFor = a;
     }
 
     Value *getAlloca() const {

@@ -136,14 +136,19 @@ public:
 
     void replace(Instruction *node, Instruction *by) {
         assert(node->getOpcode() != OpcodePhi && by->getOpcode() != OpcodePhi);
-        eraseInstr(node);
+        removeInstr(node);
         NodeParent::replace(node, by);
         addInstr(by);
     }
 
     void erase(Instruction *node) {
-        eraseInstr(node);
+        removeInstr(node);
         NodeParent::erase(node);
+    }
+
+    void remove(Instruction *node) {
+        removeInstr(node);
+        NodeParent::remove(node);
     }
 
     void append(Instruction *node) {
@@ -280,7 +285,7 @@ public:
     void dump(std::ostream &os) override {
         os << name << ": " ;
 
-        DUMP_PTR(os << "preds=(", preds(), V, {
+        /*DUMP_PTR(os << "preds=(", preds(), V, {
             V->dumpAsOperand(os);
         }) << ")  ";
 
@@ -299,7 +304,7 @@ public:
         if (getDominator()) {
             os << "  idom=";
             getDominator()->dumpAsOperand(os);
-        }
+        }*/
 
         os << std::endl;
 
@@ -312,14 +317,7 @@ public:
     void dumpAsOperand(std::ostream &os) override {
         os << "%" << name;
     }
-
 private:
-    inline void setDominator(BasicBlock *dom) {
-        dominator = dom;
-    }
-    inline void addDomFrontier(BasicBlock *bb) {
-        domFrontier.insert(bb);
-    }
     inline void addInstr(Instruction *instr) {
         switch (instr->getOpcode()) {
             case OpcodePhi:
@@ -334,7 +332,7 @@ private:
                 break;
         }
     }
-    inline void eraseInstr(Instruction *instr) {
+    inline void removeInstr(Instruction *instr) {
         assert(instr);
         switch (instr->getOpcode()) {
             case OpcodePhi:
@@ -349,6 +347,12 @@ private:
             default:
                 break;
         }
+    }
+    inline void setDominator(BasicBlock *dom) {
+        dominator = dom;
+    }
+    inline void addDomFrontier(BasicBlock *bb) {
+        domFrontier.insert(bb);
     }
     inline void clearDomInfo() {
         dominator = nullptr;

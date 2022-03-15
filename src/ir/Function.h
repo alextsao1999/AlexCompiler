@@ -57,6 +57,14 @@ public:
         return symbolTable;
     }
 
+    inline auto begin() {
+        return getSubList().begin();
+    }
+
+    inline auto end() {
+        return getSubList().end();
+    }
+
     BasicBlock *createBasicBlock(const std::string &bbName) {
         BasicBlock *BB = new BasicBlock(bbName);
         list.push_back(BB);
@@ -97,14 +105,12 @@ public:
                 continue;
             }
             do {
-                auto &Inst = *InstIter;
-                InstIter++;
+                auto &Inst = *InstIter++;
                 if (auto *I = Inst.template as<InstTy>()) {
                     fn(I);
                 }
             } while (InstIter != InstEnd);
         } while (BBIt != BBEnd);
-
 
         /*for (auto &BB: getSubList()) {
             for (auto &Inst: BB.getInstrs()) {
@@ -115,9 +121,36 @@ public:
         }*/
     }
 
+    template<typename Fn>
+    void forEach(Fn fn) {
+        auto BBIt = list.begin();
+        auto BBEnd = list.end();
+        if (BBIt == BBEnd) {
+            return;
+        }
+        do {
+            auto &BB = *BBIt++;
+            auto InstIter = BB.getSubList().begin();
+            auto InstEnd = BB.getSubList().end();
+            if (InstIter == InstEnd) {
+                continue;
+            }
+            do {
+                auto &Inst = *InstIter++;
+                fn(&Inst);
+            } while (InstIter != InstEnd);
+        } while (BBIt != BBEnd);
+    }
+
     /// return true if the function is a declaration
     bool isDeclaration() const {
         return false;
+    }
+
+    /// call graph
+    void addCallee(Function *caller) {
+        callees.insert(caller);
+        caller->callers.insert(this);
     }
 
     /// dump the function
@@ -158,6 +191,10 @@ private:
 
     std::vector<std::unique_ptr<Param>> params; /// function params
     SymbolTable<Instruction> symbolTable; /// symbol table for instructions
+
+    // CallGraph
+    std::set<Function *> callers;
+    std::set<Function *> callees;
 
 };
 
