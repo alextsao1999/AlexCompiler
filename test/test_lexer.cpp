@@ -22,6 +22,45 @@ const lest::test Lexers[] = {
             Lexer.dump();
         },
 };
+#include <unordered_map>
+struct MyVisitor : public Visitor<MyVisitor> {
+    std::unordered_map<std::string, std::vector<std::reference_wrapper<value_t>>> map;
+    void visitProgram(Program value) override {
+        visit(value.getValue());
+    }
+    void visitBlockStmt(BlockStmt value) override {
+        visit(value.getValue());
+    }
+    void visitExprStmt(ExprStmt value) override {
+        visit(value.getValue());
+    }
+    void visitAssignExpr(AssignExpr value) override {
+        visit(value.getLeft());
+        visit(value.getRight());
+    }
+    void visitVariableExpr(VariableExpr value) override {
+        //std::cout << value.getName();
+    }
+
+    void visitBinaryExpr(BinaryExpr value) override {
+        visit(value.getLeft());
+        visit(value.getRight());
+    }
+
+    void visitInvokeExpr(InvokeExpr value) override {
+        std::string Name = value.getName();
+        map[Name].emplace_back(value);
+    }
+
+    void visitFunctionDeclare(FunctionDeclare value) override {
+        visit(value.getBlock());
+    }
+
+    void visitParamDef(ParamDef value) override {
+
+    }
+
+};
 
 const lest::test Parsers[] = {
         CASE("Parser") {

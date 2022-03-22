@@ -164,7 +164,7 @@ public:
     void insertAfter(Instruction *node, Instruction *after) {
         // FIXME: 这里最好不能插入Phi
         assert(!node->isTerminator());
-        assert(!(node->getOpcode() == OpcodePhi && node != lastPhi)); // 只能在最后一个phi节点后插入(非phi节点)
+        assert(!(node->getOpcode() == OpcodePhi && lastPhi != node)); // 只能在最后一个phi节点后插入(非phi节点)
         NodeParent::insertAfter(node, after);
         addInstr(after);
     }

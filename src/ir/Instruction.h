@@ -8,6 +8,7 @@
 #include <Value.h>
 #include <Node.h>
 #include <Type.h>
+#include <memory>
 
 enum BinaryOp {
     None,

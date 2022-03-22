@@ -275,6 +275,9 @@ public:
     int getID() { return value_["id"].get<int>(); }
     string_t &getKind() { return value_["kind"].get_ref<string_t &>(); }
     operator value_t &() { return value_; }
+    value_t *getPtr() {
+        return &value_;
+    }
 };
 class AccessExpr : public JsonASTBase {
 public:
