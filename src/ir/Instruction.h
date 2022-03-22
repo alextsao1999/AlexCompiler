@@ -46,6 +46,10 @@ inline bool isCommutative(BinaryOp op) {
 class Function;
 class BasicBlock;
 
+/**
+ * Undef is the undefined value.
+ * We don't use nullptr to avoid confusion.
+ */
 class Undef : public Value {
 public:
     void dumpAsOperand(std::ostream &os) override {
@@ -53,6 +57,9 @@ public:
     }
 };
 
+/**
+ * Param is the parameter value.
+ */
 class Param : public Value {
     std::string name;
     Type *type;
@@ -77,6 +84,7 @@ public:
 
 };
 
+
 class Global : public Value {
     std::string name;
     Type *type;
@@ -97,6 +105,9 @@ public:
 
 };
 
+/**
+ * Constant is the base class of all constant values.
+ */
 class Constant : public Value {
 protected:
     Type *type;
@@ -138,25 +149,33 @@ protected:
     Opcode opcode;
     size_t numOperands;
     std::unique_ptr<Use[]> trailingOperands;
+
+    // Allocate Uses and construct the trailingOperands array.
+    static inline std::unique_ptr<Use[]>
+    AllocateUses(Instruction *user, const std::vector<Value *> &values) {
+        auto *UseElements = new Use[values.size()];
+        for (auto I = 0; I < values.size(); I++) {
+            new(&UseElements[I]) Use(user, values[I]);
+        }
+        return std::unique_ptr<Use[]>(UseElements);
+    }
+
+    static inline std::unique_ptr<Use[]>
+    AllocateUses(Instruction *user, size_t numValues) {
+        auto *UseElements = new Use[numValues];
+        for (auto I = 0; I < numValues; I++) {
+            new(&UseElements[I]) Use(user);
+        }
+        return std::unique_ptr<Use[]>(UseElements);
+    }
 public:
     Instruction() {}
     Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {}
     Instruction(Opcode opcode, const std::vector<Value *> &values) : opcode(opcode), numOperands(values.size()),
-                                                                        trailingOperands(new Use[values.size()]) {
-        auto *Operand = getTrailingOperand();
-        for (auto &Value: values) {
-            new(Operand++) Use(this, Value);
-        }
-    }
-    Instruction(Opcode opcode, size_t numTrailingOperands) : opcode(opcode), numOperands(numTrailingOperands) {
-        // allocate memory for trailing operands
-        trailingOperands = std::unique_ptr<Use[]>(new Use[numTrailingOperands]);
-        // construct the trailing operands
-        for (size_t I = 0; I < numTrailingOperands; I++) {
-            new(&trailingOperands[I]) Use(this);
-        }
-    }
+                                                                        trailingOperands(AllocateUses(this, values)) {}
+    Instruction(Opcode opcode, size_t numTrailingOperands) : opcode(opcode), numOperands(numTrailingOperands),
+                                                             trailingOperands(AllocateUses(this, numTrailingOperands)) {}
     Instruction(const Instruction &other) : Instruction(other.opcode, other.numOperands) {
         // copy trailing operands
         for (size_t I = 0; I < numOperands; I++) {
@@ -194,13 +213,16 @@ public:
 
     Opcode getOpcode() const { return opcode; }
     size_t getOperandNum() const { return numOperands; }
-
     Value *getOperand(size_t i) const {
         assert(i < numOperands);
         return getTrailingOperand()[i].getValue();
     }
 
     void setOperand(size_t i, Value *value) { getTrailingOperand()[i].set(value); }
+    void setOperands(const std::vector<Value *> &values) {
+        numOperands = values.size();
+        trailingOperands = AllocateUses(this, values);
+    }
 
     inline auto begin() {
         return getTrailingOperand();
@@ -375,7 +397,19 @@ public:
     }
 
     void setIncomingBlock(size_t i, BasicBlock *bb);
+    // fill incomings with vector of bb and value
+    void setIncomings(std::vector<std::pair<Value *, BasicBlock *>> incomings) {
+        numOperands = incomings.size();
+        trailingOperands = AllocateUses(this, incomings.size());
+        incomingBlocks = AllocateUses(this, incomings.size());
+        size_t I = 0;
+        for (auto &[val, bb] : incomings) {
+            setOperand(I, val);
+            setIncomingBlock(I, bb);
+        }
+    }
 
+    // incomings iterator
     IterRange<Use *> incomings() const {
         return iter(incomingBlocks.get(), incomingBlocks.get() + getOperandNum());
     }

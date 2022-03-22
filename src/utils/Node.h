@@ -10,9 +10,9 @@
 #include "Common.h"
 #include "Range.h"
 
-// NodeBase is the base class of Node and Sentinal.
+// NodeBase is the base class of Node and Sentinel.
 class NodeBase {
-    template <typename Ty, typename Traits, typename SentinalTy> friend class INodeListImpl;
+    template <typename Ty, typename Traits, typename SentinelTy> friend class INodeListImpl;
     template <typename Ty, typename As, bool> friend class NodeIter;
 protected:
     NodeBase *prev = nullptr;
@@ -73,9 +73,9 @@ public:
     }
 
 };
-class NodeSentinal : public NodeBase {
+class NodeSentinel : public NodeBase {
 public:
-    constexpr NodeSentinal() {
+    constexpr NodeSentinel() {
         reset();
     }
 
@@ -134,7 +134,7 @@ public:
 
 template<typename Ty, typename As = Ty, bool Reverse = false>
 class NodeIter {
-    template<typename T, typename Traits, typename SentinalTy> friend class INodeListImpl;
+    template<typename T, typename Traits, typename SentinelTy> friend class INodeListImpl;
     Ty *cursor = nullptr;
 public:
     using iterator_category = std::bidirectional_iterator_tag;
@@ -232,12 +232,12 @@ struct StrongRefTrait : public ListRefTrait<T> {
     static void derefNode(T *V) { delete V; }
 };
 
-template<typename T, typename Traits, typename SentinalTy = NodeSentinal>
+template<typename T, typename Traits, typename SentinelTy = NodeSentinel>
 class INodeListImpl : protected Traits {
 private:
     using NodeTy = NodeBase;
     static_assert(std::is_base_of_v<NodeTy, T>, "INodeWithParent must be base of element type");
-    SentinalTy sentinal;
+    SentinelTy sentinel;
 public:
     using iterator = NodeIter<NodeTy, T, false>;
     using reverse_iterator = NodeIter<NodeTy, T, true>;
@@ -255,14 +255,14 @@ public:
 
     INodeListImpl &operator=(INodeListImpl &&RHS) {
         erase(begin(), end());
-        RHS.sentinal.getNextNode()->linkPrev(&sentinal);
-        RHS.sentinal.getPrevNode()->linkNext(&sentinal);
-        RHS.sentinal.reset();
+        RHS.sentinel.getNextNode()->linkPrev(&sentinel);
+        RHS.sentinel.getPrevNode()->linkNext(&sentinel);
+        RHS.sentinel.reset();
         return *this;
     }
 
     inline bool empty() const {
-        return sentinal.empty();
+        return sentinel.empty();
     }
 
     inline void clear() {
@@ -467,19 +467,19 @@ public:
     }
 
     inline iterator begin() {
-        return ++iterator(&sentinal);
+        return ++iterator(&sentinel);
     }
 
     inline iterator end() {
-        return iterator(&sentinal);
+        return iterator(&sentinel);
     }
 
     inline iterator begin() const {
-        return ++iterator(&sentinal);
+        return ++iterator(&sentinel);
     }
 
     inline iterator end() const {
-        return iterator(&sentinal);
+        return iterator(&sentinel);
     }
 
     inline reverse_iterator rbegin() {
@@ -502,8 +502,8 @@ public:
         return iter(rbegin(), rend());
     }
 
-    inline SentinalTy *get_sentinal() const {
-        return &sentinal;
+    inline SentinelTy *get_sentinel() const {
+        return &sentinel;
     }
 
 protected:
@@ -524,12 +524,12 @@ protected:
 
 };
 template<typename T, typename Traits = StrongRefTrait<T>>
-using NodeList = INodeListImpl<T, Traits, NodeSentinal>;
+using NodeList = INodeListImpl<T, Traits, NodeSentinel>;
 
 template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<NodeTy>>
 class NodeParent {
 public:
-    using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinal>;
+    using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinel>;
     using iterator = typename NodeListTy::iterator;
 
     NodeParent() = default;
