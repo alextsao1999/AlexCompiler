@@ -17,7 +17,7 @@ auto SplitAndTrim(const std::string &str) -> std::string {
     while (std::getline(SS, Item)) {
         Res.push_back(Item);
     }
-    static const char *TrimChars = " \t\r\n";
+    static const char *TrimChars = "  \t\r\n";
     // Trim Each Line
     for (auto &Line: Res) {
         Line.erase(Line.find_last_not_of(TrimChars) + 1);
@@ -109,24 +109,24 @@ const lest::test Specification[] = {
             PM.run(M.get());
 
             EXPECT_EQ_VALUE(F, R"(
-                def func1(i32 %x) -> void {
-                    entry:
-                        %cmp = ne i32 %x, i32 66
-                        condbr i32 %cmp, %if.true, %if.false
+            def func1(i32 %x) -> void {
+                entry:
+                %cmp = ne i32 %x, i32 66
+                condbr i32 %cmp, %if.true, %if.false
 
-                    if.true:
-                        br %leave
+                if.true:
+                br %leave
 
-                    if.false:
-                        br %leave
+                if.false:
+                br %leave
 
-                    leave:
-                        %test = phi %if.true : i32 33, %if.false : i32 44
-                        ret %test
-                }
-            )");
-
+                leave:
+                %test = phi %if.true -> i32 33, %if.false -> i32 44
+                ret i32 %test
+            }
+)");
         },
+
 
 };
 

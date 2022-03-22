@@ -71,7 +71,7 @@ int main(int argc, char **argv) {
     PM.addPass(new GVN());
     PM.addPass(new BranchElim());
     PM.addPass(new ADCE());
-    PM.addPass(new SSADestructor());
+    //PM.addPass(new SSADestructor());
 
     // run passes
     PM.run(M.get());

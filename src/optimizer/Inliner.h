@@ -73,7 +73,7 @@ public:
             // jump to the entry block of inlined function
             auto *Br = CallSiteBlock->getTerminator();
             assert(Br && Br->getOpcode() == OpcodeBr);
-            // TODO: optimize this
+            // TODO: can optimize this?
             Br->setSuccessor(0, InlinedEntry);
 
             // replace the value of operands with the mapped value

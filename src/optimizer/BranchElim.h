@@ -17,10 +17,18 @@ public:
             if (auto *Inst = BB.getTerminator()) {
                 if (Inst->getOpcode() == OpcodeCondBr) {
                     auto *CondBr = Inst->cast<CondBrInst>();
+                    auto *TrueBB = CondBr->getTrueTarget();
+                    auto *FalseBB = CondBr->getFalseTarget();
+                    assert(TrueBB && FalseBB);
                     if (auto *Val = CondBr->getCond()->as<IntConstant>()) {
                         auto *NewInst = new BranchInst(
                                 Val->getVal() == 0 ? CondBr->getFalseTarget() : CondBr->getTrueTarget());
                         Inst->replaceBy(NewInst);
+                        continue;
+                    }
+                    if (TrueBB == FalseBB) {
+                        Inst->replaceBy(new BranchInst(TrueBB));
+                        continue;
                     }
                 }
             }

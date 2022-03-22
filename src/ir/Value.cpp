@@ -18,13 +18,12 @@ Value::~Value() {
     }
 }
 
-bool Value::isOnlyUsedOnce() {
+bool Value::isOnlyUsedOnce() const {
     return users && users->next == nullptr;
 }
 
-Opcode Value::getOpcode() {
-    assert(isa<Instruction>());
-    return cast<Instruction>()->getOpcode();
+bool Value::isNotUsed() const {
+    return users == nullptr;
 }
 
 void Value::replaceAllUsesWith(Value *newVal) {
@@ -36,3 +35,7 @@ void Value::replaceAllUsesWith(Value *newVal) {
     }
 }
 
+Opcode Value::getOpcode() {
+    assert(isa<Instruction>());
+    return cast<Instruction>()->getOpcode();
+}

@@ -444,11 +444,8 @@ public:
         return node;
     }
 
-    inline iterator replace(iterator where, pointer node) {
-        if (node->getPrev() && node->getNext()) {
-            remove(node);
-        }
-
+    inline iterator replace_without_ref(iterator where, pointer node) {
+        assert(node);
         auto *Ptr = where.getPointer();
         auto *Prev = Ptr->getPrev();
         auto *Next = Ptr->getNext();
@@ -457,6 +454,14 @@ public:
         node->setPrev(Prev);
         node->setNext(Next);
         Traits::derefNode(Ptr);
+        return node;
+    }
+
+    inline iterator replace(iterator where, pointer node) {
+        if (node->getPrev() && node->getNext()) {
+            remove(node);
+        }
+        replace_without_ref(where, node);
         Traits::refNode(node);
         return iterator(node);
     }
@@ -531,6 +536,15 @@ public:
 
     NodeParent(const NodeListTy &list) : list(list) {}
 
+    auto erase(NodeTy *node) {
+        return list.erase(node);
+    }
+
+    // remove node from parent, but not deref it
+    void remove(NodeTy *node) {
+        list.remove(node);
+    }
+
     void append(NodeTy *node) {
         if (auto *OldParent = node->getParent()) {
             // 之前有父节点, 先从父节点中移除
@@ -541,14 +555,6 @@ public:
             node->setParent(static_cast<ParentTy *>(this));
             list.push_back(node);
         }
-    }
-
-    auto erase(NodeTy *node) {
-        return list.erase(node);
-    }
-
-    void remove(NodeTy *node) {
-        list.remove(node);
     }
 
     void insertAfter(NodeTy *node, NodeTy *after) {
@@ -576,8 +582,15 @@ public:
     }
 
     void replace(NodeTy *node, NodeTy *newNode) {
-        newNode->setParent(static_cast<ParentTy *>(this));
-        list.replace(node, newNode);
+        if (auto *OldParent = newNode->getParent()) {
+            // 之前有父节点, 先从父节点中移除
+            OldParent->remove(newNode);
+            newNode->setParent(static_cast<ParentTy *>(this));
+            list.replace_without_ref(node, newNode);
+        } else {
+            newNode->setParent(static_cast<ParentTy *>(this));
+            list.replace(node, newNode);
+        }
     }
 
     NodeListTy &getSubList() {

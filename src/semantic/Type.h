@@ -47,10 +47,10 @@ public:
         }
     }
 public:
-    Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId),
-                                                              containedType(containedType), containedTypeCount(1) {}
     Type(TypeID typeId, Type **containedType, unsigned size) : context((*containedType)->getContext()), typeId(typeId),
                                                               containedType(containedType), containedTypeCount(size) {}
+    Type(Context *ctx, TypeID typeId, Type **containedType) : context(ctx), typeId(typeId),
+                                                              containedType(containedType), containedTypeCount(1) {}
     Type(Context *ctx, TypeID typeId) : context(ctx), typeId(typeId) {}
 
     virtual ~Type() = default;
@@ -227,6 +227,20 @@ public:
         getReturnType()->dump(os);
 
     }
+};
+
+class ArrayType : public Type {
+public:
+    Type *elementType;
+    unsigned size;
+    ArrayType(Type *original, unsigned size) : Type(original->getContext(), TypeArray, &elementType), elementType(original), size(size) {}
+
+    void dump(std::ostream &os) override {
+        os << "[" << size << " x ";
+        elementType->dump(os);
+        os << "]";
+    }
+
 };
 
 class PointerType : public Type {

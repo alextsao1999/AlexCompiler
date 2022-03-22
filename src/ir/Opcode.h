@@ -15,7 +15,7 @@ S(Br,     1, BranchInst)     \
 S(CondBr, 3, CondBrInst)     \
 S(Unary,  1, UnaryInst)      \
 S(Binary, 2, BinaryInst)     \
-S(GEP,    2, Instruction)    \
+S(GetPtr, 2, GetPtrInst)     \
 S(Ret,    0, RetInst)        \
 S(Call,   0, CallInst)       \
 S(Load,   1, LoadInst)       \

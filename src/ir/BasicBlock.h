@@ -200,19 +200,17 @@ public:
     inline auto begin() {
         return getSubList().begin();
     }
-
     inline auto end() {
         return getSubList().end();
     }
 
+    // DominatorTree and dominance frontiers
     inline BasicBlock *getDominator() {
         return dominator;
     }
-
     inline auto &getDomFrontier() {
         return domFrontier;
     }
-
     inline auto &getDomChildren() {
         return domChildren;
     }
@@ -244,7 +242,6 @@ public:
     Instruction *getTerminator() {
         return terminator;
     }
-
     unsigned getNumSuccessors() {
         return terminator ? terminator->getNumSuccessors() : 0;
     }
@@ -252,7 +249,6 @@ public:
     bool hasMultipleSuccessors() {
         return getNumSuccessors() > 1;
     }
-
     bool hasMultiplePredecessor() {
         auto Begin = pred_iterator(this);
         auto End = pred_iterator();
@@ -265,23 +261,30 @@ public:
         return false;
     }
 
-    auto preds() {
-        return iter(pred_iterator(this), pred_iterator());
+    inline auto preds() {
+        return iter(preds_begin(), preds_end());
+    }
+    inline auto succs() {
+        return iter(succs_begin(), succs_end());
     }
 
-    auto preds_begin() {
+    inline pred_iterator preds_begin() {
         return pred_iterator(this);
     }
-
-    auto preds_end() {
+    inline pred_iterator preds_end() {
         return pred_iterator();
     }
 
-    auto succs() {
+    inline succ_iterator succs_begin() {
         assert(getTerminator());
-        return iter(succ_iterator(this, 0), succ_iterator(this));
+        return succ_iterator(this, 0);
+    }
+    inline succ_iterator succs_end() {
+        assert(getTerminator());
+        return succ_iterator(this);
     }
 
+    // dump the basic block
     void dump(std::ostream &os) override {
         os << name << ": " ;
 
@@ -362,11 +365,11 @@ private:
 
 private:
     std::string name;
-    std::set<BasicBlock *> domFrontier;
-    std::set<BasicBlock *> domChildren;
-    BasicBlock *dominator = nullptr;
-    Instruction *terminator = nullptr;
-    iterator lastPhi = list.end();
+    std::set<BasicBlock *> domFrontier; ///< the dominance frontier of this block
+    std::set<BasicBlock *> domChildren; ///< children of the dominator
+    BasicBlock *dominator = nullptr; ///< immediate dominator
+    Instruction *terminator = nullptr; ///< the terminator instruction
+    iterator lastPhi = list.end(); ///< last phi instruction
 
 };
 

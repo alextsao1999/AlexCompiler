@@ -10,7 +10,7 @@
 
 class ADCE : public FunctionPass {
 public:
-    std::set<Instruction *> lives;
+    std::set<Value *> lives;
     void runOnFunction(Function *function) override {
         lives.clear();
         std::vector<Instruction *> Worklist;
@@ -38,14 +38,15 @@ public:
                 instr->eraseFromParent();
             }
         });
+        // TODO: erase unrelated basic blocks
 
     }
 
-    void markLive(Instruction *i) {
+    void markLive(Value *i) {
         lives.insert(i);
     }
 
-    bool isLive(Instruction *i) {
+    bool isLive(Value *i) {
         return lives.count(i);
     }
 

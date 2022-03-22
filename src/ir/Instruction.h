@@ -450,6 +450,28 @@ public:
 
 };
 
+class GetPtrInst : public OutputInst {
+public:
+    GetPtrInst() : OutputInst(OpcodeGetPtr) {}
+    GetPtrInst(Value *base, Value *offset) : OutputInst(OpcodeGetPtr, {base, offset}) {}
+    GetPtrInst(const GetPtrInst &other) : OutputInst(other) {}
+
+    Type *getType() override {
+        return getBase()->getType();
+    }
+
+    Value *getBase() {
+        assert(getOperandNum() > 0);
+        return getOperand(0);
+    }
+
+    Value *getOffset() {
+        assert(getOperandNum() > 1);
+        return getOperand(1);
+    }
+
+};
+
 class TerminatorInst : public Instruction {
 public:
     using Instruction::Instruction;

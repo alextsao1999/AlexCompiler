@@ -1,4 +1,4 @@
-set(SUB_DIRS ir optimizer utils semantic target)
+set(SUB_DIRS ir optimizer utils semantic target parser)
 
 include_directories(${SUB_DIRS})
 foreach(DIR ${SUB_DIRS})

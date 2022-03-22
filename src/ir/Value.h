@@ -97,13 +97,13 @@ public:
     /// Get opcode of instruction
     Opcode getOpcode();
 
-    bool isOnlyUsedOnce();
-
-    void replaceAllUsesWith(Value *newVal);
-
-    inline Use *getLastUse() {
+    bool isOnlyUsedOnce() const;
+    bool isNotUsed() const;
+    inline Use *getLastUse() const {
         return users;
     }
+
+    void replaceAllUsesWith(Value *newVal);
 
     // 如果使用迭代器对调用Use.set() 会删除Use其的使用
     UseIterator::range getUses() {
