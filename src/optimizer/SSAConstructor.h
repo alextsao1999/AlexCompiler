@@ -8,6 +8,7 @@
 #include "PassManager.h"
 #include "Context.h"
 #include "Function.h"
+#include "IDFCalculator.h"
 
 struct VarStatus {
     std::vector<Value *> stack;
@@ -93,9 +94,21 @@ public:
         }
 
         // place phi nodes
+        placingByIDF(DefBlocks);
+
+        // rename phi nodes
+        rename(function->getEntryBlock());
+
+        // prune unless phi nodes
+        prune(function->getEntryBlock());
+
+        install();
+    }
+
+    void placing(const std::map<Value *, std::vector<BasicBlock *>> &defs) {
         std::vector<BasicBlock *> Worklist;
         std::map<BasicBlock *, Value *> InWorklist;
-        for (auto &[Value, Blocks]: DefBlocks) {
+        for (auto &[Value, Blocks]: defs) {
             for (auto *BB: Blocks) {
                 Worklist.push_back(BB);
                 InWorklist[BB] = Value;
@@ -116,14 +129,23 @@ public:
                 }
             }
         }
+    }
 
-        // rename phi nodes
-        rename(function->getEntryBlock());
+    void placingByIDF(const std::map<Value *, std::vector<BasicBlock *>> &defs) {
+        std::map<BasicBlock *, Value *> Placed;
+        for (auto &[Value, Blocks]: defs) {
+            IDFCalculator IDF;
+            IDF.calulate(Blocks);
+            for (auto &BB: IDF.IDF) {
+                if (Placed[BB] != Value) {
+                    StrView Name = Value->cast<Instruction>()->getName();
+                    auto *PhiNode = PhiInst::Create(BB, Name);
+                    phiStatus[PhiNode].setAlloca(Value);
+                    Placed[BB] = Value;
+                }
+            }
+        }
 
-        // prune unless phi nodes
-        prune(function->getEntryBlock());
-
-        install();
     }
 
     void rename(BasicBlock *bb) {

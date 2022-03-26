@@ -127,3 +127,106 @@ TEST(IR, Module) {
 
 }
 
+TEST(IR, IDF) {
+    Function *F = new Function("test", Context.getVoidFunTy());
+    BasicBlock *BB[] = {
+            BasicBlock::Create(F, "entry"),
+            BasicBlock::Create(F, "1"),
+            BasicBlock::Create(F, "2"),
+            BasicBlock::Create(F, "3"),
+            BasicBlock::Create(F, "4"),
+            BasicBlock::Create(F, "5"),
+            BasicBlock::Create(F, "6"),
+            BasicBlock::Create(F, "7"),
+            BasicBlock::Create(F, "8"),
+            BasicBlock::Create(F, "9"),
+            BasicBlock::Create(F, "10"),
+            BasicBlock::Create(F, "11"),
+    };
+
+    IRBuilder Builder(BB[0]);
+    Builder.createBr(BB[1]);
+
+    Builder.setInsertPoint(BB[1]);
+    Builder.createBr(BB[2]);
+
+    Builder.setInsertPoint(BB[2]);
+    Builder.createCondBr(Builder.getInt(1), BB[3], BB[11]);
+
+    Builder.setInsertPoint(BB[3]);
+    Builder.createCondBr(Builder.getInt(1), BB[4], BB[8]);
+
+    Builder.setInsertPoint(BB[4]);
+    Builder.createBr(BB[5]);
+
+    Builder.setInsertPoint(BB[5]);
+    Builder.createBr(BB[6]);
+
+    Builder.setInsertPoint(BB[6]);
+    Builder.createCondBr(Builder.getInt(1), BB[5], BB[7]);
+
+    Builder.setInsertPoint(BB[7]);
+    Builder.createBr(BB[2]);
+
+    Builder.setInsertPoint(BB[8]);
+    Builder.createBr(BB[9]);
+
+    Builder.setInsertPoint(BB[9]);
+    Builder.createCondBr(Builder.getInt(1), BB[6], BB[10]);
+
+    Builder.setInsertPoint(BB[10]);
+    Builder.createBr(BB[8]);
+
+    Builder.setInsertPoint(BB[11]);
+    Builder.createRet();
+
+    auto *DomPass = new Dominance();
+    DomPass->runOnFunction(F);
+
+    EXPECT_EQ_VALUE(F, R"(def test() -> void {
+        entry: preds=() succs=(%1) doms=(%1) df=()
+        br %1
+
+        1: preds=(%entry) succs=(%2) doms=(%2) df=() idom=%entry
+        br %2
+
+        2: preds=(%7, %1) succs=(%3, %11) doms=(%3, %11) df=(%2) idom=%1
+        condbr i32 1, %3, %11
+
+        3: preds=(%2) succs=(%4, %8) doms=(%4, %5, %6, %8) df=(%2) idom=%2
+        condbr i32 1, %4, %8
+
+        4: preds=(%3) succs=(%5) doms=() df=(%5) idom=%3
+        br %5
+
+        5: preds=(%6, %4) succs=(%6) doms=() df=(%6) idom=%3
+        br %6
+
+        6: preds=(%9, %5) succs=(%5, %7) doms=(%7) df=(%2, %5) idom=%3
+        condbr i32 1, %5, %7
+
+        7: preds=(%6) succs=(%2) doms=() df=(%2) idom=%6
+        br %2
+
+        8: preds=(%10, %3) succs=(%9) doms=(%9) df=(%6, %8) idom=%3
+        br %9
+
+        9: preds=(%8) succs=(%6, %10) doms=(%10) df=(%6, %8) idom=%8
+        condbr i32 1, %6, %10
+
+        10: preds=(%9) succs=(%8) doms=() df=(%8) idom=%9
+        br %8
+
+        11: preds=(%2) succs=() doms=() df=() idom=%2
+        ret
+    })");
+
+    BB[0]->calculateLevel();
+    IDFCalculator Calc;
+    Calc.calulate({BB[1], BB[3], BB[4], BB[7]});
+
+    EXPECT_EQ(dump_str(Calc.IDF), "%2, %5, %6");
+
+    delete F;
+}
+

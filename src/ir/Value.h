@@ -135,6 +135,14 @@ public:
         Str.erase(Str.find_last_not_of(" \n\r\t") + 1);
         return std::move(Str);
     }
+    inline std::string dumpOperandToString() {
+        std::stringstream SS;
+        dumpAsOperand(SS);
+        // Trim the string
+        std::string Str = SS.str();
+        Str.erase(Str.find_last_not_of(" \n\r\t") + 1);
+        return std::move(Str);
+    }
 
     virtual void dump(std::ostream &os) {}
     virtual void dumpAsOperand(std::ostream &os) {}
@@ -381,6 +389,40 @@ template<typename C, typename F, typename S = std::string>
 inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
     dump_os(os, c.begin(), c.end(), std::move(f), s);
     return os;
+}
+
+struct OperandDumper {
+    template<typename T>
+    std::string operator()(T &v) {
+        return v->dumpOperandToString();
+    }
+    std::string operator()(Value *v) {
+        return v->dumpOperandToString();
+    }
+    std::string operator()(Value &v) {
+        return v.dumpOperandToString();
+    }
+};
+
+struct ValueDumper {
+    std::string operator()(Value *v) {
+        return v->dumpToString();
+    }
+    std::string operator()(Value &v) {
+        return v.dumpToString();
+    }
+};
+
+template<typename C, typename Pred = OperandDumper>
+std::string dump_str(const C &c, Pred fun= Pred(), const std::string &s = ", ") {
+    std::string Out;
+    for (auto Iter = c.begin() ; Iter != c.end(); ++Iter) {
+        if (Iter != c.begin()) {
+            Out += ", ";
+        }
+        Out += fun(*Iter);
+    }
+    return Out;
 }
 
 #define DUMP_ITER(OS, C, ARG, BODY) dump_os(C, ([&](auto ARG) -> decltype(auto) {{BODY}; return OS;}));

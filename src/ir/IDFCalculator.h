@@ -30,7 +30,7 @@ inline void SubTreeIterate(BasicBlock *bb, std::function<void(BasicBlock *)> ite
 
 struct BasicBlockCompare {
     bool operator()(const BasicBlock *l, const BasicBlock *r) const {
-        return l->getLevel() < r->getLevel();
+        return l->getLevel() >= r->getLevel();
     }
 };
 
@@ -41,10 +41,12 @@ class IDFCalculator {
 public:
     std::set<BasicBlock *> visited;
     std::map<unsigned, std::priority_queue<BasicBlock *, std::vector<BasicBlock *>, BasicBlockCompare>> DAT;
+    std::set<BasicBlock *> S;
 
-    void calulate(const std::set<BasicBlock *> &blocks) {
+    void calulate(const std::vector<BasicBlock *> &blocks) {
         for (auto &BB: blocks) {
             DAT[BB->getLevel()].push(BB);
+            S.insert(BB);
         }
 
         while (currentNode = getDeepestNode()) {
@@ -74,10 +76,11 @@ public:
                 continue;
             }
             if (Succ->hasMultiplePredecessor() && Succ->getLevel() <= currentNode->getLevel()) {
-                if (IDF.count(Succ)) {
-                    insertNode(Succ);
-                } else {
+                if (!IDF.count(Succ)) {
                     IDF.insert(Succ);
+                    if (!S.count(Succ)) {
+                        insertNode(Succ);
+                    }
                 }
             }
         }
@@ -106,24 +109,5 @@ public:
     BasicBlock *entry;
 };
 
-
-class IDF: public FunctionPass {
-public:
-    void runOnFunction(Function *function) override {
-        function->getEntryBlock()->calculateLevel();
-        IDFCalculator Calc;
-
-        auto *Bbtrue = function->getBlockByName("if.true");
-        auto *Bbfalse = function->getBlockByName("if.false");
-
-        if (Bbtrue && Bbfalse) {
-            Calc.calulate({Bbtrue, Bbfalse});
-            int i = 0;
-
-        }
-
-    }
-
-};
 
 #endif //DRAGON_IDFCALCULATOR_H

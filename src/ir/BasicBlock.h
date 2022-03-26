@@ -299,29 +299,15 @@ public:
     void dump(std::ostream &os) override {
         os << name << ": " ;
 
-        /*DUMP_PTR(os << "preds=(", preds(), V, {
-            V->dumpAsOperand(os);
-        }) << ")  ";
+        os << "preds=(" << dump_str(preds()) << ") ";
+        os << "succs=(" << dump_str(succs()) << ") ";
+        os << "doms=(" << dump_str(domChildren) << ") ";
+        os << "df=(" << dump_str(getDomFrontier()) << ") ";
 
-        DUMP_PTR(os << "succs=(", succs(), V, {
-            V->dumpAsOperand(os);
-        }) << ")  ";
-
-        */
-
-        DUMP_PTR(os << "doms=(", domChildren, V, {
-            V->dumpAsOperand(os);
-        }) << ")  ";
-
-        DUMP_PTR(os << "df=(", getDomFrontier(), V, {
-            V->dumpAsOperand(os);
-        }) << ")";
-
-        /*
         if (getDominator()) {
-            os << "  idom=";
+            os << "idom=";
             getDominator()->dumpAsOperand(os);
-        }*/
+        }
 
         os << std::endl;
 

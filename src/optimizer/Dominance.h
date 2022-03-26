@@ -22,19 +22,7 @@ public:
         bbReorder.clear();
 
         // compute reverse post order
-        std::function<void(BasicBlock * bb)> DFS = [&](BasicBlock *bb) {
-            visited.insert(bb);
-            for (auto *Succ: bb->succs()) {
-                if (visited.find(Succ) == visited.end()) {
-                    DFS(Succ);
-                }
-            }
-            bbIndex[bb] = bbReorder.size();
-            bbReorder.push_back(bb);
-            bb->clearDomInfo();
-        };
-
-        DFS(function->getEntryBlock());
+        RPO(function->getEntryBlock());
 
         // compute immediate dominator
         bool Changed;
@@ -79,13 +67,31 @@ public:
 
     }
 
+    void RPO(BasicBlock *bb) {
+        visited.insert(bb);
+        for (auto *Succ: bb->succs()) {
+            if (visited.find(Succ) == visited.end()) {
+                RPO(Succ);
+            }
+        }
+        bbIndex[bb] = bbReorder.size();
+        bbReorder.push_back(bb);
+        bb->clearDomInfo();
+    }
+
     BasicBlock *intersect(BasicBlock *b1, BasicBlock *b2) {
         while (b1 != b2) {
             while (bbIndex[b1] < bbIndex[b2]) {
                 b1 = b1->dominator;
+                //assert(b1);
+                if (!b1)
+                    return b2;
             }
             while (bbIndex[b2] < bbIndex[b1]) {
                 b2 = b2->dominator;
+                //assert(b2);
+                if (!b2)
+                    return b1;
             }
         }
         return b1;

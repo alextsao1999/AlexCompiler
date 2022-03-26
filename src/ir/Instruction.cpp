@@ -82,9 +82,11 @@ void Instruction::dump(std::ostream &os) {
 
     os << " ";
 
-    DUMP_REF(os, operands(), V, {
+    /*DUMP_REF(os, operands(), V, {
         V->dumpAsOperand(os);
-    });
+    });*/
+
+    os << dump_str(operands());
 
 }
 
