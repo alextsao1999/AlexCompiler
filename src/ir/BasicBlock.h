@@ -284,6 +284,17 @@ public:
         return succ_iterator(this);
     }
 
+    // DFS visit the dominator tree and compute the dominator tree level
+    void calculateLevel(unsigned init = 0) {
+        this->level = init++;
+        for (auto &Child: domChildren) {
+            Child->calculateLevel(init);
+        }
+    }
+    inline unsigned getLevel() const {
+        return level;
+    }
+
     // dump the basic block
     void dump(std::ostream &os) override {
         os << name << ": " ;
@@ -296,6 +307,8 @@ public:
             V->dumpAsOperand(os);
         }) << ")  ";
 
+        */
+
         DUMP_PTR(os << "doms=(", domChildren, V, {
             V->dumpAsOperand(os);
         }) << ")  ";
@@ -304,6 +317,7 @@ public:
             V->dumpAsOperand(os);
         }) << ")";
 
+        /*
         if (getDominator()) {
             os << "  idom=";
             getDominator()->dumpAsOperand(os);
@@ -362,9 +376,9 @@ private:
         domFrontier.clear();
         domChildren.clear();
     }
-
 private:
     std::string name;
+    unsigned level;
     std::set<BasicBlock *> domFrontier; ///< the dominance frontier of this block
     std::set<BasicBlock *> domChildren; ///< children of the dominator
     BasicBlock *dominator = nullptr; ///< immediate dominator

@@ -35,8 +35,8 @@
     <Type Name="INodeListImpl&lt;*,*,*&gt;">
         <Expand>
             <CustomListItems MaxItemsPerView="5000" ExcludeView="Test">
-                <Variable Name="iter" InitialValue="sentinal.next" />
-                <Variable Name="end" InitialValue="&amp;sentinal" />
+                <Variable Name="iter" InitialValue="sentinel.next" />
+                <Variable Name="end" InitialValue="&amp;sentinel" />
                 <Loop>
                     <Break Condition="iter == end"/>
                     <Item>*(($T1 *)(iter))</Item>

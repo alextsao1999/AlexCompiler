@@ -4,8 +4,9 @@
 
 #ifndef DRAGON_PATTERNNODE_H
 #define DRAGON_PATTERNNODE_H
-
-
+/**
+ * The node of pattern tree.
+ */
 class PatternNode {
 public:
 

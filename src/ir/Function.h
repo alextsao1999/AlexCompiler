@@ -182,6 +182,15 @@ public:
         os << " @" << getName();
     }
 
+    BasicBlock *getBlockByName(const std::string &bbname) {
+        for (auto &BB: list) {
+            if (BB.getName() == bbname) {
+                return &BB;
+            }
+        }
+        return nullptr;
+    }
+
 private:
     std::string name; /// function name
     Type *type = nullptr; /// function type

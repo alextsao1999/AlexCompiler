@@ -13,6 +13,7 @@
 #include "BranchElim.h"
 #include "ADCE.h"
 #include "SSADestructor.h"
+#include "IDFCalculator.h"
 
 static Context Context;
 
@@ -67,10 +68,10 @@ int main(int argc, char **argv) {
     // add passes
     PM.addPass(new Inliner());
     PM.addPass(new Dominance());
-    PM.addPass(new SSAConstructor());
+    /*PM.addPass(new SSAConstructor());
     PM.addPass(new GVN());
     PM.addPass(new BranchElim());
-    PM.addPass(new ADCE());
+    PM.addPass(new ADCE());*/
     //PM.addPass(new SSADestructor());
 
     // run passes

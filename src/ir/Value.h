@@ -157,9 +157,15 @@ public:
 
 class Use {
     friend class Value;
+    /// The user of this use.
+    /// E.g. For add instruction, if it uses two operands,
+    /// every use has the same user pointer to the add instruction.
     Value *parent = nullptr;
+    /// The used value.
     Value *value = nullptr;
+    /// The previous use reference address. So we can remove this use from the list.
     Use **prev = nullptr;
+    /// The next pointer of the use list.
     Use *next = nullptr;
 public:
     Use() {}
@@ -208,10 +214,12 @@ public:
         value = nullptr;
     }
 
+    /// Set the user of this use
     void setUser(Value *u) {
         parent = u;
     }
 
+    /// Get the user of this use
     inline Value *getUser() {
         return parent;
     }
@@ -224,6 +232,7 @@ public:
         return value;
     }
 
+    /// Get the used value
     inline Value *getValue() {
         return value;
     }

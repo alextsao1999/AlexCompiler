@@ -1,7 +1,7 @@
 ﻿//
 // Created by Alex on 2022/3/12.
 //
-#include "lest.hpp"
+#include "gtest/gtest.h"
 #include "parser.h"
 
 value_t ParseCode(const char *str) {
@@ -11,18 +11,17 @@ value_t ParseCode(const char *str) {
     return Parser.value();
 }
 
-const lest::test Specification[] = {
-        CASE("Expression") {
-            const char *ExprTest = "import aaa.bbb.ccc;\n"
-                                   "int<int, value> main() {\n"
-                                   "  a = 1 + 2 * 5;\n"
-                                   "}";
-            GLRParser<> Parser(false);
-            Parser.reset(ExprTest, ExprTest + strlen(ExprTest));
-            Parser.parse();
-            EXPECT(Parser.accept());
-            auto &Value = Parser.value();
-            EXPECT(Value == R"json(
+TEST(Grammar, Expr) {
+    const char *ExprTest = "import aaa.bbb.ccc;\n"
+                           "int<int, value> main() {\n"
+                           "  a = 1 + 2 * 5;\n"
+                           "}";
+    GLRParser<> Parser(false);
+    Parser.reset(ExprTest, ExprTest + strlen(ExprTest));
+    Parser.parse();
+    ASSERT_TRUE(Parser.accept());
+    auto &Value = Parser.value();
+    EXPECT_EQ(Value, R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -103,14 +102,14 @@ const lest::test Specification[] = {
 }
 )json"_json);
 
-            const char *VarDeclare = "int main() {\n"
-                                     "  int a = 1;\n"
-                                     "  int b = 2;\n"
-                                     "  int c = 3;\n"
-                                     "  int d_44 = 4;\n"
-                                     "}";
+    const char *VarDeclare = "int main() {\n"
+                             "  int a = 1;\n"
+                             "  int b = 2;\n"
+                             "  int c = 3;\n"
+                             "  int d_44 = 4;\n"
+                             "}";
 
-            EXPECT(ParseCode(VarDeclare) == R"json(
+    EXPECT_EQ(ParseCode(VarDeclare), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -193,13 +192,13 @@ const lest::test Specification[] = {
 
 )json"_json);
 
-            const char *NewTest = "int main() {\n"
-                                  "  int a = new int(1);\n"
-                                  "  int b = new int(2);\n"
-                                  "  int c = new int(3);\n"
-                                  "  int d_44 = new int(4);\n"
-                                  "}";
-            EXPECT(ParseCode(NewTest) == R"json(
+    const char *NewTest = "int main() {\n"
+                          "  int a = new int(1);\n"
+                          "  int b = new int(2);\n"
+                          "  int c = new int(3);\n"
+                          "  int d_44 = new int(4);\n"
+                          "}";
+    EXPECT_EQ(ParseCode(NewTest), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -325,18 +324,18 @@ const lest::test Specification[] = {
 }
 )json"_json);
 
-            const char *InvokeTest = "int main() {\n"
-                                     "    int a;\n"
-                                     "    a = test();\n"
-                                     "    int a = test(1);\n"
-                                     "    int b = test(4, 5);\n"
-                                     "    int c = test(7, 8, 9);\n"
-                                     "    int d = test(10, 11, 12, 13);\n"
-                                     "    int value = a + b + c;"
-                                     "    return 0;\n"
-                                     "}";
+    const char *InvokeTest = "int main() {\n"
+                             "    int a;\n"
+                             "    a = test();\n"
+                             "    int a = test(1);\n"
+                             "    int b = test(4, 5);\n"
+                             "    int c = test(7, 8, 9);\n"
+                             "    int d = test(10, 11, 12, 13);\n"
+                             "    int value = a + b + c;"
+                             "    return 0;\n"
+                             "}";
 
-            EXPECT(ParseCode(InvokeTest) == R"json(
+    EXPECT_EQ(ParseCode(InvokeTest), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -549,18 +548,18 @@ const lest::test Specification[] = {
 }
 )json"_json);
 
-            const char *MoreExprTest = "int main() {\n"
-                                       "    int int_value = 0;\n"
-                                       "    int value = 1 + 2 * 3 / 4 - 5;\n"
-                                       "    bool eq = 1 == 2;\n"
-                                       "    bool lt = 1 < 2;\n"
-                                       "    bool gt = 1 > 2;\n"
-                                       "    bool and = 1 && 2;\n"
-                                       "    bool or = 1 || 2;\n"
-                                       "    return 0;\n"
-                                       "}";
+    const char *MoreExprTest = "int main() {\n"
+                               "    int int_value = 0;\n"
+                               "    int value = 1 + 2 * 3 / 4 - 5;\n"
+                               "    bool eq = 1 == 2;\n"
+                               "    bool lt = 1 < 2;\n"
+                               "    bool gt = 1 > 2;\n"
+                               "    bool and = 1 && 2;\n"
+                               "    bool or = 1 || 2;\n"
+                               "    return 0;\n"
+                               "}";
 
-            EXPECT(ParseCode(MoreExprTest) == R"json(
+    EXPECT_EQ(ParseCode(MoreExprTest), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -786,16 +785,17 @@ const lest::test Specification[] = {
 }
 )json"_json);
 
-        },
-        CASE("Class") {
-            const char *ClassMemberTest = "class A {"
-                                          "  int a;"
-                                          "  int b;"
-                                          "  int cc;"
-                                          "  int dd;"
-                                          "  List<int> list;"
-                                          "}";
-            EXPECT(ParseCode(ClassMemberTest) == R"(
+}
+
+TEST(Grammar, Class) {
+    const char *ClassMemberTest = "class A {"
+                              "  int a;"
+                              "  int b;"
+                              "  int cc;"
+                              "  int dd;"
+                              "  List<int> list;"
+                              "}";
+    EXPECT_EQ(ParseCode(ClassMemberTest), R"(
 {
     "id": 1,
     "kind": "Program",
@@ -869,13 +869,14 @@ const lest::test Specification[] = {
     ]
 }
 )"_json);
-        },
-        CASE("BaseClass") {
-            const char *ClassDefineTest = "class A<A,B,C> : B {\n"
-                                          "  int a;"
-                                          "}";
+}
 
-            EXPECT(ParseCode(ClassDefineTest) == R"json(
+TEST(Grammar, Base) {
+    const char *ClassDefineTest = "class A<A,B,C> : B {\n"
+                                  "  int a;"
+                                  "}";
+
+    EXPECT_EQ(ParseCode(ClassDefineTest), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -907,15 +908,15 @@ const lest::test Specification[] = {
 }
 
 )json"_json);
+}
 
-        },
-        CASE("While") {
-            const char *Test = "int main() {"
-                               "  while (true) {"
-                               "    int a = 10;"
-                               "  }"
-                               "}";
-            EXPECT(ParseCode(Test) == R"json(
+TEST(Grammar, While) {
+    const char *Test = "int main() {"
+                       "  while (true) {"
+                       "    int a = 10;"
+                       "  }"
+                       "}";
+    EXPECT_EQ(ParseCode(Test), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -968,15 +969,16 @@ const lest::test Specification[] = {
 
 
 )json"_json);
-        },
-        CASE("Do While") {
-            const char *Test = "int main() {"
-                               "  do {"
-                               "    int a = 10;"
-                               "  } while(true);"
-                               "}";
-            EXPECT(ParseCode(Test) == R"json(
+}
 
+TEST(Grammar, DoWhile) {
+    const char *Test = "int main() {"
+                       "  while (true) {"
+                       "    break;"
+                       "    continue;"
+                       "  }"
+                       "}";
+    EXPECT_EQ(ParseCode(Test), R"json(
 {
     "id": 1,
     "kind": "Program",
@@ -1010,62 +1012,6 @@ const lest::test Specification[] = {
                         "kind": "VariableExpr",
                         "name": "true"
                     },
-                    "id": 20,
-                    "kind": "DoWhileStmt"
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
-}
-
-
-)json"_json);
-        },
-        CASE("While With Break") {
-            const char *Test = "int main() {"
-                               "  while (true) {"
-                               "    break;"
-                               "    continue;"
-                               "  }"
-                               "}";
-            //std::cout << ParseCode(Test).dump(4) << std::endl << std::endl;
-            EXPECT(ParseCode(Test) == R"json(
-
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "block": [
-                {
-                    "body": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": [
-                            {
-                                "id": 17,
-                                "kind": "BreakStmt"
-                            },
-                            {
-                                "id": 16,
-                                "kind": "ContinueStmt"
-                            }
-                        ]
-                    },
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
-                        "name": "true"
-                    },
                     "id": 19,
                     "kind": "WhileStmt"
                 }
@@ -1085,160 +1031,4 @@ const lest::test Specification[] = {
 
 
 )json"_json);
-        },
-        CASE("If") {
-            const char *Test = "int main() {"
-                               "  if (true) {"
-                               "  }"
-                               "}";
-            EXPECT(ParseCode(Test) == R"json(
-
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "block": [
-                {
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
-                        "name": "true"
-                    },
-                    "id": 18,
-                    "kind": "IfStmt",
-                    "then": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": null
-                    }
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
-}
-
-)json"_json);
-        },
-        CASE("If Else") {
-            const char *Test = "int main() {"
-                               "  if (true) {"
-                               "  } else {"
-                               "  }"
-                               "}";
-            //std::cout << ParseCode(Test).dump(4) << std::endl << std::endl;
-            EXPECT(ParseCode(Test) == R"json(
-
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "block": [
-                {
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
-                        "name": "true"
-                    },
-                    "else": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": null
-                    },
-                    "id": 18,
-                    "kind": "IfStmt",
-                    "then": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": null
-                    }
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
-}
-)json"_json);
-        },
-        CASE("If Else If") {
-            const char *Test = "int main() {"
-                               "  if (true) {"
-                               "  } else if (false) {"
-                               "  }"
-                               "}";
-            EXPECT(ParseCode(Test) == R"json(
-
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "block": [
-                {
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
-                        "name": "true"
-                    },
-                    "else": {
-                        "condition": {
-                            "id": 31,
-                            "kind": "VariableExpr",
-                            "name": "false"
-                        },
-                        "id": 18,
-                        "kind": "IfStmt",
-                        "then": {
-                            "id": 14,
-                            "kind": "BlockStmt",
-                            "value": null
-                        }
-                    },
-                    "id": 18,
-                    "kind": "IfStmt",
-                    "then": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": null
-                    }
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
-}
-
-)json"_json);
-        },
-
-};
-
-int main(int argc, char *argv[]) {
-    return lest::run(Specification, argc, argv, std::cout);
 }
