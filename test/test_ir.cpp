@@ -10,6 +10,7 @@
 #include "Inliner.h"
 #include "LoopAnalyse.h"
 #include "LoopSimplify.h"
+#include "SCCP.h"
 
 Context Context;
 
