@@ -96,7 +96,10 @@ private:
     ParentT *parent = nullptr;
 public:
     NodeWithParent() = default;
-    NodeWithParent(ParentT *parent) : parent(parent) {}
+    NodeWithParent(ParentT *parent) {
+        assert(parent);
+        parent->append(static_cast<T *>(this));
+    }
 
     void setParent(ParentT *Parent) {
         parent = Parent;
@@ -246,7 +249,7 @@ public:
     using const_reference = const T &;
 
     INodeListImpl() {}
-    INodeListImpl(const INodeListImpl &RHS) = default;
+    INodeListImpl(const INodeListImpl &RHS) = delete;
     ~INodeListImpl() {
         delete_range(begin(), end());
     }
@@ -299,14 +302,17 @@ public:
     }
 
     inline void pop_back() {
+        assert(!empty());
         erase(--end());
     }
 
     inline reference front() {
+        assert(!empty());
         return *begin();
     }
 
     inline reference back() {
+        assert(!empty());
         return *(--end());
     }
 

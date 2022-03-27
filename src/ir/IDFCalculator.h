@@ -42,8 +42,15 @@ public:
     std::set<BasicBlock *> visited;
     std::map<unsigned, std::priority_queue<BasicBlock *, std::vector<BasicBlock *>, BasicBlockCompare>> DAT;
     std::set<BasicBlock *> S;
+    BasicBlock *currentNode = nullptr;
+    std::set<BasicBlock *> IDF;
 
     void calulate(const std::vector<BasicBlock *> &blocks) {
+        DAT.clear();
+        S.clear();
+        visited.clear();
+        IDF.clear();
+
         for (auto &BB: blocks) {
             DAT[BB->getLevel()].push(BB);
             S.insert(BB);
@@ -92,21 +99,59 @@ public:
         }
     }
 
-    bool isJEdge(BasicBlock *from, BasicBlock *to) {
-        if (from->getDomChildren().count(to)) { // is d edge
-            return false;
+    std::set<BasicBlock *> calc(const std::set<BasicBlock *> &blocks) {
+        std::priority_queue<BasicBlock *, std::vector<BasicBlock *>, BasicBlockCompare> Queue;
+        std::vector<BasicBlock *> Worklist;
+        std::set<BasicBlock *> Visited;
+        std::set<BasicBlock *> IDFSet;
+        for (auto &BB: blocks) {
+            Queue.push(BB);
+            Visited.insert(BB);
         }
 
-        for (auto *Succ: from->succs()) {
-            if (Succ == to && Succ->hasMultiplePredecessor()) {
-                return true;
+        while (!Queue.empty()) {
+            auto *Working = Queue.top();
+            Queue.pop();
+
+            Visited.insert(Working);
+            Worklist.push_back(Working);
+
+            while (!Worklist.empty()) {
+                auto *BB = Worklist.back();
+                Worklist.pop_back();
+
+                for (auto *Succ: BB->succs()) {
+                    if (Working->getDomChildren().count(Succ)) {
+                        // make sure working -> succ is not d edge
+                        continue;
+                    }
+
+                    if (Succ->getLevel() > Working->getLevel()) {
+                        continue;
+                    }
+
+                    if (!IDFSet.insert(Succ).second) {
+                        continue;
+                    }
+
+                    if (!blocks.count(Succ)) {
+                        Queue.push(Succ);
+                    }
+                }
+
+                // 沿着d边继续行进
+                for (auto *DEdge: BB->getDomChildren()) {
+                    if (Visited.insert(DEdge).second) {
+                        Worklist.push_back(DEdge);
+                    }
+                }
+
             }
+
         }
-        return false;
+        return IDFSet;
     }
-    BasicBlock *currentNode = nullptr;
-    std::set<BasicBlock *> IDF;
-    BasicBlock *entry;
+
 };
 
 

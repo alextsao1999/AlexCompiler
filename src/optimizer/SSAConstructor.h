@@ -94,7 +94,7 @@ public:
         }
 
         // place phi nodes
-        placingByIDF(DefBlocks);
+        placing(DefBlocks);
 
         // rename phi nodes
         rename(function->getEntryBlock());

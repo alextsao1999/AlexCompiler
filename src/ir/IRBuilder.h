@@ -28,7 +28,7 @@ public:
 
     template<typename Ty>
     Ty *insert(Ty *instr, std::string_view name) {
-        assert(instr);
+        assert(bb && instr);
         bb->append(instr);
         instr->setName(name);
         return instr;
@@ -36,7 +36,7 @@ public:
 
     template<typename Ty>
     Ty *insert(Ty *instr) {
-        assert(instr);
+        assert(bb && instr);
         bb->append(instr);
         return instr;
     }
@@ -171,7 +171,7 @@ public:
 
 private:
     /// Insert point
-    BasicBlock *bb;
+    BasicBlock *bb = nullptr;
 };
 
 

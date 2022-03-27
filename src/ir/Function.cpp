@@ -10,7 +10,7 @@ Function *Function::Create(Module *module, std::string_view name, Type *type) {
     return module->createFunction(name, type);
 }
 
-Function::Function(Module *m, std::string_view name, Type *ft) : module(m), name(name), type(ft) {
+Function::Function(Module *parent, std::string_view name, Type *ft) : module(parent), name(name), type(ft) {
     // FIXME: Module contains function?
 }
 

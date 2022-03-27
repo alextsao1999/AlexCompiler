@@ -5,11 +5,20 @@
 #ifndef DRAGON_PRE_H
 #define DRAGON_PRE_H
 
+#include "PassManager.h"
+
+struct PhiState {
+
+};
+
 /**
  * The class performs the Partial Redundancy Elimination (PRE) optimization
  */
-class PRE {
+class PRE : public FunctionPass {
+public:
+    void runOnFunction(Function *function) override {
 
+    }
 };
 
 

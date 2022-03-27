@@ -1,4 +1,4 @@
-//
+﻿//
 // Created by Alex on 2021/10/26.
 //
 
@@ -9,11 +9,37 @@
 class BasicBlock;
 
 class Loop {
+    friend class LoopAnalyse;
+    Loop *parent;
+    ///< 循环所指向的头
+    BasicBlock *header = nullptr;
+    ///< 后向边, 可能有多个后向边指向同一个循环头暂时不用
+    BasicBlock *backege = nullptr;
+    ///< 循环层级
+    unsigned level = 0;
+    ///< 循环预头
+    BasicBlock *preheader = nullptr;
     std::set<BasicBlock *> blocks;
+    std::set<BasicBlock *> outers;
 public:
+    Loop(BasicBlock *header, BasicBlock *backege) : header(header), backege(backege) {
+        assert(header && backege);
+        blocks.insert(header);
+    }
+    // iterator
     inline auto begin() { return blocks.begin(); }
     inline auto end() { return blocks.end(); }
 
+    ///< get the header of the loop
+    inline BasicBlock *getHeader() const { return header; }
+    ///< get the back edge of the loop
+    inline BasicBlock *getBackedge() const { return backege; }
+    ///< get the preheader of the loop
+    inline BasicBlock *getPreheader() const { return preheader; }
+    ///< set the preheader of the loop
+    void setPreheader(BasicBlock *ph) {
+        this->preheader = ph;
+    }
     inline bool contains(BasicBlock *bb) { return blocks.count(bb) > 0; }
     inline bool isLoopInvariant(Value *val) {
         if (auto *Inst = val->as<Instruction>()) {
@@ -27,7 +53,7 @@ public:
         });
     }
 
-    inline void addBlock(BasicBlock *bb) { blocks.insert(bb); }
+    inline bool addBlock(BasicBlock *bb) { return blocks.insert(bb).second; }
     inline void removeBlock(BasicBlock *bb) { blocks.erase(bb); }
 };
 
@@ -61,16 +87,6 @@ struct LoopInfo {
         return level;
     }
 
-    void calculateLevel() {
-        if (parent) {
-            if (parent->level == 0) {
-                parent->calculateLevel();
-            }
-            level = parent->level + 1;
-        } else {
-            level = 1;
-        }
-    }
 };
 
 

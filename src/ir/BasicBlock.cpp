@@ -7,9 +7,7 @@
 
 BasicBlock *BasicBlock::Create(Function *parent, std::string_view name) {
     assert(parent);
-    auto *BB = new BasicBlock(parent, name);
-    parent->getBasicBlockList().push_back(BB);
-    return BB;
+    return new BasicBlock(parent, name);
 }
 
 Context *BasicBlock::getContext() {

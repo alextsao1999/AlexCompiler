@@ -21,8 +21,10 @@ public:
         bbIndex.clear();
         bbReorder.clear();
 
+        auto *EntryBlock = function->getEntryBlock();
+        assert(EntryBlock);
         // compute reverse post order
-        RPO(function->getEntryBlock());
+        RPO(EntryBlock);
 
         // compute immediate dominator
         bool Changed;
@@ -51,7 +53,7 @@ public:
             if (BB->hasMultiplePredecessor()) {
                 for (auto *Pred: BB->preds()) {
                     auto *Runner = Pred;
-                    while (Runner != BB->getDominator()) {
+                    while (Runner && Runner != BB->getDominator()) {
                         Runner->addDomFrontier(BB);
                         Runner = Runner->getDominator();
                     }
@@ -65,6 +67,8 @@ public:
             }
         }
 
+        // calculate level
+        EntryBlock->calculateLevel();
     }
 
     void RPO(BasicBlock *bb) {

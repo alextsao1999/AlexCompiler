@@ -9,6 +9,7 @@
 #include <BasicBlock.h>
 #include <SymbolTable.h>
 #include <Type.h>
+#include <LoopInfo.h>
 class Module;
 class Type;
 class Function : public Value, public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module> {
@@ -16,7 +17,7 @@ public:
     static Function *Create(Module *module, std::string_view name, Type *type);
     static Function *Create(std::string_view name, Type *type);
 public:
-    Function(Module *m, std::string_view name, Type *ft);
+    Function(Module *parent, std::string_view name, Type *ft);
     Function(std::string_view name, Type *ft) : name(name), type(ft) {}
 
     const std::string &getName() const {
@@ -191,6 +192,7 @@ public:
         return nullptr;
     }
 
+    std::list<Loop> loops;
 private:
     std::string name; /// function name
     Type *type = nullptr; /// function type

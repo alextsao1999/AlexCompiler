@@ -48,6 +48,7 @@ public:
         using range = IterRange<UseIteratorImpl>;
         UseIteratorImpl() {}
         UseIteratorImpl(UseT *use) : use(use) {}
+        UseIteratorImpl(const UseIteratorImpl &other) : use(other.use) {}
         bool operator==(const UseIteratorImpl &rhs) const {
             return use == rhs.use;
         }
@@ -64,11 +65,16 @@ public:
             use = use->next;
             return *this;
         }
-        UseIteratorImpl operator++(int) const {
+        UseIteratorImpl operator++(int) {
+            UseIteratorImpl tmp(*this);
+            operator++();
+            return tmp;
+        }
+        /*UseIteratorImpl operator++(int) {
             auto back = *this;
             ++*this;
             return back;
-        }
+        }*/
     };
 
     using UseIterator = UseIteratorImpl<Use, UseGetter<Use>>;
@@ -106,24 +112,32 @@ public:
     void replaceAllUsesWith(Value *newVal);
 
     // 如果使用迭代器对调用Use.set() 会删除Use其的使用
-    UseIterator::range getUses() {
+    inline UseIterator::range getUses() {
         return iter(UseIterator(users), UseIterator());
     }
 
-    UserIterator::range getUsers() {
+    inline UserIterator::range getUsers() {
         return iter(UserIterator(users), UserIterator());
     }
 
-    UserIterator user_begin() const {
+    inline UserIterator user_begin() const {
         return UserIterator(users);
     }
 
-    UserIterator user_end() const {
+    inline UserIterator user_end() const {
         return UserIterator();
     }
 
+    inline UseIterator use_begin() const {
+        return UseIterator(users);
+    }
+
+    inline UseIterator use_end() const {
+        return UseIterator();
+    }
+
     template<typename T, typename UserAsIter = UseIteratorImpl<Use, UserGetter<Use, T>>, typename range = typename UserAsIter::range>
-    range getUsersAs() {
+    inline range getUsersAs() {
         return iter(UserAsIter(users), UserAsIter());
     }
 
@@ -181,6 +195,10 @@ public:
     Use(Value *parent, Value *value) : parent(parent) {
         set(value);
     }
+
+    Use(const Use &rhs) = delete;
+    Use &operator=(const Use &rhs) = delete;
+
 /*    Use(const Use &rhs) {
         parent = rhs.parent;
         set(rhs.value);

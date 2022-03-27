@@ -253,12 +253,23 @@ public:
         auto Begin = pred_iterator(this);
         auto End = pred_iterator();
         unsigned Count = 0;
-        for (auto I = Begin; I != End; ++I) {
+        for (; Begin != End; ++Begin) {
             if (++Count >= 2) {
                 return true;
             }
         }
         return false;
+    }
+    bool hasOnlyTwoPreds() {
+        auto Begin = pred_iterator(this);
+        auto End = pred_iterator();
+        unsigned Count = 0;
+        for (; Begin != End; ++Begin) {
+            if (++Count >= 2) {
+                return ++Begin == End;
+            }
+        }
+        return true;
     }
 
     inline auto preds() {
@@ -276,11 +287,11 @@ public:
     }
 
     inline succ_iterator succs_begin() {
-        assert(getTerminator());
+        assert(getTerminator() && "This basic block has no terminator!");
         return succ_iterator(this, 0);
     }
     inline succ_iterator succs_end() {
-        assert(getTerminator());
+        assert(getTerminator() && "This basic block has no terminator!");
         return succ_iterator(this);
     }
 
@@ -294,20 +305,40 @@ public:
     inline unsigned getLevel() const {
         return level;
     }
+    bool dominates(BasicBlock *rhs) const {
+        if (rhs == nullptr || getLevel() >= rhs->getLevel()) {
+            return false;
+        }
+        if (this == rhs || this == rhs->dominator) {
+            return true;
+        }
+        if (dominator == rhs) {
+            return false;
+        }
+        // FIXME: recursive call is not efficient here
+        for (auto &Child: domChildren) {
+            if (Child->dominates(rhs)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    bool isAccessible() const {
+        return dominator != nullptr || !domChildren.empty();
+    }
 
     // dump the basic block
     void dump(std::ostream &os) override {
-        os << name << ": " ;
-
+        os << name << ":    " ;
         os << "preds=(" << dump_str(preds()) << ") ";
         os << "succs=(" << dump_str(succs()) << ") ";
-        os << "doms=(" << dump_str(domChildren) << ") ";
-        os << "df=(" << dump_str(getDomFrontier()) << ") ";
 
-        if (getDominator()) {
-            os << "idom=";
-            getDominator()->dumpAsOperand(os);
-        }
+        if (!domChildren.empty())
+            os << "doms=(" << dump_str(domChildren) << ") ";
+        if (!getDomFrontier().empty())
+            os << "df=(" << dump_str(getDomFrontier()) << ") ";
+        if (getDominator())
+            os << "idom=" << getDominator()->dumpOperandToString();
 
         os << std::endl;
 
@@ -364,7 +395,7 @@ private:
     }
 private:
     std::string name;
-    unsigned level;
+    unsigned level = 0;
     std::set<BasicBlock *> domFrontier; ///< the dominance frontier of this block
     std::set<BasicBlock *> domChildren; ///< children of the dominator
     BasicBlock *dominator = nullptr; ///< immediate dominator
