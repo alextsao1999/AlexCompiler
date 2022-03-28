@@ -10,7 +10,7 @@
 #include <queue>
 #include <cassert>
 #include <functional>
-#include <algorithm>
+#include <numeric>
 
 #define LR_ASSERT(x) assert(x)
 #define LR_UNREACHED() assert(!"unreached here")
@@ -209,56 +209,44 @@ public:
     }
 };
 
+extern int ParserMergeCreate;
+extern int ParserMergeCreateCount;
+extern int ParserMergeInsert;
+extern int ParserMergeInsertCount;
+
 #include "json.hpp"
 using value_t = nlohmann::json;
 
 enum {
     TYPE_NONE = 0,
-    TYPE_ACCESSEXPR = 36,
-    TYPE_ARRAYSPECIFIER = 26,
-    TYPE_ARROWEXPR = 30,
-    TYPE_ASSIGNEXPR = 29,
-    TYPE_BINLITERAL = 44,
-    TYPE_BINARYEXPR = 27,
-    TYPE_BLOCKSTMT = 12,
-    TYPE_BREAKSTMT = 15,
-    TYPE_CASESTMT = 21,
-    TYPE_CASTMETHODDECLARE = 6,
-    TYPE_CHARLITERAL = 45,
-    TYPE_CLASSDECLARE = 5,
-    TYPE_CONTINUESTMT = 14,
-    TYPE_DOWHILESTMT = 19,
-    TYPE_DOTEXPR = 35,
-    TYPE_ELEMENTSLIST = 32,
-    TYPE_ERROR = 4,
-    TYPE_EXPRSTMT = 11,
-    TYPE_FLOATLITERAL = 40,
-    TYPE_FUNCTIONDECLARE = 9,
-    TYPE_HEXLITERAL = 43,
-    TYPE_IFELSESTMT = 17,
-    TYPE_IFSTMT = 16,
-    TYPE_IMPORT = 3,
-    TYPE_INTEGERLITERAL = 39,
-    TYPE_INVOKEEXPR = 37,
-    TYPE_LONGLITERAL = 42,
-    TYPE_MERGE = 1,
-    TYPE_NEWEXPR = 33,
-    TYPE_PARAMDEF = 10,
-    TYPE_PROGRAM = 2,
-    TYPE_PTRSPECIFIER = 24,
-    TYPE_READPROPERTYDECLARE = 7,
-    TYPE_REFSPECIFIER = 25,
-    TYPE_RETURNSTMT = 13,
-    TYPE_STRINGLITERAL = 38,
-    TYPE_SWITCHSTMT = 20,
-    TYPE_TERNARYEXPR = 28,
-    TYPE_TYPECAST = 31,
-    TYPE_TYPESPECIFIER = 23,
-    TYPE_UNSIGNEDLITERAL = 41,
-    TYPE_VARIABLEDECLARE = 22,
-    TYPE_VARIABLEEXPR = 34,
-    TYPE_WHILESTMT = 18,
-    TYPE_WRITEPROPERTYDECLARE = 8,
+    TYPE_ACCESS = 21,
+    TYPE_ASSIGNSTMT = 11,
+    TYPE_BINEXP = 22,
+    TYPE_BLOCK = 10,
+    TYPE_BREAKSTMT = 16,
+    TYPE_COMPUNIT = 1,
+    TYPE_CONSTDECL = 2,
+    TYPE_CONSTDEF = 3,
+    TYPE_CONSTINITVALLIST = 4,
+    TYPE_CONTINUESTMT = 17,
+    TYPE_DECLITERAL = 25,
+    TYPE_EMPTYSTMT = 19,
+    TYPE_EXPSTMT = 12,
+    TYPE_FLOATLITEAL = 27,
+    TYPE_FUNCDEF = 8,
+    TYPE_FUNCPARAM = 9,
+    TYPE_HEXFLOATLITEAL = 28,
+    TYPE_HEXLITERAL = 26,
+    TYPE_IFELSESTMT = 14,
+    TYPE_IFSTMT = 13,
+    TYPE_INITVALLIST = 7,
+    TYPE_LVAL = 20,
+    TYPE_RVAL = 24,
+    TYPE_RETURNSTMT = 18,
+    TYPE_UNAEXP = 23,
+    TYPE_VARDECL = 5,
+    TYPE_VARDEF = 6,
+    TYPE_WHILESTMT = 15,
 };
 class JsonASTBase {
 protected:
@@ -275,282 +263,161 @@ public:
     int getID() { return value_["id"].get<int>(); }
     string_t &getKind() { return value_["kind"].get_ref<string_t &>(); }
     operator value_t &() { return value_; }
-    value_t *getPtr() {
-        return &value_;
-    }
 };
-class AccessExpr : public JsonASTBase {
+class Access : public JsonASTBase {
 public:
-    AccessExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ACCESSEXPR); }
-    value_t &getField() { return value_["field"]; }
-    bool isLeft() { return value_["isLeft"]; }
-    value_t &getLhs() { return value_["lhs"]; }
+    Access(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ACCESS); }
+    value_t &getIndex() { return value_["index"]; }
+    value_t &getName() { return value_["name"]; }
 };
-class ArraySpecifier : public JsonASTBase {
+class AssignStmt : public JsonASTBase {
 public:
-    ArraySpecifier(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ARRAYSPECIFIER); }
-    value_t &getSize() { return value_["size"]; }
-    value_t &getType() { return value_["type"]; }
-};
-class ArrowExpr : public JsonASTBase {
-public:
-    ArrowExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ARROWEXPR); }
-    value_t &getBlock() { return value_["block"]; }
-    value_t &getParams() { return value_["params"]; }
-    value_t &getReturnType() { return value_["returnType"]; }
-    value_t &getReturnValue() { return value_["returnValue"]; }
-};
-class AssignExpr : public JsonASTBase {
-public:
-    AssignExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ASSIGNEXPR); }
-    value_t &getLeft() { return value_["left"]; }
-    value_t &getRight() { return value_["right"]; }
-};
-class BinLiteral : public JsonASTBase {
-public:
-    BinLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BINLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
-};
-class BinaryExpr : public JsonASTBase {
-public:
-    BinaryExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BINARYEXPR); }
-    value_t &getLeft() { return value_["left"]; }
-    string_t &getOp() { return value_["op"].get_ref<string_t &>(); }
-    value_t &getRight() { return value_["right"]; }
-};
-class BlockStmt : public JsonASTBase {
-public:
-    BlockStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BLOCKSTMT); }
+    AssignStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ASSIGNSTMT); }
+    value_t &getLval() { return value_["lval"]; }
     value_t &getValue() { return value_["value"]; }
+};
+class BinExp : public JsonASTBase {
+public:
+    BinExp(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BINEXP); }
+    value_t &getLeft() { return value_["left"]; }
+    value_t &getOp() { return value_["op"]; }
+    value_t &getRight() { return value_["right"]; }
+};
+class Block : public JsonASTBase {
+public:
+    Block(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BLOCK); }
+    value_t &getStmts() { return value_["stmts"]; }
 };
 class BreakStmt : public JsonASTBase {
 public:
     BreakStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BREAKSTMT); }
 };
-class CaseStmt : public JsonASTBase {
+class CompUnit : public JsonASTBase {
 public:
-    CaseStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CASESTMT); }
-    value_t &getBody() { return value_["body"]; }
-    value_t &getBranches() { return value_["branches"]; }
-    value_t &getCondition() { return value_["condition"]; }
+    CompUnit(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_COMPUNIT); }
 };
-class CastMethodDeclare : public JsonASTBase {
+class ConstDecl : public JsonASTBase {
 public:
-    CastMethodDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CASTMETHODDECLARE); }
-    value_t &getBlock() { return value_["block"]; }
+    ConstDecl(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONSTDECL); }
+    value_t &getDefs() { return value_["defs"]; }
     value_t &getType() { return value_["type"]; }
 };
-class CharLiteral : public JsonASTBase {
+class ConstDef : public JsonASTBase {
 public:
-    CharLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CHARLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
+    ConstDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONSTDEF); }
+    value_t &getName() { return value_["name"]; }
+    value_t &getValue() { return value_["value"]; }
 };
-class ClassDeclare : public JsonASTBase {
+class ConstInitValList : public JsonASTBase {
 public:
-    ClassDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CLASSDECLARE); }
-    value_t &getBody() { return value_["body"]; }
-    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
-    value_t &getSuper() { return value_["super"]; }
-    value_t &getTemplate() { return value_["template"]; }
+    ConstInitValList(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONSTINITVALLIST); }
+    value_t &getValue() { return value_["value"]; }
 };
 class ContinueStmt : public JsonASTBase {
 public:
     ContinueStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONTINUESTMT); }
 };
-class DoWhileStmt : public JsonASTBase {
+class DecLiteral : public JsonASTBase {
 public:
-    DoWhileStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DOWHILESTMT); }
+    DecLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DECLITERAL); }
+    value_t &getValue() { return value_["value"]; }
+};
+class EmptyStmt : public JsonASTBase {
+public:
+    EmptyStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_EMPTYSTMT); }
+};
+class ExpStmt : public JsonASTBase {
+public:
+    ExpStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_EXPSTMT); }
+    value_t &getValue() { return value_["value"]; }
+};
+class FloatLiteal : public JsonASTBase {
+public:
+    FloatLiteal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FLOATLITEAL); }
+    value_t &getValue() { return value_["value"]; }
+};
+class FuncDef : public JsonASTBase {
+public:
+    FuncDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCDEF); }
     value_t &getBody() { return value_["body"]; }
-    value_t &getCondition() { return value_["condition"]; }
-};
-class DotExpr : public JsonASTBase {
-public:
-    DotExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DOTEXPR); }
-    value_t &getField() { return value_["field"]; }
-    bool isLeft() { return value_["isLeft"]; }
-    value_t &getLhs() { return value_["lhs"]; }
-};
-class ElementsList : public JsonASTBase {
-public:
-    ElementsList(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ELEMENTSLIST); }
-    value_t &getContents() { return value_["contents"]; }
-};
-class Error : public JsonASTBase {
-public:
-    Error(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ERROR); }
-    string_t &getContent() { return value_["content"].get_ref<string_t &>(); }
-    value_t &getValue() { return value_["value"]; }
-};
-class ExprStmt : public JsonASTBase {
-public:
-    ExprStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_EXPRSTMT); }
-    value_t &getValue() { return value_["value"]; }
-};
-class FloatLiteral : public JsonASTBase {
-public:
-    FloatLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FLOATLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
-};
-class FunctionDeclare : public JsonASTBase {
-public:
-    FunctionDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCTIONDECLARE); }
-    value_t &getBlock() { return value_["block"]; }
-    bool getInline() { return value_["inline"]; }
     value_t &getName() { return value_["name"]; }
     value_t &getParams() { return value_["params"]; }
-    bool getPublic() { return value_["public"]; }
-    bool getStatic() { return value_["static"]; }
     value_t &getType() { return value_["type"]; }
+};
+class FuncParam : public JsonASTBase {
+public:
+    FuncParam(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCPARAM); }
+    value_t &getBound() { return value_["bound"]; }
+    value_t &getName() { return value_["name"]; }
+    value_t &getType() { return value_["type"]; }
+};
+class HexFloatLiteal : public JsonASTBase {
+public:
+    HexFloatLiteal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_HEXFLOATLITEAL); }
+    value_t &getValue() { return value_["value"]; }
 };
 class HexLiteral : public JsonASTBase {
 public:
     HexLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_HEXLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
+    value_t &getValue() { return value_["value"]; }
 };
 class IfElseStmt : public JsonASTBase {
 public:
     IfElseStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_IFELSESTMT); }
-    value_t &getCondition() { return value_["condition"]; }
+    value_t &getCond() { return value_["cond"]; }
     value_t &getElse() { return value_["else"]; }
     value_t &getThen() { return value_["then"]; }
 };
 class IfStmt : public JsonASTBase {
 public:
     IfStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_IFSTMT); }
-    value_t &getCondition() { return value_["condition"]; }
+    value_t &getCond() { return value_["cond"]; }
     value_t &getThen() { return value_["then"]; }
 };
-class Import : public JsonASTBase {
+class InitValList : public JsonASTBase {
 public:
-    Import(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_IMPORT); }
-    value_t &getItems() { return value_["items"]; }
-};
-class IntegerLiteral : public JsonASTBase {
-public:
-    IntegerLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_INTEGERLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
-};
-class InvokeExpr : public JsonASTBase {
-public:
-    InvokeExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_INVOKEEXPR); }
-    value_t &getArgs() { return value_["args"]; }
-    value_t &getName() { return value_["name"]; }
-};
-class LongLiteral : public JsonASTBase {
-public:
-    LongLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_LONGLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
-};
-class Merge : public JsonASTBase {
-public:
-    Merge(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_MERGE); }
+    InitValList(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_INITVALLIST); }
     value_t &getValue() { return value_["value"]; }
 };
-class NewExpr : public JsonASTBase {
+class LVal : public JsonASTBase {
 public:
-    NewExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_NEWEXPR); }
-    value_t &getArgs() { return value_["args"]; }
-    value_t &getType() { return value_["type"]; }
-};
-class ParamDef : public JsonASTBase {
-public:
-    ParamDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_PARAMDEF); }
+    LVal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_LVAL); }
     value_t &getName() { return value_["name"]; }
-    value_t &getType() { return value_["type"]; }
 };
-class Program : public JsonASTBase {
+class RVal : public JsonASTBase {
 public:
-    Program(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_PROGRAM); }
-    value_t &getValue() { return value_["value"]; }
-};
-class PtrSpecifier : public JsonASTBase {
-public:
-    PtrSpecifier(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_PTRSPECIFIER); }
-    value_t &getType() { return value_["type"]; }
-};
-class ReadPropertyDeclare : public JsonASTBase {
-public:
-    ReadPropertyDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_READPROPERTYDECLARE); }
-    value_t &getBlock() { return value_["block"]; }
+    RVal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_RVAL); }
     value_t &getName() { return value_["name"]; }
-    bool getPublic() { return value_["public"]; }
-    value_t &getType() { return value_["type"]; }
-};
-class RefSpecifier : public JsonASTBase {
-public:
-    RefSpecifier(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_REFSPECIFIER); }
-    value_t &getType() { return value_["type"]; }
 };
 class ReturnStmt : public JsonASTBase {
 public:
     ReturnStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_RETURNSTMT); }
     value_t &getValue() { return value_["value"]; }
 };
-class StringLiteral : public JsonASTBase {
+class UnaExp : public JsonASTBase {
 public:
-    StringLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_STRINGLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
+    UnaExp(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_UNAEXP); }
+    value_t &getOp() { return value_["op"]; }
+    value_t &getVal() { return value_["val"]; }
 };
-class SwitchStmt : public JsonASTBase {
+class VarDecl : public JsonASTBase {
 public:
-    SwitchStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_SWITCHSTMT); }
-    value_t &getCases() { return value_["cases"]; }
-    value_t &getCondition() { return value_["condition"]; }
-    value_t &getDefault() { return value_["default"]; }
-};
-class TernaryExpr : public JsonASTBase {
-public:
-    TernaryExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_TERNARYEXPR); }
-    value_t &getCondition() { return value_["condition"]; }
-    value_t &getLeft() { return value_["left"]; }
-    value_t &getRight() { return value_["right"]; }
-};
-class TypeCast : public JsonASTBase {
-public:
-    TypeCast(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_TYPECAST); }
-    value_t &getCastTo() { return value_["castTo"]; }
-    value_t &getValue() { return value_["value"]; }
-};
-class TypeSpecifier : public JsonASTBase {
-public:
-    TypeSpecifier(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_TYPESPECIFIER); }
-    value_t &getArgs() { return value_["args"]; }
-    string_t &getTypeName() { return value_["typeName"].get_ref<string_t &>(); }
-};
-class UnsignedLiteral : public JsonASTBase {
-public:
-    UnsignedLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_UNSIGNEDLITERAL); }
-    string_t &getString() { return value_["string"].get_ref<string_t &>(); }
-};
-class VariableDeclare : public JsonASTBase {
-public:
-    VariableDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARIABLEDECLARE); }
-    value_t &getInit() { return value_["init"]; }
-    value_t &getName() { return value_["name"]; }
-    bool getPublic() { return value_["public"]; }
-    bool getStatic() { return value_["static"]; }
+    VarDecl(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARDECL); }
+    value_t &getDefs() { return value_["defs"]; }
     value_t &getType() { return value_["type"]; }
 };
-class VariableExpr : public JsonASTBase {
+class VarDef : public JsonASTBase {
 public:
-    VariableExpr(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARIABLEEXPR); }
-    bool isLeft() { return value_["isLeft"]; }
+    VarDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARDEF); }
+    value_t &getBound() { return value_["bound"]; }
     value_t &getName() { return value_["name"]; }
+    value_t &getValue() { return value_["value"]; }
 };
 class WhileStmt : public JsonASTBase {
 public:
     WhileStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_WHILESTMT); }
     value_t &getBody() { return value_["body"]; }
-    value_t &getCondition() { return value_["condition"]; }
-};
-class WritePropertyDeclare : public JsonASTBase {
-public:
-    WritePropertyDeclare(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_WRITEPROPERTYDECLARE); }
-    value_t &getBlock() { return value_["block"]; }
-    value_t &getName() { return value_["name"]; }
-    value_t &getParams() { return value_["params"]; }
-    bool getPublic() { return value_["public"]; }
-    value_t &getType() { return value_["type"]; }
+    value_t &getCond() { return value_["cond"]; }
 };
 template<typename SubTy, typename RetTy = void>
 struct Visitor {
@@ -565,158 +432,115 @@ struct Visitor {
             return RetTy();
         }
         switch (value["id"].get<int>()) {
-            case TYPE_ACCESSEXPR:
-                return static_cast<SubTy *>(this)->visitAccessExpr(value);
-            case TYPE_ARRAYSPECIFIER:
-                return static_cast<SubTy *>(this)->visitArraySpecifier(value);
-            case TYPE_ARROWEXPR:
-                return static_cast<SubTy *>(this)->visitArrowExpr(value);
-            case TYPE_ASSIGNEXPR:
-                return static_cast<SubTy *>(this)->visitAssignExpr(value);
-            case TYPE_BINLITERAL:
-                return static_cast<SubTy *>(this)->visitBinLiteral(value);
-            case TYPE_BINARYEXPR:
-                return static_cast<SubTy *>(this)->visitBinaryExpr(value);
-            case TYPE_BLOCKSTMT:
-                return static_cast<SubTy *>(this)->visitBlockStmt(value);
+            case TYPE_ACCESS:
+                return static_cast<SubTy *>(this)->visitAccess(value);
+            case TYPE_ASSIGNSTMT:
+                return static_cast<SubTy *>(this)->visitAssignStmt(value);
+            case TYPE_BINEXP:
+                return static_cast<SubTy *>(this)->visitBinExp(value);
+            case TYPE_BLOCK:
+                return static_cast<SubTy *>(this)->visitBlock(value);
             case TYPE_BREAKSTMT:
                 return static_cast<SubTy *>(this)->visitBreakStmt(value);
-            case TYPE_CASESTMT:
-                return static_cast<SubTy *>(this)->visitCaseStmt(value);
-            case TYPE_CASTMETHODDECLARE:
-                return static_cast<SubTy *>(this)->visitCastMethodDeclare(value);
-            case TYPE_CHARLITERAL:
-                return static_cast<SubTy *>(this)->visitCharLiteral(value);
-            case TYPE_CLASSDECLARE:
-                return static_cast<SubTy *>(this)->visitClassDeclare(value);
+            case TYPE_COMPUNIT:
+                return static_cast<SubTy *>(this)->visitCompUnit(value);
+            case TYPE_CONSTDECL:
+                return static_cast<SubTy *>(this)->visitConstDecl(value);
+            case TYPE_CONSTDEF:
+                return static_cast<SubTy *>(this)->visitConstDef(value);
+            case TYPE_CONSTINITVALLIST:
+                return static_cast<SubTy *>(this)->visitConstInitValList(value);
             case TYPE_CONTINUESTMT:
                 return static_cast<SubTy *>(this)->visitContinueStmt(value);
-            case TYPE_DOWHILESTMT:
-                return static_cast<SubTy *>(this)->visitDoWhileStmt(value);
-            case TYPE_DOTEXPR:
-                return static_cast<SubTy *>(this)->visitDotExpr(value);
-            case TYPE_ELEMENTSLIST:
-                return static_cast<SubTy *>(this)->visitElementsList(value);
-            case TYPE_ERROR:
-                return static_cast<SubTy *>(this)->visitError(value);
-            case TYPE_EXPRSTMT:
-                return static_cast<SubTy *>(this)->visitExprStmt(value);
-            case TYPE_FLOATLITERAL:
-                return static_cast<SubTy *>(this)->visitFloatLiteral(value);
-            case TYPE_FUNCTIONDECLARE:
-                return static_cast<SubTy *>(this)->visitFunctionDeclare(value);
+            case TYPE_DECLITERAL:
+                return static_cast<SubTy *>(this)->visitDecLiteral(value);
+            case TYPE_EMPTYSTMT:
+                return static_cast<SubTy *>(this)->visitEmptyStmt(value);
+            case TYPE_EXPSTMT:
+                return static_cast<SubTy *>(this)->visitExpStmt(value);
+            case TYPE_FLOATLITEAL:
+                return static_cast<SubTy *>(this)->visitFloatLiteal(value);
+            case TYPE_FUNCDEF:
+                return static_cast<SubTy *>(this)->visitFuncDef(value);
+            case TYPE_FUNCPARAM:
+                return static_cast<SubTy *>(this)->visitFuncParam(value);
+            case TYPE_HEXFLOATLITEAL:
+                return static_cast<SubTy *>(this)->visitHexFloatLiteal(value);
             case TYPE_HEXLITERAL:
                 return static_cast<SubTy *>(this)->visitHexLiteral(value);
             case TYPE_IFELSESTMT:
                 return static_cast<SubTy *>(this)->visitIfElseStmt(value);
             case TYPE_IFSTMT:
                 return static_cast<SubTy *>(this)->visitIfStmt(value);
-            case TYPE_IMPORT:
-                return static_cast<SubTy *>(this)->visitImport(value);
-            case TYPE_INTEGERLITERAL:
-                return static_cast<SubTy *>(this)->visitIntegerLiteral(value);
-            case TYPE_INVOKEEXPR:
-                return static_cast<SubTy *>(this)->visitInvokeExpr(value);
-            case TYPE_LONGLITERAL:
-                return static_cast<SubTy *>(this)->visitLongLiteral(value);
-            case TYPE_MERGE:
-                return static_cast<SubTy *>(this)->visitMerge(value);
-            case TYPE_NEWEXPR:
-                return static_cast<SubTy *>(this)->visitNewExpr(value);
-            case TYPE_PARAMDEF:
-                return static_cast<SubTy *>(this)->visitParamDef(value);
-            case TYPE_PROGRAM:
-                return static_cast<SubTy *>(this)->visitProgram(value);
-            case TYPE_PTRSPECIFIER:
-                return static_cast<SubTy *>(this)->visitPtrSpecifier(value);
-            case TYPE_READPROPERTYDECLARE:
-                return static_cast<SubTy *>(this)->visitReadPropertyDeclare(value);
-            case TYPE_REFSPECIFIER:
-                return static_cast<SubTy *>(this)->visitRefSpecifier(value);
+            case TYPE_INITVALLIST:
+                return static_cast<SubTy *>(this)->visitInitValList(value);
+            case TYPE_LVAL:
+                return static_cast<SubTy *>(this)->visitLVal(value);
+            case TYPE_RVAL:
+                return static_cast<SubTy *>(this)->visitRVal(value);
             case TYPE_RETURNSTMT:
                 return static_cast<SubTy *>(this)->visitReturnStmt(value);
-            case TYPE_STRINGLITERAL:
-                return static_cast<SubTy *>(this)->visitStringLiteral(value);
-            case TYPE_SWITCHSTMT:
-                return static_cast<SubTy *>(this)->visitSwitchStmt(value);
-            case TYPE_TERNARYEXPR:
-                return static_cast<SubTy *>(this)->visitTernaryExpr(value);
-            case TYPE_TYPECAST:
-                return static_cast<SubTy *>(this)->visitTypeCast(value);
-            case TYPE_TYPESPECIFIER:
-                return static_cast<SubTy *>(this)->visitTypeSpecifier(value);
-            case TYPE_UNSIGNEDLITERAL:
-                return static_cast<SubTy *>(this)->visitUnsignedLiteral(value);
-            case TYPE_VARIABLEDECLARE:
-                return static_cast<SubTy *>(this)->visitVariableDeclare(value);
-            case TYPE_VARIABLEEXPR:
-                return static_cast<SubTy *>(this)->visitVariableExpr(value);
+            case TYPE_UNAEXP:
+                return static_cast<SubTy *>(this)->visitUnaExp(value);
+            case TYPE_VARDECL:
+                return static_cast<SubTy *>(this)->visitVarDecl(value);
+            case TYPE_VARDEF:
+                return static_cast<SubTy *>(this)->visitVarDef(value);
             case TYPE_WHILESTMT:
                 return static_cast<SubTy *>(this)->visitWhileStmt(value);
-            case TYPE_WRITEPROPERTYDECLARE:
-                return static_cast<SubTy *>(this)->visitWritePropertyDeclare(value);
             default:
                 LR_UNREACHED();
         }
     }
-    LR_TYPESPEC(RetTy) visitAccessExpr(AccessExpr value) {
+    LR_TYPESPEC(RetTy) visitAccess(Access value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitArraySpecifier(ArraySpecifier value) {
+    LR_TYPESPEC(RetTy) visitAssignStmt(AssignStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitArrowExpr(ArrowExpr value) {
+    LR_TYPESPEC(RetTy) visitBinExp(BinExp value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitAssignExpr(AssignExpr value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitBinLiteral(BinLiteral value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitBinaryExpr(BinaryExpr value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitBlockStmt(BlockStmt value) {
+    LR_TYPESPEC(RetTy) visitBlock(Block value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitBreakStmt(BreakStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitCaseStmt(CaseStmt value) {
+    LR_TYPESPEC(RetTy) visitCompUnit(CompUnit value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitCastMethodDeclare(CastMethodDeclare value) {
+    LR_TYPESPEC(RetTy) visitConstDecl(ConstDecl value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitCharLiteral(CharLiteral value) {
+    LR_TYPESPEC(RetTy) visitConstDef(ConstDef value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitClassDeclare(ClassDeclare value) {
+    LR_TYPESPEC(RetTy) visitConstInitValList(ConstInitValList value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitContinueStmt(ContinueStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitDoWhileStmt(DoWhileStmt value) {
+    LR_TYPESPEC(RetTy) visitDecLiteral(DecLiteral value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitDotExpr(DotExpr value) {
+    LR_TYPESPEC(RetTy) visitEmptyStmt(EmptyStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitElementsList(ElementsList value) {
+    LR_TYPESPEC(RetTy) visitExpStmt(ExpStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitError(Error value) {
+    LR_TYPESPEC(RetTy) visitFloatLiteal(FloatLiteal value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitExprStmt(ExprStmt value) {
+    LR_TYPESPEC(RetTy) visitFuncDef(FuncDef value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitFloatLiteral(FloatLiteral value) {
+    LR_TYPESPEC(RetTy) visitFuncParam(FuncParam value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitFunctionDeclare(FunctionDeclare value) {
+    LR_TYPESPEC(RetTy) visitHexFloatLiteal(HexFloatLiteal value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitHexLiteral(HexLiteral value) {
@@ -728,70 +552,28 @@ struct Visitor {
     LR_TYPESPEC(RetTy) visitIfStmt(IfStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitImport(Import value) {
+    LR_TYPESPEC(RetTy) visitInitValList(InitValList value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitIntegerLiteral(IntegerLiteral value) {
+    LR_TYPESPEC(RetTy) visitLVal(LVal value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitInvokeExpr(InvokeExpr value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitLongLiteral(LongLiteral value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitMerge(Merge value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitNewExpr(NewExpr value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitParamDef(ParamDef value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitProgram(Program value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitPtrSpecifier(PtrSpecifier value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitReadPropertyDeclare(ReadPropertyDeclare value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitRefSpecifier(RefSpecifier value) {
+    LR_TYPESPEC(RetTy) visitRVal(RVal value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitReturnStmt(ReturnStmt value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitStringLiteral(StringLiteral value) {
+    LR_TYPESPEC(RetTy) visitUnaExp(UnaExp value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitSwitchStmt(SwitchStmt value) {
+    LR_TYPESPEC(RetTy) visitVarDecl(VarDecl value) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitTernaryExpr(TernaryExpr value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitTypeCast(TypeCast value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitTypeSpecifier(TypeSpecifier value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitUnsignedLiteral(UnsignedLiteral value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitVariableDeclare(VariableDeclare value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitVariableExpr(VariableExpr value) {
+    LR_TYPESPEC(RetTy) visitVarDef(VarDef value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitWhileStmt(WhileStmt value) {
-        return RetTy();
-    }
-    LR_TYPESPEC(RetTy) visitWritePropertyDeclare(WritePropertyDeclare value) {
         return RetTy();
     }
 };
@@ -861,10 +643,11 @@ public:
 private:
     struct ParserNode {
         ParserState *state;
-        int symbol;
+        int symbol = 0;
         value_t value;
         string_t lexeme;
         Location location;
+        ParserNode(ParserState *state) : state(state) {}
         ParserNode(ParserState *state, int symbol, const value_t &value, Location loc) : state(state), symbol(symbol),
                                                                                          value(value), location(loc) {
 #ifdef DEBUG
@@ -880,6 +663,7 @@ public:
     ParserState *parser_state = &ParserStates[0];
     Lexer parser_lexer = Lexer(&LexerStates[0], LexerWhitespaceSymbol);
     bool position = false;
+    bool accepted = false;
     inline ParserTransition *find_trans(ParserState *state, int symbol) {
         for (auto &trans: *state) {
             if (trans.symbol == symbol) {
@@ -893,23 +677,25 @@ public:
     std::vector<value_t> values;
     LRParser() = default;
     explicit LRParser(bool position) : position(position) {}
-    void set_position(bool sp) {
-        position = sp;
-    }
     void reset(iter_t first, iter_t last = iter_t()) {
         parser_lexer.reset(first, last);
+        accepted = false;
+    }
+    inline bool accept() const {
+        return accepted;
     }
     void parse() {
         parser_lexer.advance();
         stack.reserve(32);
         stack.push_back(Node(parser_state));
         do {
-            if (auto *trans = find_trans(stack.back().state, parser_lexer.symbol())) {
+            if (auto *trans = stack.back().state->find(parser_lexer.symbol())) {
                 if (trans->type == TRANSITION_SHIFT) { // Shift
                     shift(trans);
                 } else { // Reduce
                     reduce(trans);
                     if (trans->accept()) {
+                        accepted = true;
                         break;
                     }
                 }
@@ -931,11 +717,12 @@ public:
         values.clear();
         // if the reduce length is zero, the location is the lexer current location.
         Location loc = parser_lexer.location();
+        value_t value;
         if (trans->reduce_length) {
             auto first = stack.size() - trans->reduce_length;
             // merge the locations
-            loc = std::accumulate(stack.begin() + first, stack.end(), Location(), [](Location &i, Node *node) {
-                return i.merge(node->location);
+            loc = std::accumulate(stack.begin() + first, stack.end(), Location(), [](Location i, Node &node) {
+                return i.merge(node.location);
             });
             // handle `reduce` action
             handle_action(trans->actions, trans->action_count, &stack[first]);
@@ -951,10 +738,13 @@ public:
                 return;
             }
         }
+        if (!values.empty()) {
+            value = std::move(values.back());
+            values.pop_back();
+        }
         // goto a new state by the reduced symbol
         if (auto *Goto = find_trans(stack.back().state, trans->reduce_symbol)) {
-            stack.emplace_back(Goto->state, trans->reduce_symbol, std::move(values.back()), loc);
-            values.pop_back();
+            stack.emplace_back(Goto->state, trans->reduce_symbol, std::move(value), loc);
         } else {
             expect();
         }
@@ -1044,11 +834,6 @@ public:
         return true;
     }
 };
-
-extern int ParserMergeCreate;
-extern int ParserMergeCreateCount;
-extern int ParserMergeInsert;
-extern int ParserMergeInsertCount;
 
 template <class iter_t = const char *,
         class char_t = typename std::iterator_traits<iter_t>::value_type,
