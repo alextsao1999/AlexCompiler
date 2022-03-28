@@ -4,6 +4,7 @@
 
 #include "Value.h"
 #include "Instruction.h"
+#include "Function.h"
 
 Value::Value() {
     //std::cout << "alloc" << this << std::endl;
@@ -38,4 +39,27 @@ void Value::replaceAllUsesWith(Value *newVal) {
 Opcode Value::getOpcode() {
     assert(isa<Instruction>());
     return cast<Instruction>()->getOpcode();
+}
+
+bool Value::isFunction() const {
+    return isa<Function>();
+}
+
+bool Value::isConstant() const {
+    return isa<Constant>();
+}
+
+bool Value::isConstantZero() const {
+    if (auto *Val = as<IntConstant>()) {
+        return Val->getVal() == 0;
+    }
+    return false;
+}
+
+bool Value::isBasicBlock() const {
+    return isa<BasicBlock>();
+}
+
+bool Value::isInstruction() const {
+    return isa<Instruction>();
 }

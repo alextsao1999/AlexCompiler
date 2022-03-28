@@ -102,6 +102,11 @@ public:
 
     /// Get opcode of instruction
     Opcode getOpcode();
+    bool isInstruction() const;
+    bool isFunction() const;
+    bool isBasicBlock() const;
+    bool isConstant() const;
+    bool isConstantZero() const;
 
     bool isOnlyUsedOnce() const;
     bool isNotUsed() const;

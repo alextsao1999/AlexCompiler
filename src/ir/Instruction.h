@@ -16,6 +16,7 @@ enum BinaryOp {
     Sub,
     Mul,
     Div,
+    Rem,
     Mod,
     Shl,
     Shr,
@@ -129,6 +130,10 @@ public:
     }
 
     Ty &getVal() {
+        return val;
+    }
+
+    const Ty &getVal() const {
         return val;
     }
 

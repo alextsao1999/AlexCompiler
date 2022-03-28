@@ -24,6 +24,10 @@ public:
         bb = &f->getSubList().back();
     }
 
+    inline BasicBlock *getInsertBlock() const {
+        return bb;
+    }
+
     void setInsertPoint(BasicBlock *b) { this->bb = b; }
 
     template<typename Ty>
@@ -79,6 +83,10 @@ public:
 
     auto *createDiv(Value *lhs, Value *rhs, StrView name = "div") {
         return insert(new BinaryInst(Div, lhs, rhs), name);
+    }
+
+    auto *createRem(Value *lhs, Value *rhs, StrView name = "rem") {
+        return insert(new BinaryInst(Rem, lhs, rhs), name);
     }
 
     // create binary

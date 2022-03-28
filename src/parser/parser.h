@@ -220,9 +220,9 @@ using value_t = nlohmann::json;
 enum {
     TYPE_NONE = 0,
     TYPE_ACCESS = 21,
-    TYPE_ASSIGNSTMT = 11,
+    TYPE_ASSIGNSTMT = 10,
     TYPE_BINEXP = 22,
-    TYPE_BLOCK = 10,
+    TYPE_BLOCK = 12,
     TYPE_BREAKSTMT = 16,
     TYPE_COMPUNIT = 1,
     TYPE_CONSTDECL = 2,
@@ -231,7 +231,7 @@ enum {
     TYPE_CONTINUESTMT = 17,
     TYPE_DECLITERAL = 25,
     TYPE_EMPTYSTMT = 19,
-    TYPE_EXPSTMT = 12,
+    TYPE_EXPSTMT = 11,
     TYPE_FLOATLITEAL = 27,
     TYPE_FUNCDEF = 8,
     TYPE_FUNCPARAM = 9,
@@ -280,7 +280,7 @@ class BinExp : public JsonASTBase {
 public:
     BinExp(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_BINEXP); }
     value_t &getLeft() { return value_["left"]; }
-    value_t &getOp() { return value_["op"]; }
+    string_t &getOp() { return value_["op"].get_ref<string_t &>(); }
     value_t &getRight() { return value_["right"]; }
 };
 class Block : public JsonASTBase {
@@ -295,17 +295,18 @@ public:
 class CompUnit : public JsonASTBase {
 public:
     CompUnit(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_COMPUNIT); }
+    value_t &getValue() { return value_["value"]; }
 };
 class ConstDecl : public JsonASTBase {
 public:
     ConstDecl(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONSTDECL); }
     value_t &getDefs() { return value_["defs"]; }
-    value_t &getType() { return value_["type"]; }
+    string_t &getType() { return value_["type"].get_ref<string_t &>(); }
 };
 class ConstDef : public JsonASTBase {
 public:
     ConstDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_CONSTDEF); }
-    value_t &getName() { return value_["name"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
     value_t &getValue() { return value_["value"]; }
 };
 class ConstInitValList : public JsonASTBase {
@@ -320,7 +321,7 @@ public:
 class DecLiteral : public JsonASTBase {
 public:
     DecLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DECLITERAL); }
-    value_t &getValue() { return value_["value"]; }
+    string_t &getValue() { return value_["value"].get_ref<string_t &>(); }
 };
 class EmptyStmt : public JsonASTBase {
 public:
@@ -334,22 +335,22 @@ public:
 class FloatLiteal : public JsonASTBase {
 public:
     FloatLiteal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FLOATLITEAL); }
-    value_t &getValue() { return value_["value"]; }
+    string_t &getValue() { return value_["value"].get_ref<string_t &>(); }
 };
 class FuncDef : public JsonASTBase {
 public:
     FuncDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCDEF); }
     value_t &getBody() { return value_["body"]; }
-    value_t &getName() { return value_["name"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
     value_t &getParams() { return value_["params"]; }
-    value_t &getType() { return value_["type"]; }
+    string_t &getType() { return value_["type"].get_ref<string_t &>(); }
 };
 class FuncParam : public JsonASTBase {
 public:
     FuncParam(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCPARAM); }
     value_t &getBound() { return value_["bound"]; }
-    value_t &getName() { return value_["name"]; }
-    value_t &getType() { return value_["type"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
+    string_t &getType() { return value_["type"].get_ref<string_t &>(); }
 };
 class HexFloatLiteal : public JsonASTBase {
 public:
@@ -359,7 +360,7 @@ public:
 class HexLiteral : public JsonASTBase {
 public:
     HexLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_HEXLITERAL); }
-    value_t &getValue() { return value_["value"]; }
+    string_t &getValue() { return value_["value"].get_ref<string_t &>(); }
 };
 class IfElseStmt : public JsonASTBase {
 public:
@@ -382,12 +383,12 @@ public:
 class LVal : public JsonASTBase {
 public:
     LVal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_LVAL); }
-    value_t &getName() { return value_["name"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
 };
 class RVal : public JsonASTBase {
 public:
     RVal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_RVAL); }
-    value_t &getName() { return value_["name"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
 };
 class ReturnStmt : public JsonASTBase {
 public:
@@ -397,20 +398,20 @@ public:
 class UnaExp : public JsonASTBase {
 public:
     UnaExp(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_UNAEXP); }
-    value_t &getOp() { return value_["op"]; }
+    string_t &getOp() { return value_["op"].get_ref<string_t &>(); }
     value_t &getVal() { return value_["val"]; }
 };
 class VarDecl : public JsonASTBase {
 public:
     VarDecl(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARDECL); }
     value_t &getDefs() { return value_["defs"]; }
-    value_t &getType() { return value_["type"]; }
+    string_t &getType() { return value_["type"].get_ref<string_t &>(); }
 };
 class VarDef : public JsonASTBase {
 public:
     VarDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_VARDEF); }
     value_t &getBound() { return value_["bound"]; }
-    value_t &getName() { return value_["name"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
     value_t &getValue() { return value_["value"]; }
 };
 class WhileStmt : public JsonASTBase {
@@ -665,12 +666,8 @@ public:
     bool position = false;
     bool accepted = false;
     inline ParserTransition *find_trans(ParserState *state, int symbol) {
-        for (auto &trans: *state) {
-            if (trans.symbol == symbol) {
-                return &trans;
-            }
-        }
-        return nullptr;
+        auto *trans = state->find(symbol);
+        return trans == state->end() ? nullptr : trans;
     }
 public:
     std::vector<Node> stack;
@@ -689,7 +686,7 @@ public:
         stack.reserve(32);
         stack.push_back(Node(parser_state));
         do {
-            if (auto *trans = stack.back().state->find(parser_lexer.symbol())) {
+            if (auto *trans = find_trans(stack.back().state, parser_lexer.symbol())) {
                 if (trans->type == TRANSITION_SHIFT) { // Shift
                     shift(trans);
                 } else { // Reduce

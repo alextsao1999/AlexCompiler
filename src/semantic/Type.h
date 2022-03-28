@@ -65,6 +65,10 @@ public:
 
     inline unsigned getBitSize();
 
+    inline bool isVoidType() const {
+        return typeId == TypeVoid;
+    }
+
     inline bool isIntegerType() const {
         return typeId == TypeInt;
     }
