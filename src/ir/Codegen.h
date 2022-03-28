@@ -328,6 +328,13 @@ public:
         return nullptr;
     }
 
+    Value *visitBlock(Block value) override {
+        table.enterScope();
+        visit(value.getStmts());
+        table.leaveScope();
+        return nullptr;
+    }
+
     Value *visitReturnStmt(ReturnStmt value) override {
         if (value.getValue().empty()) {
             return builder.createRet();

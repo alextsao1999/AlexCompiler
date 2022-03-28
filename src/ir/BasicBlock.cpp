@@ -10,7 +10,14 @@ BasicBlock *BasicBlock::Create(Function *parent, std::string_view name) {
     return new BasicBlock(parent, name);
 }
 
-Context *BasicBlock::getContext() {
+Context *BasicBlock::getContext() const {
     assert(getParent());
     return getParent()->getContext();
+}
+
+SymbolTable *BasicBlock::getSymbolTable() const {
+    if (auto *F = getParent()) {
+        return &F->getSymbolTable();
+    }
+    return nullptr;
 }

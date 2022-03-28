@@ -9,6 +9,7 @@
 #include <Node.h>
 #include <Type.h>
 #include <memory>
+#include "SymbolTable.h"
 
 enum BinaryOp {
     None,
@@ -188,8 +189,17 @@ public:
         }
     }
 
-    const std::string &getName();
-    void setName(std::string_view name);
+    SymbolTable *getSymbolTable() const;
+    const std::string &getName() {
+        auto *ST = getSymbolTable();
+        assert(ST);
+        return ST->getName(this);
+    }
+    void setName(StrView name) {
+        auto *ST = getSymbolTable();
+        assert(ST);
+        ST->setName(this, name);
+    }
 
     inline bool hasSideEffects() const {
         switch (opcode) {
@@ -254,7 +264,14 @@ public:
         dumpName(os);
     }
     inline std::ostream &dumpName(std::ostream &os) {
-        os << "%" << getName();
+        auto *ST = getSymbolTable();
+        assert(ST);
+        auto &Name = getName();
+        if (Name.empty()) {
+            os << "%" << ST->getCount(this);
+        } else {
+            os << "%" << Name << "." << ST->getCount(this);
+        }
         return os;
     }
 

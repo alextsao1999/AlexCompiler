@@ -31,7 +31,7 @@ public:
     void setInsertPoint(BasicBlock *b) { this->bb = b; }
 
     template<typename Ty>
-    Ty *insert(Ty *instr, std::string_view name) {
+    Ty *insert(Ty *instr, StrView name) {
         assert(bb && instr);
         bb->append(instr);
         instr->setName(name);

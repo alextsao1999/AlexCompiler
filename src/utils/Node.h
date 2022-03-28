@@ -109,7 +109,7 @@ public:
         return parent;
     }
 
-    inline const ParentT *getParent() const {
+    inline ParentT *getParent() const {
         return parent;
     }
 

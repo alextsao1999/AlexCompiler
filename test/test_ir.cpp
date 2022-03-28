@@ -10,6 +10,9 @@
 #include "Inliner.h"
 #include "LoopAnalyse.h"
 #include "LoopSimplify.h"
+#include "GVN.h"
+#include "BranchElim.h"
+#include "ADCE.h"
 #include "SCCP.h"
 
 Context Context;
@@ -357,10 +360,10 @@ TEST(IR, SSA) {
     // add passes
     PM.addPass(new Inliner());
     PM.addPass(new Dominance());
-    /*PM.addPass(new SSAConstructor());
+    PM.addPass(new SSAConstructor());
     PM.addPass(new GVN());
     PM.addPass(new BranchElim());
-    PM.addPass(new ADCE());*/
+    PM.addPass(new ADCE());
     //PM.addPass(new SSADestructor());
 
     // run passes

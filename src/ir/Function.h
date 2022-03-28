@@ -58,6 +58,10 @@ public:
         return symbolTable;
     }
 
+    auto &getSymbolTable() const {
+        return symbolTable;
+    }
+
     inline auto begin() {
         return getSubList().begin();
     }
@@ -143,18 +147,18 @@ public:
         } while (BBIt != BBEnd);
     }
 
-    /// return true if the function is a declaration
+    ///< return true if the function is a declaration
     bool isDeclaration() const {
         return false;
     }
 
-    /// call graph
+    ///< call graph
     void addCallee(Function *caller) {
         callees.insert(caller);
         caller->callers.insert(this);
     }
 
-    /// dump the function
+    ///< dump the function
     void dump(std::ostream &os) override {
         os << "def " << getName();
 
@@ -176,7 +180,6 @@ public:
         });
         os << "}" << std::endl;
     }
-
     void dumpAsOperand(std::ostream &os) override {
         assert(getReturnType());
         getReturnType()->dump(os);
@@ -192,22 +195,25 @@ public:
         return nullptr;
     }
 
+    ///< function loops
     std::list<Loop> loops;
 private:
-    std::string name; /// function name
-    Type *type = nullptr; /// function type
+    ///< function name
+    std::string name;
+    ///< function type
+    Type *type = nullptr;
+    ///< the module that contains this function
+    Module *module = nullptr;
+    ///< the outer function
+    Function *outer = nullptr;
+    ///< function params
+    std::vector<std::unique_ptr<Param>> params;
+    ///< symbol table for instructions
+    SymbolTable symbolTable;
 
-    Module *module = nullptr; /// the module that contains this function
-    Function *outer = nullptr; /// the outer function
-
-    std::vector<std::unique_ptr<Param>> params; /// function params
-    SymbolTable<Instruction> symbolTable; /// symbol table for instructions
-
-    // CallGraph
+    ///< CallGraph
     std::set<Function *> callers;
     std::set<Function *> callees;
-
 };
-
 
 #endif //DRAGONIR_FUNCTION_H

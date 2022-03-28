@@ -21,10 +21,13 @@ TEST(Sys, Expr) {
 int main(){
     int a = 0;
     while (a < 20) {
+      int i = 10;
+      while (i<20) a = a + i;
       a = a + 1;
     }
 }
 )");
+    //std::cout << Val.dump(4);
     Codegen CG(Context);
     CG.visit(Val);
 

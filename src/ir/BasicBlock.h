@@ -126,13 +126,23 @@ public:
     using pred_iterator = PredIter<BasicBlock, Value::UserIterator>;
     using succ_iterator = SuccIter;
 public:
-    BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {}
+    explicit BasicBlock() {}
     explicit BasicBlock(std::string_view name) : name(name) {}
+    explicit BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {
+        if (auto *ST = getSymbolTable()) {
+            // FIXME: Just for allocating count ahead of time
+            ST->addCount(this, this->name);
+        }
+    }
 
     const std::string &getName() {
         return name;
     }
-    Context *getContext();
+    void setName(std::string &newName) {
+        name = newName;
+    }
+    SymbolTable *getSymbolTable() const;
+    Context *getContext() const;
 
     void replace(Instruction *node, Instruction *by) {
         assert(node->getOpcode() != OpcodePhi && by->getOpcode() != OpcodePhi);
@@ -329,16 +339,18 @@ public:
 
     // dump the basic block
     void dump(std::ostream &os) override {
-        os << name << ":    " ;
+        dumpName(os) << ":    ";
         os << "preds=(" << dump_str(preds()) << ") ";
         os << "succs=(" << dump_str(succs()) << ") ";
 
-        if (!domChildren.empty())
+        /*if (!domChildren.empty())
             os << "doms=(" << dump_str(domChildren) << ") ";
         if (!getDomFrontier().empty())
             os << "df=(" << dump_str(getDomFrontier()) << ") ";
-        if (getDominator())
-            os << "idom=" << getDominator()->dumpOperandToString();
+        */
+
+        /*if (getDominator())
+            os << "idom=" << getDominator()->dumpOperandToString();*/
 
         os << std::endl;
 
@@ -349,7 +361,15 @@ public:
 
     }
     void dumpAsOperand(std::ostream &os) override {
-        os << "%" << name;
+        os << "%";
+        dumpName(os);
+    }
+    inline std::ostream &dumpName(std::ostream &os) {
+        os << name;
+        if (auto *ST = getSymbolTable()) {
+            os << "." << ST->getCount(this, name);
+        }
+        return os;
     }
 private:
     inline void addInstr(Instruction *instr) {

@@ -90,15 +90,13 @@ void Instruction::dump(std::ostream &os) {
 
 }
 
-const std::string &Instruction::getName() {
-    auto &ST = getParent()->getParent()->getSymbolTable();
-    return ST.getName(this);
-}
-
-void Instruction::setName(std::string_view name) {
-    assert(getParent() && getParent()->getParent());
-    auto &ST = getParent()->getParent()->getSymbolTable();
-    ST.setName(this, name);
+SymbolTable *Instruction::getSymbolTable() const {
+    if (auto *P = getParent()) {
+        if (auto *F = P->getParent()) {
+            return &F->getSymbolTable();
+        }
+    }
+    return nullptr;
 }
 
 Instruction::Instruction(BasicBlock *parent, Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {
@@ -191,13 +189,17 @@ void PhiInst::setIncomingBlock(size_t i, BasicBlock *bb) {
 
 void PhiInst::dump(std::ostream &os) {
     dumpName(os) << " = phi ";
-    DUMP_REF(os, operands(), V, {
+    /*DUMP_REF(os, operands(), V, {
         if (auto *Block = getIncomingBlock(V))
             Block->dumpAsOperand(os);
         else
             os << "null";
         os << " -> ";
         V->dumpAsOperand(os);
+    });*/
+
+    os << dump_str(operands(), [this](Use &use) {
+        return "[" + getIncomingBlock(use)->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
     });
 }
 
