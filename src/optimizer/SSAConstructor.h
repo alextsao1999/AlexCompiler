@@ -79,15 +79,15 @@ public:
         phiStack.clear();
         varStatus.clear();
         phiStatus.clear();
-        std::map<Value *, std::vector<BasicBlock *>> DefBlocks;
+        std::map<AllocaInst *, std::vector<BasicBlock *>> DefBlocks;
         // Find all allocas def blocks
         for (auto &BB: function->getBasicBlockList()) {
             for (auto &I : BB) {
                 if (I.getOpcode() == OpcodeStore) {
                     auto *Store = I.as<StoreInst>();
                     auto *Ptr = Store->getPtr();
-                    if (Ptr->getOpcode() == OpcodeAlloca) {
-                        DefBlocks[Ptr].push_back(&BB);
+                    if (auto *Alloca = Ptr->as<AllocaInst>()) {
+                        DefBlocks[Alloca].push_back(&BB);
                     }
                 }
             }
@@ -105,7 +105,7 @@ public:
         install();
     }
 
-    void placing(const std::map<Value *, std::vector<BasicBlock *>> &defs) {
+    void placing(const std::map<AllocaInst *, std::vector<BasicBlock *>> &defs) {
         std::vector<BasicBlock *> Worklist;
         std::map<BasicBlock *, Value *> InWorklist;
         for (auto &[Value, Blocks]: defs) {
@@ -120,8 +120,8 @@ public:
 
                 for (auto *D: BB->getDomFrontier()) {
                     if (InWorklist[D] != Value) {
-                        StrView Name = Value->cast<Instruction>()->getName();
-                        auto *PhiNode = PhiInst::Create(D, Name);
+                        StrView Name = Value->getName();
+                        auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), D, Name);
                         phiStatus[PhiNode].setAlloca(Value);
                         InWorklist[D] = Value;
                         Worklist.push_back(D);
@@ -131,7 +131,7 @@ public:
         }
     }
 
-    void placingByIDF(const std::map<Value *, std::vector<BasicBlock *>> &defs) {
+    void placingByIDF(const std::map<AllocaInst *, std::vector<BasicBlock *>> &defs) {
         std::map<BasicBlock *, Value *> Placed;
         for (auto &[Value, Blocks]: defs) {
             IDFCalculator IDF;
@@ -139,7 +139,7 @@ public:
             for (auto &BB: IDF.IDF) {
                 if (Placed[BB] != Value) {
                     StrView Name = Value->cast<Instruction>()->getName();
-                    auto *PhiNode = PhiInst::Create(BB, Name);
+                    auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), BB, Name);
                     phiStatus[PhiNode].setAlloca(Value);
                     Placed[BB] = Value;
                 }
@@ -187,9 +187,8 @@ public:
                 }
                 auto &PhiState = Iter->second;
                 if (auto *Alloca = PhiState.getAlloca()) {
-                    assert(Alloca);
-                    auto *Val = varStatus[Alloca].top();
-                    PhiState.addIncoming(bb, Val);
+                    auto &VarStatus = varStatus[Alloca];
+                    PhiState.addIncoming(bb, VarStatus.empty() ? bb->getContext()->getUndef() : VarStatus.top());
                 }
             }
         }
@@ -263,6 +262,9 @@ public:
             NeedToRemove.push_back(Alloca->cast<Instruction>());
         }
         for (auto &Inst: NeedToRemove) {
+            if (auto *ST = Inst->getSymbolTable()) {
+                ST->removeName(Inst);
+            }
             Inst->eraseFromParent();
         }
 

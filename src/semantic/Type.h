@@ -17,6 +17,7 @@ enum TypeID {
     TypeInt,
     TypeFloat,
     TypeDouble,
+    TypeLabel,
     TypeString,
     TypePointer,
     TypeArray,
@@ -79,6 +80,10 @@ public:
 
     inline bool isNumericType() const {
         return isIntegerType() || isFloatType();
+    }
+
+    inline bool isLabelType() const {
+        return typeId == TypeLabel;
     }
 
     inline bool isPointerType() const {
@@ -151,6 +156,9 @@ public:
                 break;
             case TypeDouble:
                 os << "double";
+                break;
+            case TypeLabel:
+                os << "label";
                 break;
             case TypeString:
                 os << "string";

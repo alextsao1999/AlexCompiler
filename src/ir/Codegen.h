@@ -104,8 +104,8 @@ public:
         return diags;
     }
 
-    Module *getModule() const {
-        return curModule.get();
+    std::unique_ptr<Module> &getModule() {
+        return curModule;
     }
 
     Value *visitCompUnit(CompUnit value) override {
@@ -125,7 +125,7 @@ public:
             return nullptr;
         }
         auto *FuncTy = context.getFunctionTy(RetTy);
-        curFunc = Function::Create(getModule(), value.getName(), FuncTy);
+        curFunc = Function::Create(curModule.get(), value.getName(), FuncTy);
         // codegen params
         visit(value.getParams());
         // generate entry block

@@ -9,6 +9,7 @@
 #include <Node.h>
 #include <Type.h>
 #include <memory>
+#include "Context.h"
 #include "SymbolTable.h"
 
 enum BinaryOp {
@@ -48,108 +49,6 @@ inline bool isCommutative(BinaryOp op) {
 class Function;
 class BasicBlock;
 
-/**
- * Undef is the undefined value.
- * We don't use nullptr to avoid confusion.
- */
-class Undef : public Value {
-public:
-    void dumpAsOperand(std::ostream &os) override {
-        os << "undef";
-    }
-};
-
-/**
- * Param is the parameter value.
- */
-class Param : public Value {
-    std::string name;
-    Type *type;
-public:
-    Param() : type(nullptr) {}
-    Param(std::string_view name, Type *type) : name(name), type(type) {
-        incRef();
-    }
-
-    std::string &getName() {
-        return name;
-    }
-
-    Type *getType() override {
-        return type;
-    }
-
-    void dumpAsOperand(std::ostream &os) override {
-        type->dump(os);
-        os << " %" << name;
-    }
-
-};
-
-
-class Global : public Value {
-    std::string name;
-    Type *type;
-public:
-    Global(const std::string &name, Type *type) : name(name), type(type) {}
-
-    const std::string &getName() const {
-        return name;
-    }
-
-    Type *getType() const {
-        return type;
-    }
-
-    void dumpAsOperand(std::ostream &os) override {
-        os << "%" << name;
-    }
-
-};
-
-/**
- * Constant is the base class of all constant values.
- */
-class Constant : public Value {
-protected:
-    Type *type;
-public:
-    Constant(Type *type) : type(type) {
-        incRef();
-    }
-
-    Type *getType() override {
-        return type;
-    }
-
-};
-
-template<typename Ty>
-class ConstantVal : public Constant {
-public:
-    ConstantVal(Type *type, const Ty &val) : Constant(type), val(val) {
-    }
-
-    Ty &getVal() {
-        return val;
-    }
-
-    const Ty &getVal() const {
-        return val;
-    }
-
-    void dumpAsOperand(std::ostream &os) override {
-        type->dump(os);
-        os << " " << val;
-    }
-
-private:
-    Ty val;
-};
-using IntConstant = ConstantVal<int64_t>;
-using StrConstant = ConstantVal<std::string>;
-using BoolConstant = ConstantVal<bool>;
-
 class Instruction : public Value, public NodeWithParent<Instruction, BasicBlock> {
 protected:
     Opcode opcode;
@@ -175,7 +74,7 @@ protected:
         return std::unique_ptr<Use[]>(UseElements);
     }
 public:
-    Instruction() {}
+    Instruction() = delete;
     Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {}
     Instruction(Opcode opcode, const std::vector<Value *> &values) : opcode(opcode), numOperands(values.size()),
@@ -189,6 +88,7 @@ public:
         }
     }
 
+    std::string nameForDebug;
     SymbolTable *getSymbolTable() const;
     const std::string &getName() {
         auto *ST = getSymbolTable();
@@ -199,6 +99,7 @@ public:
         auto *ST = getSymbolTable();
         assert(ST);
         ST->setName(this, name);
+        nameForDebug = name;
     }
 
     inline bool hasSideEffects() const {
@@ -226,6 +127,7 @@ public:
         }
     }
 
+    Context *getContext() const;
     Opcode getOpcode() const { return opcode; }
     size_t getOperandNum() const { return numOperands; }
     Value *getOperand(size_t i) const {
@@ -284,7 +186,17 @@ protected:
 
 class OutputInst : public Instruction {
 public:
+    ///< The output type for this instruction
+    Type *type = nullptr;
+    OutputInst(Type *type, Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]), type(type) {}
+    OutputInst(Type *type, BasicBlock *parent, Opcode opcode) : Instruction(parent, opcode), type(type) {}
+    OutputInst(Type *type, BasicBlock *parent, Opcode opcode, unsigned numOperands) : Instruction(opcode, numOperands), type(type) {}
+    OutputInst(Type *type, Opcode opcode, const std::vector<Value *> &values) : Instruction(opcode, values),
+                                                                                type(type) {}
+    OutputInst(const OutputInst &other) : Instruction(other), type(other.type) {}
     using Instruction::Instruction;
+    inline Type *getOutputType() const { return type; }
+    void setType(Type *ty) { this->type = ty; }
     void dump(std::ostream &os) override {
         dumpName(os) << " = ";
         Instruction::dump(os);
@@ -395,8 +307,10 @@ public:
 class PhiInst : public OutputInst {
 public:
     static PhiInst *Create(BasicBlock *bb, StrView name = "");
+    static PhiInst *Create(Type *ty, BasicBlock *bb, StrView name = "");
 public:
     PhiInst() : OutputInst(OpcodePhi) {}
+    PhiInst(Type *ty) : OutputInst(ty, OpcodePhi) {}
     PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
     PhiInst(const PhiInst &other);
     ~PhiInst() override = default;
@@ -487,6 +401,7 @@ class BinaryInst : public OutputInst {
 public:
     BinaryInst() : OutputInst(OpcodeBinary) {}
     BinaryInst(BinaryOp op, Value *lhs, Value *rhs) : OutputInst(OpcodeBinary, {lhs, rhs}), op(op) {}
+    BinaryInst(Type *ty, BinaryOp op, Value *lhs, Value *rhs) : OutputInst(ty, OpcodeBinary, {lhs, rhs}), op(op) {}
     BinaryInst(const BinaryInst &other) : OutputInst(other), op(other.op) {}
 
     BinaryOp getOp() {
@@ -494,7 +409,7 @@ public:
     }
 
     Type *getType() override {
-        return Type::getMaxType(getLHS()->getType(), getRHS()->getType());
+        return getOutputType();
     }
 
     Value *getLHS() {

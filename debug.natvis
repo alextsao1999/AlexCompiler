@@ -45,6 +45,12 @@
             </CustomListItems>
         </Expand>
     </Type>
+    <Type Name="NodeIter&lt;*,*&gt;">
+        <Expand>
+            <Item Name="[cursor]">cursor</Item>
+            <Item Name="[value]">($T2*)(cursor)</Item>
+        </Expand>
+    </Type>
     <Type Name="Value" Inheritable="false">
         <Expand>
             <LinkedListItems>
@@ -54,24 +60,32 @@
             </LinkedListItems>
         </Expand>
     </Type>
+    <Type Name="Use">
+        <Expand>
+            <Item Name="[user]">parent</Item>
+            <Item Name="[value]">value</Item>
+        </Expand>
+    </Type>
     <Type Name="NodeParent&lt;*,*,*&gt;" Inheritable="false">
         <Expand>
             <ExpandedItem>list</ExpandedItem>
         </Expand>
     </Type>
     <Type Name="Instruction" Inheritable="true">
+        <DisplayString>{nameForDebug} = {opcode}({numOperands}) </DisplayString>
         <Expand>
-
-            <ExpandItem Name="Opcode">opcode</ExpandItem>
+            <Item Name="[opcode]">opcode</Item>
+            <Item Name="[parent]">parent</Item>
             <IndexListItems>
                 <Size>numOperands</Size>
                 <ValueNode>*(trailingOperands._Mypair._Myval2[$i].value)</ValueNode>
             </IndexListItems>
-
-            <!--<ArrayItems>
+<!--
+            <ArrayItems>
                 <Size>numOperands</Size>
                 <ValuePointer>trailingOperands._Mypair._Myval2</ValuePointer>
-            </ArrayItems>-->
+            </ArrayItems>
+-->
         </Expand>
     </Type>
 

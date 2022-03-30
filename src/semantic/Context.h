@@ -8,12 +8,13 @@
 #include <unordered_map>
 #include "Node.h"
 #include "Type.h"
-#include "Instruction.h"
+#include "Constant.h"
 
 class Context {
     Undef undefInstance;
 
-    Type voidTy{this, TypeVoid}, floatTy{this, TypeFloat}, doubleTy{this, TypeDouble}, stringTy{this, TypeString};
+    Type voidTy{this, TypeVoid}, floatTy{this, TypeFloat}, doubleTy{this, TypeDouble},
+            stringTy{this, TypeString}, lableTy{this, TypeLabel};
     IntegerType i1Ty{this, 1}, i8Ty{this, 8}, i16Ty{this, 16}, i32Ty{this, 32}, i64Ty{this, 64}, i128Ty{this, 128};
 
     std::map<Type *, std::string> typeNames;
@@ -37,6 +38,10 @@ public:
 
     Type *getDoubleTy() {
         return &doubleTy;
+    }
+
+    Type *getLableTy() {
+        return &lableTy;
     }
 
     IntegerType *getInt1Ty() {

@@ -243,9 +243,7 @@ public:
                     evalOnInstruction(Cur);
                 }
             }
-
         }
-
     }
 
 };

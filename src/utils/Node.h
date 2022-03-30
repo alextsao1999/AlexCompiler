@@ -194,7 +194,7 @@ public:
 
     NodeIter operator--(int) {
         auto back = *this;
-        ++*this;
+        --*this;
         return back;
     }
 

@@ -95,28 +95,12 @@ public:
     }
 
     template<typename InstTy, typename FnTy>
-    void forEach(FnTy fn) {
-        auto BBIt = list.begin();
-        auto BBEnd = list.end();
-        if (BBIt == BBEnd) {
-            return;
-        }
-        do {
-            auto &BB = *BBIt++;
-            auto InstIter = BB.getSubList().begin();
-            auto InstEnd = BB.getSubList().end();
-
-            if (InstIter == InstEnd) {
-                continue;
+    inline void forEach(FnTy fn) {
+        forEach([&](Instruction *inst) {
+            if (auto *I = inst->template as<InstTy>()) {
+                fn(I);
             }
-            do {
-                auto &Inst = *InstIter++;
-                if (auto *I = Inst.template as<InstTy>()) {
-                    fn(I);
-                }
-            } while (InstIter != InstEnd);
-        } while (BBIt != BBEnd);
-
+        });
         /*for (auto &BB: getSubList()) {
             for (auto &Inst: BB.getInstrs()) {
                 if (auto *Val = Inst.as<InstTy>()) {
@@ -127,24 +111,29 @@ public:
     }
 
     template<typename Fn>
-    void forEach(Fn fn) {
-        auto BBIt = list.begin();
-        auto BBEnd = list.end();
-        if (BBIt == BBEnd) {
-            return;
-        }
-        do {
-            auto &BB = *BBIt++;
-            auto InstIter = BB.getSubList().begin();
-            auto InstEnd = BB.getSubList().end();
-            if (InstIter == InstEnd) {
-                continue;
+    inline void forEach(Fn fn) {
+        forEachBlock([&](BasicBlock *bb) {
+            auto InstIter = bb->getSubList().begin();
+            auto InstEnd = bb->getSubList().end();
+            if (InstIter != InstEnd) {
+                do {
+                    auto *Inst = &(*InstIter++);
+                    fn(Inst);
+                } while (InstIter != InstEnd);
             }
+        });
+    }
+
+    template<typename Fn>
+    inline void forEachBlock(Fn fn) {
+        auto Iter = list.begin();
+        auto End = list.end();
+        if (Iter != End) {
             do {
-                auto &Inst = *InstIter++;
-                fn(&Inst);
-            } while (InstIter != InstEnd);
-        } while (BBIt != BBEnd);
+                auto *BB = &(*Iter++);
+                fn(BB);
+            } while (Iter != End);
+        }
     }
 
     ///< return true if the function is a declaration
@@ -175,10 +164,11 @@ public:
         //type->dump(os);
 
         os << " {" << std::endl;
-        DUMP_REF_S(os, list, "\n", BB, {
+        /*DUMP_REF_S(os, list, "\n", BB, {
             BB.dump(os);
-        });
-        os << "}" << std::endl;
+        });*/
+        os << dump_str(list, ValueDumper(), "\n\n");
+        os << std::endl << "}" << std::endl;
     }
     void dumpAsOperand(std::ostream &os) override {
         assert(getReturnType());

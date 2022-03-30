@@ -93,7 +93,7 @@ void Instruction::dump(std::ostream &os) {
 SymbolTable *Instruction::getSymbolTable() const {
     if (auto *P = getParent()) {
         if (auto *F = P->getParent()) {
-            return &F->getSymbolTable();
+            return &(F->getSymbolTable());
         }
     }
     return nullptr;
@@ -145,6 +145,13 @@ PhiInst *PhiInst::Create(BasicBlock *bb, StrView name) {
     return Phi;
 }
 
+PhiInst *PhiInst::Create(Type *type, BasicBlock *bb, StrView name) {
+    auto *Phi = new PhiInst(type);
+    bb->addPhi(Phi);
+    Phi->setName(name);
+    return Phi;
+}
+
 PhiInst::PhiInst(const PhiInst &other) : OutputInst(other) {
     incomingBlocks = std::unique_ptr<Use[]>(new Use[getOperandNum()]);
     for (unsigned I = 0; I < getOperandNum(); ++I) {
@@ -165,9 +172,17 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
     }
 
     // make sure all the types of incoming values are the same
-    assert(numOperands >= 1 && std::all_of(begin(), end(), [&](auto &arg) {
+    assert(numOperands >= 1);
+
+    /**
+     * FIXME: make sure all the types of incoming values are the same
+     * But we don't have a way to get the type of a value that may be a phi node
+     * or any other value what we don't have type of.
+     */
+
+    /*assert(std::all_of(begin(), end(), [&](auto &arg) {
         return arg.getValue()->getType() == begin()->getValue()->getType();
-    }));
+    }));*/
 
 }
 
@@ -189,15 +204,7 @@ void PhiInst::setIncomingBlock(size_t i, BasicBlock *bb) {
 
 void PhiInst::dump(std::ostream &os) {
     dumpName(os) << " = phi ";
-    /*DUMP_REF(os, operands(), V, {
-        if (auto *Block = getIncomingBlock(V))
-            Block->dumpAsOperand(os);
-        else
-            os << "null";
-        os << " -> ";
-        V->dumpAsOperand(os);
-    });*/
-
+    // FIXME: maybe we should dump the type here?
     os << dump_str(operands(), [this](Use &use) {
         return "[" + getIncomingBlock(use)->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
     });
@@ -214,14 +221,15 @@ Instruction *Instruction::clone() const {
     }
 }
 
+Context *Instruction::getContext() const {
+    assert(getParent());
+    return getParent()->getContext();
+}
+
 void CallInst::dump(std::ostream &os) {
     dumpName(os) << " = call ";
     callee->dumpAsOperand(os);
-    os << "(";
-    DUMP_REF(os, operands(), V, {
-        V->dumpAsOperand(os);
-    });
-    os << ")";
+    os << "(" << dump_str(operands()) << ")";
 }
 
 Type *CallInst::getCalleeType() const {

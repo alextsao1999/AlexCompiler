@@ -21,24 +21,21 @@ public:
         // allocate a temp name if not found
         auto It = nameTable.find(item);
         if (It == nameTable.end()) {
-            auto &Str = nameTable[item] = "";
-            //addCount(item, Str);
-            return Str;
+            return nameTable[item] = "";
         }
         return It->second;
     }
     void setName(Value *item, StrView name) {
         removeName(item);
         nameTable[item] = name;
-        //addCount(item, std::string(name));
     }
     void removeName(Value *item) {
         if (!nameTable.count(item)) {
             return;
         }
         auto &Name = nameTable[item];
-        nameTable.erase(item);
         removeCount(item, Name);
+        nameTable.erase(item);
     }
     void removeCount(Value *item, const std::string &name) {
         auto &List = countTable[name];
@@ -47,10 +44,13 @@ public:
             List.erase(Iter);
         }
     }
-    void addCount(Value *item, const std::string &name = "") {
-        countTable[name].push_back(item);
-    }
 
+    unsigned addCount(Value *item, const std::string &name = "") {
+        auto &List = countTable[name];
+        auto Size = List.size();
+        List.push_back(item);
+        return Size;
+    }
     unsigned getCount(Value *item) {
         return getCount(item, getName(item));
     }
@@ -69,7 +69,6 @@ public:
         }
         return It->second.size();
     }
-
 private:
     std::unordered_map<Value *, std::string> nameTable;
     std::unordered_map<std::string, std::vector<Value *>> countTable;

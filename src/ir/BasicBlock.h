@@ -83,7 +83,8 @@ public:
         Instruction *instr;
         unsigned idx;
 
-        SuccIter(BasicBlock *bb) : instr(bb->getTerminator()), idx(bb->getTerminator()->getNumSuccessors()) {}
+        SuccIter(BasicBlock *bb) : instr(bb->getTerminator()),
+                                   idx(bb->getTerminator() ? bb->getTerminator()->getNumSuccessors() : 0) {}
         SuccIter(BasicBlock *bb, unsigned idx) : instr(bb->getTerminator()), idx(idx) {}
 
         inline bool operator==(const SuccIter &other) const {
@@ -131,10 +132,12 @@ public:
     explicit BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {
         if (auto *ST = getSymbolTable()) {
             // FIXME: Just for allocating count ahead of time
-            ST->addCount(this, this->name);
+            count = ST->addCount(this, this->name);
         }
     }
 
+    // FIXME: It's for debug now.
+    unsigned count = 0;
     const std::string &getName() {
         return name;
     }
@@ -205,6 +208,10 @@ public:
         replaceAllUsesWith(NewBB);
         NewBB->append(new BranchInst(this));
         return NewBB;
+    }
+
+    bool hasOnlyTerminator() {
+        return getTerminator() && --iterator(getTerminator()) == list.end();
     }
 
     inline auto begin() {
@@ -297,11 +304,9 @@ public:
     }
 
     inline succ_iterator succs_begin() {
-        assert(getTerminator() && "This basic block has no terminator!");
         return succ_iterator(this, 0);
     }
     inline succ_iterator succs_end() {
-        assert(getTerminator() && "This basic block has no terminator!");
         return succ_iterator(this);
     }
 
@@ -348,17 +353,15 @@ public:
         if (!getDomFrontier().empty())
             os << "df=(" << dump_str(getDomFrontier()) << ") ";
         */
-
         /*if (getDominator())
             os << "idom=" << getDominator()->dumpOperandToString();*/
-
         os << std::endl;
 
-        for (auto &Instr: getSubList()) {
+        /*for (auto &Instr: getSubList()) {
             Instr.dump(os);
             os << std::endl;
-        }
-
+        }*/
+        os << dump_str(getSubList(), ValueDumper(), "\n");
     }
     void dumpAsOperand(std::ostream &os) override {
         os << "%";

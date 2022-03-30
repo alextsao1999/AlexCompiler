@@ -5,6 +5,7 @@
 #ifndef DRAGON_BRANCHELIM_H
 #define DRAGON_BRANCHELIM_H
 
+#include "Common.h"
 #include "PassManager.h"
 #include "Function.h"
 #include <algorithm>
@@ -13,8 +14,8 @@ public:
     BranchElim() {}
 
     void runOnFunction(Function *f) override {
-        for (auto &BB : *f) {
-            if (auto *Inst = BB.getTerminator()) {
+        f->forEachBlock([&](BasicBlock *bb) {
+            if (auto *Inst = bb->getTerminator()) {
                 if (Inst->getOpcode() == OpcodeCondBr) {
                     auto *CondBr = Inst->cast<CondBrInst>();
                     auto *TrueBB = CondBr->getTrueTarget();
@@ -24,44 +25,47 @@ public:
                         auto *NewInst = new BranchInst(
                                 Val->getVal() == 0 ? CondBr->getFalseTarget() : CondBr->getTrueTarget());
                         Inst->replaceBy(NewInst);
-                        continue;
-                    }
-                    if (TrueBB == FalseBB) {
+                    } else if (TrueBB == FalseBB) {
                         Inst->replaceBy(new BranchInst(TrueBB));
-                        continue;
                     }
                 }
             }
-        }
+            /// eliminate useless branch, but it breaks the tidiness of the IR,
+            /// so we comment it out for now
+            /*if (bb->hasOnlyTerminator()) {
+                if (auto *Inst = bb->getTerminator()) {
+                    if (Inst->getNumSuccessors() == 1) {
+                        auto *Succ = Inst->getSuccessor(0);
+                        bb->replaceAllUsesWith(Succ);
+                        bb->eraseFromParent();
+                    }
+                }
+            }*/
+        });
         for (auto &BB : *f) {
             if (auto *Inst = BB.getTerminator()) {
                 while (Inst->getOpcode() == OpcodeBr) {
-                    auto *BBSource = Inst->getParent();
+                    auto *BBSource = &BB;
                     auto *BBTarget = Inst->getOperand(0)->cast<BasicBlock>();
                     if (!std::all_of(BBTarget->preds_begin(), BBTarget->preds_end(),
                                      [&](BasicBlock *pred) { return pred == BBSource; })) {
                         break;
                     }
-
                     // exist phi node means the BB has two more different predecessors
-                    if (BBTarget->hasPhi()) {
+                    if (BBTarget->hasPhi())
                         break;
-                    }
-
-                    // fuse the following blocks
-                    auto *First = BBTarget->begin().getPointer();
-                    auto *Last = BBTarget->getTerminator();
-                    if (First != Last) {
-                        BBTarget->getSubList().extract(First, Last);
-
-                        auto &SourceList = BBSource->getSubList();
-                        SourceList.inject_before(SourceList.end(), First);
-                    }
-
+                    assert(BBTarget != BBSource);
+                    // first erase old terminator
                     Inst->eraseFromParent();
-                    Inst = BBTarget->getTerminator();
-                    BBSource->append(Inst);
-
+                    // fuse the following blocks
+                    assert(BBTarget->getTerminator());
+                    auto First = BBTarget->begin();
+                    auto Last = BBTarget->end();
+                    while (First != Last) {
+                        Inst = &*First++;
+                        BBSource->append(Inst);
+                    }
+                    // erase target block
                     BBTarget->replaceAllUsesWith(BBSource);
                     BBTarget->eraseFromParent();
                 }

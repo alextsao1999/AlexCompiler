@@ -10,5 +10,6 @@ using StrView = std::string_view;
 
 #define assert(x) if (!(x)) { std::cout << "Assertion failed: " << (x) << " " << __FILE__ << ":" << __LINE__ << std::endl;abort(); }
 #define unreachable() assert(!"Unreachable here!");
+#define debug(...) fprintf(stderr, __VA_ARGS__)
 
 #endif //DRAGONCOMPILER_COMMON_H

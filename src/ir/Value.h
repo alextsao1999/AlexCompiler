@@ -201,6 +201,7 @@ public:
         set(value);
     }
 
+    /// We don't want to copy the use.
     Use(const Use &rhs) = delete;
     Use &operator=(const Use &rhs) = delete;
 
@@ -416,22 +417,22 @@ inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
 
 struct OperandDumper {
     template<typename T>
-    std::string operator()(T &v) {
+    inline std::string operator()(T &v) {
         return v->dumpOperandToString();
     }
-    std::string operator()(Value *v) {
+    inline std::string operator()(Value *v) {
         return v->dumpOperandToString();
     }
-    std::string operator()(Value &v) {
+    inline std::string operator()(Value &v) {
         return v.dumpOperandToString();
     }
 };
 
 struct ValueDumper {
-    std::string operator()(Value *v) {
+    inline std::string operator()(Value *v) {
         return v->dumpToString();
     }
-    std::string operator()(Value &v) {
+    inline std::string operator()(Value &v) {
         return v.dumpToString();
     }
 };
@@ -441,7 +442,7 @@ std::string dump_str(const C &c, Pred fun= Pred(), const std::string &s = ", ") 
     std::string Out;
     for (auto Iter = c.begin() ; Iter != c.end(); ++Iter) {
         if (Iter != c.begin()) {
-            Out += ", ";
+            Out += s;
         }
         Out += fun(*Iter);
     }
