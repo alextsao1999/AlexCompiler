@@ -15,7 +15,9 @@
 #include "SSADestructor.h"
 #include "IDFCalculator.h"
 #include "LoopAnalyse.h"
+#include "LoopSimplify.h"
 #include "Codegen.h"
+#include "SCCP.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -35,13 +37,60 @@ std::unique_ptr<Module> compileModule(const char *str) {
     return std::move(CG.getModule());
 }
 
+Function *createFunc1() {
+    auto *F = new Function("func1", Context.getFunctionTy(Context.getInt32Ty(), {Context.getInt32Ty()}));
+    auto *ParamX = F->addParam("x", Context.getInt32Ty());
+
+    BasicBlock::Create(F, "entry");
+    IRBuilder Builder(F);
+
+    auto *A = Builder.createAlloca(Context.getInt32Ty(), "test");
+    Builder.createStore(A, ParamX);
+
+    auto *TrueBB = BasicBlock::Create(F, "if.true");
+    auto *FalseBB = BasicBlock::Create(F, "if.false");
+    auto *Leave = BasicBlock::Create(F, "leave");
+
+    auto *Add = Builder.createAdd(Builder.createLoad(A), Builder.getInt(1));
+    auto *Cmp = Builder.createNe(Builder.getInt(77), Builder.getInt(66), "cmp");
+    Builder.createCondBr(Cmp, TrueBB, FalseBB);
+
+    Builder.setInsertPoint(TrueBB);
+    Builder.createStore(A, ParamX);
+    Builder.createBr(Leave);
+
+    Builder.setInsertPoint(FalseBB);
+    Builder.createStore(A, Builder.createAdd(Builder.createLoad(A), Builder.getInt(1)));
+    Builder.createBr(Leave);
+
+    Builder.setInsertPoint(Leave);
+    auto *Load = Builder.createLoad(A);
+    Builder.createRet(Load);
+
+    return F;
+}
+
 int main(int argc, char **argv) {
+/*
+    auto Module = compileModule(R"(
+        int main(){
+            int a = 0;
+            int b = a + 23;
+            if (b == 0) {
+                a = 1;
+            } else {
+                a = 2;
+            }
+            return a;
+        }
+    )");
+*/
     auto Module = compileModule(R"(
         int main(){
             int a = 0;
             while (a < 20) {
               int i = 10;
-              while (i<20) a = a + i;
+              while (i<20) i = i + 1;
               while (a < 50) a = a + 1;
               a = a + 1;
             }
@@ -55,12 +104,18 @@ int main(int argc, char **argv) {
     GVN GVN;
     LoopAnalyse LA;
     BranchElim BE;
+    LoopSimplify LS;
+    SCCP SCCP;
 
     Dom.runOnFunction(Fun);
     Cons.runOnFunction(Fun);
     GVN.runOnFunction(Fun);
     BE.runOnFunction(Fun);
+    Dom.runOnFunction(Fun);
     LA.runOnFunction(Fun);
+    LS.runOnFunction(Fun);
+    Dom.runOnFunction(Fun);
+    SCCP.runOnFunction(Fun);
 
     Module->dump(std::cout);
 

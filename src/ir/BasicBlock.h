@@ -23,13 +23,13 @@ public:
         using pointer = BBTy *;
         using reference = BBTy *;
     public:
-        UseIt iter;
+        mutable UseIt iter;
         PredIter() {}
-        inline PredIter(BBTy *bb) : iter(bb->user_begin()) {
+        inline PredIter(const BBTy *bb) : iter(bb->user_begin()) {
             advance();
         }
 
-        inline void advance() {
+        inline void advance() const {
             while (!iter.atEnd()) {
                 if (iter->template as<TerminatorInst>()) {
                     break;
@@ -83,9 +83,9 @@ public:
         Instruction *instr;
         unsigned idx;
 
-        SuccIter(BasicBlock *bb) : instr(bb->getTerminator()),
+        SuccIter(const BasicBlock *bb) : instr(bb->getTerminator()),
                                    idx(bb->getTerminator() ? bb->getTerminator()->getNumSuccessors() : 0) {}
-        SuccIter(BasicBlock *bb, unsigned idx) : instr(bb->getTerminator()), idx(idx) {}
+        SuccIter(const BasicBlock *bb, unsigned idx) : instr(bb->getTerminator()), idx(idx) {}
 
         inline bool operator==(const SuccIter &other) const {
             return std::tie(instr, idx) == std::tie(other.instr, other.idx);
@@ -129,12 +129,7 @@ public:
 public:
     explicit BasicBlock() {}
     explicit BasicBlock(std::string_view name) : name(name) {}
-    explicit BasicBlock(Function *parent, std::string_view name) : NodeWithParent(parent), name(name) {
-        if (auto *ST = getSymbolTable()) {
-            // FIXME: Just for allocating count ahead of time
-            count = ST->addCount(this, this->name);
-        }
-    }
+    explicit BasicBlock(Function *parent, std::string_view name);
 
     // FIXME: It's for debug now.
     unsigned count = 0;
@@ -190,34 +185,16 @@ public:
         addInstr(before);
     }
 
-    BasicBlock *split(Instruction *i, std::string newName = "") {
-        if (newName.empty()) {
-            newName = getName() + ".split";
-        }
-        BasicBlock *NewBB = new BasicBlock(newName);
-        insertBeforeThis(NewBB);
-
-        auto First = list.begin();
-        list.extract(First, i);
-
-        if (First != i) {
-            auto &NewBBList = NewBB->getSubList();
-            NewBBList.inject_before(NewBBList.end(), First.getPointer());
-        }
-
-        replaceAllUsesWith(NewBB);
-        NewBB->append(new BranchInst(this));
-        return NewBB;
-    }
+    BasicBlock *split(Instruction *i, std::string newName = "");
 
     bool hasOnlyTerminator() {
         return getTerminator() && --iterator(getTerminator()) == list.end();
     }
 
-    inline auto begin() {
+    inline iterator begin() {
         return getSubList().begin();
     }
-    inline auto end() {
+    inline iterator end() {
         return getSubList().end();
     }
 
@@ -256,7 +233,7 @@ public:
         return iter(++iterator(lastPhi), list.end());
     }
 
-    Instruction *getTerminator() {
+    Instruction *getTerminator() const {
         return terminator;
     }
     unsigned getNumSuccessors() {
@@ -296,17 +273,17 @@ public:
         return iter(succs_begin(), succs_end());
     }
 
-    inline pred_iterator preds_begin() {
+    inline pred_iterator preds_begin() const {
         return pred_iterator(this);
     }
-    inline pred_iterator preds_end() {
+    inline pred_iterator preds_end() const {
         return pred_iterator();
     }
 
-    inline succ_iterator succs_begin() {
+    inline succ_iterator succs_begin() const {
         return succ_iterator(this, 0);
     }
-    inline succ_iterator succs_end() {
+    inline succ_iterator succs_end() const {
         return succ_iterator(this);
     }
 
@@ -321,7 +298,7 @@ public:
         return level;
     }
     bool dominates(BasicBlock *rhs) const {
-        if (rhs == nullptr || getLevel() >= rhs->getLevel()) {
+        if (rhs == nullptr /*|| getLevel() >= rhs->getLevel()*/) {
             return false;
         }
         if (this == rhs || this == rhs->dominator) {
@@ -330,17 +307,15 @@ public:
         if (dominator == rhs) {
             return false;
         }
-        // FIXME: recursive call is not efficient here
-        for (auto &Child: domChildren) {
-            if (Child->dominates(rhs)) {
+        do {
+            rhs = rhs->dominator;
+            if (rhs == this) {
                 return true;
             }
-        }
+        } while (rhs);
         return false;
     }
-    bool isAccessible() const {
-        return dominator != nullptr || !domChildren.empty();
-    }
+    bool isUnreachable() const;
 
     // dump the basic block
     void dump(std::ostream &os) override {
@@ -348,13 +323,13 @@ public:
         os << "preds=(" << dump_str(preds()) << ") ";
         os << "succs=(" << dump_str(succs()) << ") ";
 
-        /*if (!domChildren.empty())
+        // We must update the dominance infor before we dump the instructions
+        if (!domChildren.empty())
             os << "doms=(" << dump_str(domChildren) << ") ";
         if (!getDomFrontier().empty())
             os << "df=(" << dump_str(getDomFrontier()) << ") ";
-        */
-        /*if (getDominator())
-            os << "idom=" << getDominator()->dumpOperandToString();*/
+        if (getDominator())
+            os << "idom=" << getDominator()->dumpOperandToString();
         os << std::endl;
 
         /*for (auto &Instr: getSubList()) {

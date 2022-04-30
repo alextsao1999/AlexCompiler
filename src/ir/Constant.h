@@ -13,6 +13,9 @@
  */
 class Undef : public Value {
 public:
+    Undef() {
+        incRef();
+    }
     void dumpAsOperand(std::ostream &os) override {
         os << "undef";
     }

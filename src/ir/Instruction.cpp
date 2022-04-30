@@ -206,7 +206,11 @@ void PhiInst::dump(std::ostream &os) {
     dumpName(os) << " = phi ";
     // FIXME: maybe we should dump the type here?
     os << dump_str(operands(), [this](Use &use) {
-        return "[" + getIncomingBlock(use)->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
+        auto *BB = getIncomingBlock(use);
+        if (BB == nullptr) {
+            return "[null: " + use->dumpOperandToString() + "]";
+        }
+        return "[" + BB->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
     });
 }
 

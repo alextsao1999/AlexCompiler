@@ -29,13 +29,7 @@ struct MyVisitor : public Visitor<MyVisitor> {
 };
 
 TEST(Parser, Test) {
-    const char *News = "import a.c;\n"
-                       "fun test1() {"
-                       "  test2();"
-                       "}"
-                       "fun test2() {"
-                       ""
-                       "}";
+    const char *News = "int a = 10;";
 
     GLRParser<> Parser(false);
     Parser.reset(News, News + strlen(News));

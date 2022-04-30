@@ -15,6 +15,34 @@ public:
 
 using NodeListImpl = INodeListImpl<Element, ListAllocTrait<Element>>;
 
+size_t findstr(const std::string &str, const std::string &pattern) {
+    if ((pattern.size() == 0) || (str.size() < pattern.size()))
+        return std::string::npos;
+    int *Nexts = (int *) alloca(sizeof(int) * pattern.size());
+    Nexts[0] = 0;
+    unsigned Cursor = 0, Matching = 1;
+    while (Matching < pattern.size()) {
+        while (Cursor && pattern[Cursor] != pattern[Matching]) {
+            Cursor = Nexts[Cursor - 1];
+        }
+        if (pattern[Cursor] == pattern[Matching])
+            Cursor++;
+        Nexts[Matching++] = Cursor;
+    }
+    Matching = 0;
+    for (Cursor = 0; Cursor < str.size(); ++Cursor) {
+        while (Matching && str[Cursor] != pattern[Matching]) {
+            Matching = Nexts[Matching - 1]; // backtrack
+        }
+        if (str[Cursor] == pattern[Matching])
+            Matching++;
+        if (Matching == pattern.size()) {
+            return Cursor - pattern.size() + 1;
+        }
+    }
+    return std::string::npos;
+}
+
 TEST(NodeList, Test) {
     NodeListImpl List;
     List.push_back(new Element(1));
@@ -36,58 +64,36 @@ TEST(NodeList, Test) {
 
     EXPECT_EQ(Join(List), "1,2,3,4,5");
 
-    auto It = List.begin() + 1;
-    auto ItEnd = NodeListImpl::iterator(It) + 3;
-    List.extract(It, ItEnd);
-    EXPECT_EQ(Join(List), "1,5");
+    // test iterator
+    auto Iter = List.begin();
+    EXPECT_EQ(Iter->value, 1);
+    EXPECT_EQ((++Iter)->value, 2);
+    EXPECT_EQ((++Iter)->value, 3);
+    EXPECT_EQ((++Iter)->value, 4);
+    EXPECT_EQ((++Iter)->value, 5);
+    EXPECT_EQ(++Iter, List.end());
 
-    List.inject_before(List.begin() + 1, It.getPointer());
-    EXPECT_EQ(Join(List), "1,2,3,4,5");
+    Iter = List.begin();
+    EXPECT_EQ((Iter + 0)->value, 1);
+    EXPECT_EQ((Iter + 1)->value, 2);
+    EXPECT_EQ((Iter + 2)->value, 3);
+    EXPECT_EQ((Iter + 3)->value, 4);
+    EXPECT_EQ((Iter + 4)->value, 5);
+    EXPECT_EQ(Iter + 5, List.end());
 
-    List.extract(It, ItEnd);
-    List.inject_after(List.begin(), It.getPointer());
-    EXPECT_EQ(Join(List), "1,2,3,4,5");
+    Iter = List.end();
+    EXPECT_EQ((--Iter)->value, 5);
+    EXPECT_EQ((--Iter)->value, 4);
+    EXPECT_EQ((--Iter)->value, 3);
+    EXPECT_EQ((--Iter)->value, 2);
+    EXPECT_EQ((--Iter)->value, 1);
+    EXPECT_EQ(Iter, List.begin());
 
-    auto MoveOut = [&](size_t i, size_t n) {
-        auto It = List.begin() + i;
-        auto ItEnd = It + n;
-        List.extract(It, ItEnd);
-        return It;
-    };
+    Iter = List.begin() + 2;
+    List.erase(Iter);
+    EXPECT_EQ(Join(List), "1,2,4,5");
 
-    NodeListImpl NewList;
-
-    auto I = MoveOut(1, 2);
-    EXPECT_EQ(Join(List), "1,4,5");
-
-    NewList.inject_before(NewList.end(), I.getPointer());
-    EXPECT_EQ(Join(NewList), "2,3");
-
-    NewList.extract(I, NewList.end());
-    EXPECT_EQ(Join(NewList), "");
-
-    NewList.inject_after(NewList.end(), I.getPointer());
-    EXPECT_EQ(Join(NewList), "2,3");
-
-    NewList.extract(I, NewList.end());
-    List.inject_after(List.begin(), I.getPointer());
-    EXPECT_EQ(Join(List), "1,2,3,4,5");
-
-    I = List.begin();
-    List.extract(List.begin(), List.end());
-    NewList.inject_after(NewList.end(), I.getPointer());
-    EXPECT_EQ(Join(NewList), "1,2,3,4,5");
-
-    I = NewList.begin();
-    NewList.extract(I);
-    List.inject_after(List.begin(), I.getPointer());
-    EXPECT_EQ(Join(List), "1");
-    EXPECT_EQ(Join(NewList), "2,3,4,5");
-
-    I = NewList.begin();
-    NewList.extract(I);
-    List.inject_before(List.end(), I.getPointer());
-    EXPECT_EQ(Join(List), "1,2");
-    EXPECT_EQ(Join(NewList), "3,4,5");
+    List.erase(List.begin(), List.end());
+    EXPECT_EQ(Join(List), "");
 
 }

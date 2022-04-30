@@ -8,7 +8,7 @@
 #include "PassManager.h"
 #include "Function.h"
 
-class Inliner : public FunctionPass {
+/*class Inliner : public FunctionPass {
 public:
     void runOnFunction(Function *function) override {
         if (function->isDeclaration()) {
@@ -101,6 +101,105 @@ public:
         });
 
     }
+};*/
+
+class Inliner : public FunctionPass {
+public:
+    std::unordered_map<Value *, Value *> valueMap;
+    void runOnFunction(Function *function) override {
+        if (function->isDeclaration()) {
+            return;
+        }
+        valueMap.clear();
+        function->forEach<CallInst>([this](CallInst *inst) {
+            doInline(inst);
+        });
+    }
+
+    void doInline(CallInst *inst) {
+        Function *Callee = inst->getCallee();
+        assert(!Callee->isDeclaration());
+
+        // Map the parameters
+        int I = 0;
+        for (auto &Param: Callee->getParams()) {
+            valueMap[Param.get()] = inst->getArg(I++);
+        }
+
+        AllocaInst *RetVal = nullptr;
+        if (auto *RetTy = Callee->getReturnType()) {
+            // create alloca to store return value
+            RetVal = new AllocaInst(RetTy);
+            inst->insertBeforeThis(RetVal);
+
+            // replace call site with the load of return value
+            auto *RetLoad = new LoadInst(RetVal);
+            inst->insertAfterThis(RetLoad);
+            inst->replaceAllUsesWith(RetLoad);
+        }
+
+        auto *RetBlock = inst->getParent(); // return block
+        auto *CallSiteBlock = RetBlock->split(inst); // upper block
+
+        // Copy blocks and instructions
+        auto CopyBlock = [&](BasicBlock *bb) -> BasicBlock * {
+            auto *NewBB = new BasicBlock(bb->getName() + ".inlined");
+            for (auto &I : *bb) {
+                if (I.getOpcode() == OpcodeRet) {
+                    auto *Ret = I.cast<RetInst>();
+                    if (!Ret->isVoidRet()) {
+                        assert(RetVal);
+                        NewBB->append(new StoreInst(RetVal, Ret->getRetVal()));
+                    }
+                    NewBB->append(new BranchInst(RetBlock));
+                } else {
+                    auto *Cloned = I.clone();
+                    valueMap[&I] = Cloned;
+                    NewBB->append(Cloned);
+                }
+            }
+            return NewBB;
+        };
+        for (auto &BB: Callee->getSubList()) {
+            // Copy every block and insert it after the call site
+            auto *NewBB = CopyBlock(&BB);
+            RetBlock->insertBeforeThis(NewBB);
+            valueMap[&BB] = NewBB;
+        }
+
+        assert(valueMap.count(Callee->getEntryBlock()));
+        auto *InlinedEntry = valueMap[Callee->getEntryBlock()]->cast<BasicBlock>();
+
+        // jump to the entry block of inlined function
+        auto *Br = CallSiteBlock->getTerminator();
+        assert(Br && Br->getOpcode() == OpcodeBr);
+        // TODO: can optimize this?
+        Br->setSuccessor(0, InlinedEntry);
+
+        // replace the value of operands with the mapped value
+        for (auto &BB: iter(Function::iterator(InlinedEntry), Function::iterator(RetBlock))) {
+            for (auto &Inst : BB.getSubList()) {
+                for (auto &Use: Inst.operands()) {
+                    auto *Value = Use.getValue();
+                    if (valueMap.count(Value)) {
+                        Use.set(valueMap[Value]);
+                    }
+                    if (auto *Phi = Use->as<PhiInst>()) {
+                        // replace incoming blocks
+                        for (auto K = 0; K < Phi->getOperandNum(); ++K) {
+                            if (valueMap.count(Phi->getIncomingBlock(K))) {
+                                Phi->setIncomingBlock(K, valueMap[Phi->getIncomingBlock(K)]->cast<BasicBlock>());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // erase the call inst
+        inst->eraseFromParent();
+    }
+
 };
 
 

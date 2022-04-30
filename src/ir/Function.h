@@ -62,11 +62,11 @@ public:
         return symbolTable;
     }
 
-    inline auto begin() {
+    inline iterator begin() {
         return getSubList().begin();
     }
 
-    inline auto end() {
+    inline iterator end() {
         return getSubList().end();
     }
 
@@ -101,20 +101,13 @@ public:
                 fn(I);
             }
         });
-        /*for (auto &BB: getSubList()) {
-            for (auto &Inst: BB.getInstrs()) {
-                if (auto *Val = Inst.as<InstTy>()) {
-                    fn(Val);
-                }
-            }
-        }*/
     }
 
     template<typename Fn>
     inline void forEach(Fn fn) {
         forEachBlock([&](BasicBlock *bb) {
-            auto InstIter = bb->getSubList().begin();
-            auto InstEnd = bb->getSubList().end();
+            auto InstIter = bb->begin();
+            auto InstEnd = bb->end();
             if (InstIter != InstEnd) {
                 do {
                     auto *Inst = &(*InstIter++);
@@ -126,8 +119,8 @@ public:
 
     template<typename Fn>
     inline void forEachBlock(Fn fn) {
-        auto Iter = list.begin();
-        auto End = list.end();
+        auto Iter = begin();
+        auto End = end();
         if (Iter != End) {
             do {
                 auto *BB = &(*Iter++);

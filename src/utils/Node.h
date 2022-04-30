@@ -133,6 +133,16 @@ public:
         parent->insertBefore(static_cast<T *>(this), node);
     }
 
+    void moveAfter(T *node) {
+        assert(node && parent);
+        parent->insertAfter(node, static_cast<T *>(this));
+    }
+
+    void moveBefore(T *node) {
+        assert(node && parent);
+        parent->insertBefore(node, static_cast<T *>(this));
+    }
+
 };
 
 template<typename Ty, typename As = Ty, bool Reverse = false>
@@ -542,8 +552,8 @@ public:
 
     NodeParent(const NodeListTy &list) : list(list) {}
 
-    auto erase(NodeTy *node) {
-        return list.erase(node);
+    void erase(NodeTy *node) {
+        list.erase(node);
     }
 
     // remove node from parent, but not deref it

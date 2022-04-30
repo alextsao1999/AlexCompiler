@@ -18,9 +18,9 @@
 Context Context;
 
 TEST(IR, BasicBlock) {
-    Function *F = new Function("test", Context.getVoidFunTy());
+    Function F("test", Context.getVoidFunTy());
 
-    auto *BB = BasicBlock::Create(F, "BB");
+    auto *BB = BasicBlock::Create(&F, "BB");
     EXPECT_EQ(BB->getName(), "BB");
 
     IRBuilder Builder(BB);
@@ -40,15 +40,27 @@ TEST(IR, BasicBlock) {
     auto *DomPass = new Dominance();
     auto *SSAPass = new SSAConstructor();
 
-    DomPass->runOnFunction(F);
-    SSAPass->runOnFunction(F);
+    DomPass->runOnFunction(&F);
+    SSAPass->runOnFunction(&F);
 
     EXPECT_EQ_VALUE(BB, R"(
         BB:			 --- preds=() succs=()
             ret i32 22
     )");
+}
 
-    delete F;
+TEST(IR, BBSplit) {
+    Function F("test", Context.getVoidFunTy());
+    auto *Entry = BasicBlock::Create(&F, "entry");
+    IRBuilder Builder(Entry);
+    auto *Alloca = Builder.createAlloca(Context.getInt32Ty(), "V");
+    auto *Add = Builder.createAdd(Context.getInt(1), Context.getInt(2));
+    Builder.createStore(Alloca, Add);
+    Builder.createRet(Builder.createLoad(Alloca));
+
+    Entry->split(Add, "NewBB");
+
+    F.dump(std::cout);
 }
 
 TEST(IR, DeadBlock) {
@@ -335,6 +347,7 @@ TEST(IR, SSA) {
     PM.addPass(new SSAConstructor());
     PM.addPass(new GVN());
     PM.addPass(new BranchElim());
+    PM.addPass(new Dominance());
     PM.addPass(new ADCE());
     //PM.addPass(new SSADestructor());
 

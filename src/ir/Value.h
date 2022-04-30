@@ -70,11 +70,6 @@ public:
             operator++();
             return tmp;
         }
-        /*UseIteratorImpl operator++(int) {
-            auto back = *this;
-            ++*this;
-            return back;
-        }*/
     };
 
     using UseIterator = UseIteratorImpl<Use, UseGetter<Use>>;
@@ -201,19 +196,13 @@ public:
         set(value);
     }
 
-    /// We don't want to copy the use.
-    Use(const Use &rhs) = delete;
+    /// We don't need the = operator for now.
     Use &operator=(const Use &rhs) = delete;
-
-/*    Use(const Use &rhs) {
+    Use(const Use &rhs) {
         parent = rhs.parent;
         set(rhs.value);
     }
-    Use(Use &&rhs) {
-        parent = rhs.parent;
-        set(rhs.value);
-        rhs.unset();
-    }*/
+
     ~Use() {
         unset();
     }
@@ -231,8 +220,8 @@ public:
             }
             prev = &v->users;
             v->users = this;
+            v->incRef();
         }
-        v->incRef();
     }
 
     void unset() {

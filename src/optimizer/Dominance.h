@@ -68,7 +68,7 @@ public:
         }
 
         // calculate level
-        EntryBlock->calculateLevel();
+        //EntryBlock->calculateLevel();
     }
 
     void RPO(BasicBlock *bb) {

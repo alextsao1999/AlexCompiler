@@ -73,7 +73,23 @@ protected:
         }
         return std::unique_ptr<Use[]>(UseElements);
     }
-public:
+
+    static inline std::unique_ptr<Use[]>
+    CopyAndRemoveUse(std::unique_ptr<Use[]> &uses, size_t size, size_t i) {
+        auto *UseElements = new Use[size - 1];
+        std::uninitialized_copy(uses.get(), uses.get() + i, UseElements);
+        std::uninitialized_copy(uses.get() + i + 1, uses.get() + size,
+                                UseElements + i);
+        return std::unique_ptr<Use[]>(UseElements);
+    }
+    static inline std::unique_ptr<Use[]>
+    CopyAndAddUse(std::unique_ptr<Use[]> &uses, size_t size, Value *user, Value *value) {
+        auto *UseElements = new Use[size + 1];
+        std::uninitialized_copy(uses.get(), uses.get() + size, UseElements);
+        new (&UseElements[size]) Use(user, value);
+        return std::unique_ptr<Use[]>(UseElements);
+    }
+  public:
     Instruction() = delete;
     Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {}
@@ -129,8 +145,8 @@ public:
 
     Context *getContext() const;
     Opcode getOpcode() const { return opcode; }
-    size_t getOperandNum() const { return numOperands; }
-    Value *getOperand(size_t i) const {
+    inline size_t getOperandNum() const { return numOperands; }
+    inline Value *getOperand(size_t i) const {
         assert(i < numOperands);
         return getTrailingOperand()[i].getValue();
     }
@@ -330,6 +346,23 @@ public:
             }
         }
         return nullptr;
+    }
+    void removeIncoming(Use *use) {
+        auto Idx = use - trailingOperands.get();
+        assert(Idx < getOperandNum());
+        removeIncoming(Idx);
+    }
+    void removeIncoming(BasicBlock *bb) {
+        for (auto I = 0; I < getOperandNum(); ++I) {
+            if (getIncomingBlock(I) == bb) {
+                removeIncoming(I);
+            }
+        }
+    }
+    void removeIncoming(size_t i) {
+        incomingBlocks = CopyAndRemoveUse(incomingBlocks, getOperandNum(), i);
+        trailingOperands = CopyAndRemoveUse(trailingOperands, getOperandNum(), i);
+        numOperands--;
     }
 
     void setIncomingBlock(size_t i, BasicBlock *bb);
