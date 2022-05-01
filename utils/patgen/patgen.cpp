@@ -8,5 +8,9 @@ int main() {
     PatGen PG;
     PG.parse("C:\\Users\\Alex\\Desktop\\DragonIR\\utils\\patgen\\arm.target");
 
+    RewriterGenerator Gen(PG);
+
+    Gen.generate();
+
     return 0;
 }

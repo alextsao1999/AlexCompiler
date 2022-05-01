@@ -15,6 +15,7 @@ target ARM {
     ireg: And(ireg, ireg);
     ireg: Or(ireg, ireg);
     ireg: Xor(ireg, ireg);
+    ireg: AddMul(ireg, ireg);
     Push(ireg);
     Pop(ireg);
     Mov(ireg, ireg);
@@ -27,6 +28,10 @@ target ARM {
     sub($1, $2) = Sub($1, $2);
     mul($1, $2) = Mul($1, $2);
     div($1, $2) = Div($1, $2);
+
+    add($1, mul($2, $3)) = AddMul($1, $2);
+
+
   }
 
 }

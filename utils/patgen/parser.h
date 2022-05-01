@@ -246,6 +246,13 @@ public:
     JsonASTBase(value_t &value) : value_(value) {}
     int getID() { return value_["id"].get<int>(); }
     string_t &getKind() { return value_["kind"].get_ref<string_t &>(); }
+    Location getLocation() {
+        if (value_.contains("position")) {
+            return {value_["position"]["lineStart"].get<int>(), value_["position"]["lineEnd"].get<int>(),
+                    value_["position"]["columnStart"].get<int>(), value_["position"]["columnEnd"].get<int>()};
+        }
+        return {0, 0, 0, 0};
+    }
     operator value_t &() { return value_; }
 };
 class ArgRule : public JsonASTBase {
@@ -546,8 +553,10 @@ public:
             // record the position
             value_t &reduce_value = values.back();
             if (position && reduce_value.is_object()) {
-                reduce_value["position"] = {{"line",   loc.line_start},
-                                            {"column", loc.column_start}};
+                reduce_value["position"] = {{"lineStart",   loc.line_start},
+                                            {"columnStart", loc.column_start},
+                                            {"lineEnd",     loc.line_end},
+                                            {"columnEnd",   loc.column_end}};
             }
             stack.erase(stack.begin() + first, stack.end());
             if (trans->accept()) {
@@ -634,9 +643,12 @@ public:
         value_t value = value_t::array();
         ParserState *state = trans->state;
         do {
-            value.push_back({{"lexeme", parser_lexer.lexeme()},
-                             {"line",   parser_lexer.line_start()},
-                             {"column", parser_lexer.column_start()}});
+            value.push_back({{"lexeme",      parser_lexer.lexeme()},
+                             {"symbol",      parser_lexer.symbol()},
+                             {"lineStart",   parser_lexer.line_start()},
+                             {"columnStart", parser_lexer.column_start()},
+                             {"lineEnd",     parser_lexer.line_end()},
+                             {"columnEnd",   parser_lexer.column_end()}});
             parser_lexer.advance();
             if (ParserTransition *Goto = find_trans(state, parser_lexer.symbol())) {
                 stack.emplace_back(trans->state, 2, std::move(value), parser_lexer.location());

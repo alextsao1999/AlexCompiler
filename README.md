@@ -2,11 +2,11 @@
 
 This is a simple compiler based on SSA just for learning purposes.
 And I hope it can generate multiple assembly for different target machines.
-It's IR is like llvm ir.
+Its IR is like llvm ir.
 
 TODO:
 * Some Scalar Optimizations
-* Tree Pattern Matching (BURS)
+* Tree Pattern Matching (BURS or something like dfa)
 * SSA Pre
 * Construct SSA Linearlly
 * Transition out of SSA
