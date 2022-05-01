@@ -29,7 +29,7 @@ public:
     }
 
     Function *getFunction(const std::string &fn) {
-        return functions.at(fn);
+        return functions[fn];
     }
 
     Context *getContext() const {

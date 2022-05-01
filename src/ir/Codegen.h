@@ -256,6 +256,9 @@ public:
             diags.addError("undefined variable: " + value.getName(), value);
             return nullptr;
         }
+        if (auto *P = Alloca->as<Param>()) {
+            return P;
+        }
         return builder.createLoad(Alloca);
     }
 

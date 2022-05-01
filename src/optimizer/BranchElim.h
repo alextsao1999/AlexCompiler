@@ -38,8 +38,9 @@ public:
             }
 
             /// eliminate useless branch, but it breaks the tidiness of the IR,
-            /// we comment it out for now
-            if (bb->hasOnlyTerminator() && bb != f->getEntryBlock()) {
+            /// we comment it out for now.
+            // Fixme: Maybe it is not right to eliminate the branch.
+            /*if (bb->hasOnlyTerminator() && bb != f->getEntryBlock()) {
                 // The basic block only contains one terminator instruction,
                 // and it is not the entry block. So this basic block is useless.
                 // We can remove it.
@@ -51,7 +52,7 @@ public:
                         return;
                     }
                 }
-            }
+            }*/
 
             if (bb->isUnreachable()) {
                 Worklist.push_back(bb);
@@ -92,6 +93,7 @@ public:
         }
         Unreachable.clear();
 
+        ///< Combine the redundant basic blocks.
         for (auto &BB : *f) {
             if (auto *Inst = BB.getTerminator()) {
                 while (Inst->getOpcode() == OpcodeBr) {

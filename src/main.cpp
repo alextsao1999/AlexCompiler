@@ -71,10 +71,9 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
-/*
     auto Module = compileModule(R"(
-        int main(){
-            int a = 0;
+        int main(int y){
+            int a = y;
             int b = a + 23;
             if (b == 0) {
                 a = 1;
@@ -84,7 +83,7 @@ int main(int argc, char **argv) {
             return a;
         }
     )");
-*/
+/*
     auto Module = compileModule(R"(
         int main(){
             int a = 0;
@@ -98,7 +97,9 @@ int main(int argc, char **argv) {
             return a;
         }
     )");
+*/
     auto *Fun = Module->getFunction("main");
+    // Module->dump(std::cout);
     Dominance Dom;
     SSAConstructor Cons;
     GVN GVN;
@@ -115,7 +116,7 @@ int main(int argc, char **argv) {
     LA.runOnFunction(Fun);
     LS.runOnFunction(Fun);
     Dom.runOnFunction(Fun);
-    SCCP.runOnFunction(Fun);
+    //SCCP.runOnFunction(Fun);
 
     Module->dump(std::cout);
 

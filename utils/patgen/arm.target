@@ -1,0 +1,32 @@
+target ARM {
+  // Define registers
+  register ireg : i32 { SP, R0, R1, R2, R3, R4, R5, R6, R7 }
+  register freg : f32 { F0, F1, F2, F3, F4, F5, F6, F7 }
+
+  // Define the machine instructions
+  instructions {
+    ireg: Add(ireg, ireg);
+    ireg: Sub(ireg, ireg);
+    ireg: Mul(ireg, ireg);
+    ireg: Div(ireg, ireg);
+    ireg: Mod(ireg, ireg);
+    ireg: Neg(ireg);
+    ireg: Not(ireg);
+    ireg: And(ireg, ireg);
+    ireg: Or(ireg, ireg);
+    ireg: Xor(ireg, ireg);
+    Push(ireg);
+    Pop(ireg);
+    Mov(ireg, ireg);
+  }
+
+  // Define the rewriter patterns
+  patterns {
+    // add sub mul div
+    add($1, $2) = Add(ireg: $1, ireg: $2);
+    sub($1, $2) = Sub($1, $2);
+    mul($1, $2) = Mul($1, $2);
+    div($1, $2) = Div($1, $2);
+  }
+
+}

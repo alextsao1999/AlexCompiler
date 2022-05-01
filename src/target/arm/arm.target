@@ -1,4 +1,26 @@
+target Arm {
+  register ireg : i32 {
+    R0,
+    R1
+  }
 
-reg -> int (0) {
+  register freg : f32 {
+    F0,
+    F1
+  }
+
+  instructions {
+    Add(reg, reg);
+    Sub(reg, reg);
+  }
+
+  patterns {
+      add(ireg:$1, ireg:$2) = ireg: Add($1, $2);
+      sub(ireg:$1, ireg:$2) = ireg: Sub($1, $2);
+
+
+  }
 
 }
+
+
