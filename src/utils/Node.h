@@ -10,7 +10,7 @@
 #include "Common.h"
 #include "Range.h"
 
-// NodeBase is the base class of Node and Sentinel.
+///< NodeBase is the base class of Node and Sentinel.
 class NodeBase {
     template <typename Ty, typename Traits, typename SentinelTy> friend class INodeListImpl;
     template <typename Ty, typename As, bool> friend class NodeIter;
@@ -216,7 +216,7 @@ public:
 
 };
 
-// Alloc traits
+///< Alloc traits
 template <typename T>
 struct ListAllocTrait {
     template<typename ...Args>
@@ -252,6 +252,8 @@ private:
     static_assert(std::is_base_of_v<NodeTy, T>, "INodeWithParent must be base of element type");
     SentinelTy sentinel;
 public:
+    template<typename As>
+    using iterator_as = NodeIter<NodeTy, As, false>;
     using iterator = NodeIter<NodeTy, T, false>;
     using reverse_iterator = NodeIter<NodeTy, T, true>;
     using pointer = T *;
@@ -546,6 +548,8 @@ template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<No
 class NodeParent {
 public:
     using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinel>;
+    template <typename As>
+    using iterator_as = typename NodeListTy::template iterator_as<As>;
     using iterator = typename NodeListTy::iterator;
 
     NodeParent() = default;

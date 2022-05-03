@@ -79,7 +79,7 @@ public:
         phiStack.clear();
         varStatus.clear();
         phiStatus.clear();
-        std::map<AllocaInst *, std::vector<BasicBlock *>> DefBlocks;
+        std::map<AllocaInst *, std::set<BasicBlock *>> DefBlocks;
         // Find all allocas def blocks
         for (auto &BB: function->getBasicBlockList()) {
             for (auto &I : BB) {
@@ -87,7 +87,7 @@ public:
                     auto *Store = I.as<StoreInst>();
                     auto *Ptr = Store->getPtr();
                     if (auto *Alloca = Ptr->as<AllocaInst>()) {
-                        DefBlocks[Alloca].push_back(&BB);
+                        DefBlocks[Alloca].insert(&BB);
                     }
                 }
             }
@@ -105,7 +105,7 @@ public:
         install();
     }
 
-    void placing(const std::map<AllocaInst *, std::vector<BasicBlock *>> &defs) {
+    void placing(const std::map<AllocaInst *, std::set<BasicBlock *>> &defs) {
         std::vector<BasicBlock *> Worklist;
         std::map<BasicBlock *, Value *> InWorklist;
         for (auto &[Value, Blocks]: defs) {
@@ -117,12 +117,11 @@ public:
             while (!Worklist.empty()) {
                 auto *BB = Worklist.back();
                 Worklist.pop_back();
-
                 for (auto *D: BB->getDomFrontier()) {
+                    StrView Name = Value->getName();
+                    auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), D, Name);
+                    phiStatus[PhiNode].setAlloca(Value);
                     if (InWorklist[D] != Value) {
-                        StrView Name = Value->getName();
-                        auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), D, Name);
-                        phiStatus[PhiNode].setAlloca(Value);
                         InWorklist[D] = Value;
                         Worklist.push_back(D);
                     }
@@ -131,21 +130,15 @@ public:
         }
     }
 
-    void placingByIDF(const std::map<AllocaInst *, std::vector<BasicBlock *>> &defs) {
-        std::map<BasicBlock *, Value *> Placed;
+    void placingByIDF(const std::map<AllocaInst *, std::set<BasicBlock *>> &defs) {
         for (auto &[Value, Blocks]: defs) {
             IDFCalculator IDF;
-            IDF.calulate(Blocks);
-            for (auto &BB: IDF.IDF) {
-                if (Placed[BB] != Value) {
-                    StrView Name = Value->cast<Instruction>()->getName();
-                    auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), BB, Name);
-                    phiStatus[PhiNode].setAlloca(Value);
-                    Placed[BB] = Value;
-                }
+            for (auto &BB: IDF.calc(Blocks)) {
+                StrView Name = Value->template cast<Instruction>()->getName();
+                auto *PhiNode = PhiInst::Create(Value->getAllocatedType(), BB, Name);
+                phiStatus[PhiNode].setAlloca(Value);
             }
         }
-
     }
 
     void rename(BasicBlock *bb) {

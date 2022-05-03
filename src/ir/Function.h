@@ -5,6 +5,7 @@
 #ifndef DRAGONIR_FUNCTION_H
 #define DRAGONIR_FUNCTION_H
 #include <memory>
+#include <list>
 #include <Node.h>
 #include <BasicBlock.h>
 #include <SymbolTable.h>

@@ -68,6 +68,8 @@ public:
     bool isLeaf = false;
     ///< The matching arguments that start with $ like $1, $2, $3.
     std::string argName;
+    ///< The arguments index
+    int index = -1;
     ///< The opcode of the pattern node.
     std::string opcode;
     ///< The type of the pattern node.
@@ -113,8 +115,42 @@ public:
         return nodes;
     }
 
+    inline int getIndex() const {
+        return index;
+    }
+
     inline size_t getNodeSize() const {
         return nodes.size();
+    }
+
+    bool isEqual(const PatternOfNode *rhs) const {
+        if (rhs == nullptr) {
+            return false;
+        }
+        if (isLeaf != rhs->isLeaf) {
+            return false;
+        }
+        /*if (argName != rhs->argName) {
+            return false;
+        }*/
+        if (index != rhs->index) {
+            return false;
+        }
+        if (opcode != rhs->opcode) {
+            return false;
+        }
+        if (type != rhs->type) {
+            return false;
+        }
+        if (nodes.size() != rhs->nodes.size()) {
+            return false;
+        }
+        for (int I = 0; I < nodes.size(); ++I) {
+            if (!nodes[I]->isEqual(rhs->nodes[I])) {
+                return false;
+            }
+        }
+        return true;
     }
 
 };
@@ -192,6 +228,9 @@ private:
 
     ///< The arg stack.
     std::vector<PatternOfNode *> argStack;
+    ///< The index map
+    int index = 0;
+    std::map<std::string, int> indexMap;
     ///< The temp properties.
     std::map<std::string, std::string> properties;
 
@@ -238,11 +277,37 @@ public:
         }
         return true;
     }
+    bool parseFromString(const std::string &str, bool dump = false) {
+        LRParser<> Parser(true);
+        Parser.reset(str.c_str(), str.c_str() + str.size());
+        Parser.parse();
+        if (!Parser.accept()) {
+            return false;
+        }
+        visit(Parser.value());
+        if (dump) {
+            std::cout << Parser.value().dump(4);
+        }
+        return true;
+    }
 
     PatternOfNode *pop_back() {
         auto *Node = argStack.back();
         argStack.pop_back();
         return Node;
+    }
+
+    void allocateIndex(PatternOfNode *node) {
+        auto &ArgName = node->getArgName();
+        if (ArgName.empty()) {
+            return;
+        }
+        if (indexMap.find(ArgName) == indexMap.end()) {
+            node->index = index;
+            indexMap[ArgName] = index++;
+        } else {
+            node->index = indexMap[ArgName];
+        }
     }
 
     void visitTarget(Target value) override {
@@ -274,8 +339,9 @@ public:
         visit(value.getRule());
         assert(!argStack.empty());
         argStack.back()->setType(value.getType());
+        argStack.back()->setArgName(value.getName());
         argStack.back()->loc = value.getLocation();
-        //auto *Node = createNode()
+        allocateIndex(argStack.back());
     }
 
     void visitArgVar(ArgVar value) override {
@@ -299,6 +365,8 @@ public:
     }
 
     void visitPattern(Pattern value) override {
+        index = 0;
+        indexMap.clear();
         visit(value.getPattern());
         auto *Pattern = pop_back();
         visit(value.getRewriter());
@@ -367,6 +435,7 @@ public:
         None,
         MatchOpcode,
         MatchLeaf,
+        MatchNode,
         Enter,
     };
     TransitionType kind = None;
@@ -404,9 +473,38 @@ public:
     }
 public:
     void generate() {
-        //inferTypes();
+        inferTypes();
         generateRewriters();
         generateOpcodes();
+    }
+
+    void print() {
+        for (auto &State : states) {
+            std::cout << "State " << State->index << ": " << std::endl;
+            for (auto &Transition : State->transitions) {
+                switch (Transition.kind) {
+                    case Transition::None:
+                        std::cout << "None";
+                        break;
+                    case Transition::MatchOpcode:
+                        std::cout << "MatchOpcode " << Transition.opcode;
+                        break;
+                    case Transition::MatchLeaf:
+                        std::cout << "MatchLeaf " << Transition.node->getType() << " " << Transition.node->getArgName();
+                        break;
+                    case Transition::MatchNode:
+                        std::cout << "MatchNode " << Transition.node->getType() << " " << Transition.node->getArgName();
+                        break;
+                    case Transition::Enter:
+                        std::cout << "Enter " << Transition.index;
+                        break;
+                }
+                if (Transition.goTo)
+                    std::cout << " -> " << Transition.goTo->index;
+                std::cout << std::endl;
+            }
+            std::cout << std::endl;
+        }
     }
 
     void inferTypes() {
@@ -537,7 +635,7 @@ public:
         for (auto &Rewriter: pg.rewriters) {
             Nodes.insert(PatternApplyer(Rewriter.getPattern(), &Rewriter));
         }
-        auto *Start = generateState(Nodes);
+        generateState(Nodes);
         int VisitCount = 0;
         while (VisitCount < states.size()) {
             generateTransition(states[VisitCount++].get());
@@ -545,30 +643,28 @@ public:
     }
 
     void generateTransition(State *state) {
-        if (state->isMatch) {
-            return;
+        if (!state->isMatch) {
+            ///< Generate match opcode
+            std::set<std::string> Opcodes;
+            for (auto &PA: state->gotos) {
+                Opcodes.insert(PA.getPattern()->getOpcode());
+            }
+
+            for (auto &Opcode: Opcodes) {
+                if (Opcode.empty()) {
+                    continue;
+                }
+                auto *State = generateMatch(state, Opcode);
+                state->transitions.emplace_back(Transition::MatchOpcode, Opcode, State);
+            }
         }
+
         ///< Generate match leaf
         for (auto &PG: state->gotos) {
             if (PG.isMatched()) {
                 state->transitions.emplace_back(Transition::MatchLeaf, PG.getPattern(), PG.getRewriter());
             }
         }
-
-        ///< Generate match opcode
-        std::set<std::string> Opcodes;
-        for (auto &PA: state->gotos) {
-            Opcodes.insert(PA.getPattern()->getOpcode());
-        }
-
-        for (auto &Opcode: Opcodes) {
-            if (Opcode.empty()) {
-                continue;
-            }
-            auto *State = generateMatch(state, Opcode);
-            state->transitions.emplace_back(Transition::MatchOpcode, Opcode, State);
-        }
-
     }
 
     State *generateMatch(State *state, const std::string &opcode) {
@@ -582,41 +678,47 @@ public:
         }
 
         ///< Generate enter
-        auto *State = generateState(Gotos);
-        for (int I = 0; I < MaxEnterIndex; ++I) {
-            auto *EnterState = generateEnter(State, I);
-            State->transitions.emplace_back(Transition::Enter, I, EnterState);
-        }
-
-        ///< Generate match
-        /*for (auto &PG: Gotos) {
-            if (PG.isMatched()) {
-                State->transitions.emplace_back(Transition::MatchLeaf, PG.getPattern(), PG.getRewriter());
+        auto *State = generateState(Gotos, false);
+        /*for (int I = 0; I < MaxEnterIndex; ++I) {
+            if (auto *EnterState = generateEnter(State, I)) {
+                State->transitions.emplace_back(Transition::Enter, I, EnterState);
             }
         }*/
-        State->isMatch = true;
+        for (auto &PA: Gotos) {
+            State->transitions.emplace_back(Transition::MatchNode, PA.getPattern(), PA.getRewriter());
+        }
+
         return State;
     }
 
     State *generateEnter(State *state, int index) {
         std::set<PatternApplyer> Gotos;
+        PatternOfNode *Pattern = nullptr;
         for (auto &PA: state->gotos) {
             if (index < PA.getPattern()->getNodeSize()) {
-                Gotos.insert(PA.enter(index));
+                auto Enter = PA.enter(index);
+                if (Pattern && !Pattern->isEqual(Enter.getPattern())) {
+                    return nullptr;
+                }
+                if (!Pattern) {
+                    Gotos.insert(Enter);
+                }
+                Pattern = Enter.getPattern();
             }
         }
         auto *State = generateState(Gotos);
         return State;
     }
 
-    State *generateState(std::set<PatternApplyer> &gotos) {
+    State *generateState(std::set<PatternApplyer> &gotos, bool isMatch = false) {
         for (auto &State: states) {
-            if (State->gotos == gotos) {
+            if (State->gotos == gotos && State->isMatch == isMatch) {
                 return State.get();
             }
         }
         auto *NewState = new State(gotos);
         NewState->index = states.size();
+        NewState->isMatch = isMatch;
         states.emplace_back(NewState);
         return NewState;
     }

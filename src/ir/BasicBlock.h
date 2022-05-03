@@ -126,6 +126,11 @@ public:
     };
     using pred_iterator = PredIter<BasicBlock, Value::UserIterator>;
     using succ_iterator = SuccIter;
+    using range_pred_iter = IterRange<pred_iterator>;
+    using range_succ_iter = IterRange<succ_iterator>;
+    using range_iter = IterRange<iterator>;
+    using iterator_phi = iterator_as<PhiInst>;
+    using range_iter_phi = IterRange<iterator_phi>;
 public:
     explicit BasicBlock() {}
     explicit BasicBlock(std::string_view name) : name(name) {}
@@ -219,14 +224,20 @@ public:
         return lastPhi != list.end();
     }
 
-    auto getPhis() {
+    range_iter_phi phis() const {
+        if (lastPhi == list.end()) {
+            return iter(iterator_phi(list.end().getPointer()), iterator_phi(list.end().getPointer()));
+        }
+        return iter(iterator_phi(list.begin().getPointer()), ++iterator_phi(lastPhi.getPointer()));
+    }
+    range_iter getPhis() const {
         if (lastPhi == list.end()) {
             return iter(list.end(), list.end());
         }
         return iter(list.begin(), ++iterator(lastPhi));
     }
 
-    auto getInstrs() {
+    range_iter getInstrs() const {
         if (lastPhi == list.end()) {
             return iter(list.begin(), list.end());
         }

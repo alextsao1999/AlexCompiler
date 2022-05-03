@@ -7,6 +7,7 @@
 
 #define OPCODE_LIST(S)       \
 S(Nop,    0, Instruction)    \
+S(Assign, 2, AssignInst)     \
 S(Alloca, 0, AllocaInst)     \
 S(Cast,   1, CastInst)       \
 S(Copy,   1, CopyInst)       \

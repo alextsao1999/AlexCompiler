@@ -45,7 +45,7 @@ public:
         for (auto &BB: loop.blocks) {
             for (auto *Succ: BB->succs()) {
                 if (!loop.contains(Succ)) {
-                    loop.outers.insert(Succ);
+                    loop.exits.insert(Succ);
                 }
             }
         }

@@ -15,6 +15,8 @@
 #include "ADCE.h"
 #include "SCCP.h"
 
+#include "PatternNode.h"
+
 Context Context;
 
 TEST(IR, BasicBlock) {
@@ -450,3 +452,14 @@ TEST(IR, LoopSimplify) {
     delete F;
 }
 
+TEST(PN, 0) {
+    auto *add = PatternNode::New(Pattern::Add, 3);
+    std::cout << add->getNumOperands();
+
+    auto *Node = add->as<SubNode>();
+
+    auto *test = PatternNode::createNode<CallNode>({add, Node, add});
+    std::cout << test->getNumOperands();
+
+
+}

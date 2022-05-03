@@ -39,8 +39,10 @@ Args ->
 
 Arg -> VarName @ArgVar{var: $1, type: ""}
     | Ident ':' VarName @ArgVar{var: $3, type: $1}
-    | Rule @ArgRule{rule: $1, type: ""}
-    | Ident ':' Rule @ArgRule{rule: $3, type: $1}
+    | Rule @ArgRule{rule: $1, type: "", name: ""}
+    | Ident ':' VarName Rule @ArgRule{rule: $4, type: $1, name: $3}
+    | VarName Rule @ArgRule{rule: $2, type: "", name: $1}
+    | Ident ':' Rule @ArgRule{rule: $3, type: $1, name: ""}
     | Ident @ArgVar{var: "", type: $1}
     ;
 

@@ -10,17 +10,18 @@ class BasicBlock;
 
 class Loop {
     friend class LoopAnalyse;
-    Loop *parent;
+    ///< 父层循环
+    Loop *parent = nullptr;
     ///< 循环所指向的头
     BasicBlock *header = nullptr;
     ///< 后向边, 可能有多个后向边指向同一个循环头暂时不用
     BasicBlock *backege = nullptr;
     ///< 循环层级
     unsigned level = 0;
-    ///< 循环预头
+    ///< 循环预头, block中不包含循环预头
     BasicBlock *preheader = nullptr;
     std::set<BasicBlock *> blocks;
-    std::set<BasicBlock *> outers;
+    std::set<BasicBlock *> exits;
 public:
     Loop(BasicBlock *header, BasicBlock *backege) : header(header), backege(backege) {
         assert(header && backege);
@@ -30,6 +31,8 @@ public:
     inline auto begin() { return blocks.begin(); }
     inline auto end() { return blocks.end(); }
 
+    ///< get the parent
+    inline Loop *getParent() { return parent; }
     ///< get the header of the loop
     inline BasicBlock *getHeader() const { return header; }
     ///< get the back edge of the loop
@@ -56,38 +59,5 @@ public:
     inline bool addBlock(BasicBlock *bb) { return blocks.insert(bb).second; }
     inline void removeBlock(BasicBlock *bb) { blocks.erase(bb); }
 };
-
-struct LoopInfo {
-    LoopInfo *parent = nullptr;
-    BasicBlock *header = nullptr; // 循环所指向的头
-    BasicBlock *backege = nullptr; // 后向边, 可能有多个后向边指向同一个循环头暂时不用
-    unsigned level = 0; // 循环层级
-    LoopInfo(BasicBlock *header) : header(header) {}
-
-    inline BasicBlock *getHeader() const {
-        return header;
-    }
-
-    inline BasicBlock *getBackedge() const {
-        return backege;
-    }
-
-    inline LoopInfo *getParent() const {
-        return parent;
-    }
-
-    LoopInfo *getOutermost() {
-        auto *Info = this;
-        while (auto *Parent = Info->parent)
-            Info = Parent;
-        return Info;
-    }
-
-    unsigned getLevel() {
-        return level;
-    }
-
-};
-
 
 #endif //DRAGONCOMPILER_LOOPINFO_H

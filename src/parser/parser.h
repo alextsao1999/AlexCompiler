@@ -219,31 +219,32 @@ using value_t = nlohmann::json;
 
 enum {
     TYPE_NONE = 0,
-    TYPE_ACCESS = 21,
+    TYPE_ACCESS = 22,
     TYPE_ASSIGNSTMT = 10,
-    TYPE_BINEXP = 22,
+    TYPE_BINEXP = 23,
     TYPE_BLOCK = 12,
-    TYPE_BREAKSTMT = 16,
+    TYPE_BREAKSTMT = 17,
     TYPE_COMPUNIT = 1,
     TYPE_CONSTDECL = 2,
     TYPE_CONSTDEF = 3,
     TYPE_CONSTINITVALLIST = 4,
-    TYPE_CONTINUESTMT = 17,
-    TYPE_DECLITERAL = 25,
-    TYPE_EMPTYSTMT = 19,
+    TYPE_CONTINUESTMT = 18,
+    TYPE_DECLITERAL = 26,
+    TYPE_DOWHILESTMT = 16,
+    TYPE_EMPTYSTMT = 20,
     TYPE_EXPSTMT = 11,
-    TYPE_FLOATLITEAL = 27,
+    TYPE_FLOATLITEAL = 28,
     TYPE_FUNCDEF = 8,
     TYPE_FUNCPARAM = 9,
-    TYPE_HEXFLOATLITEAL = 28,
-    TYPE_HEXLITERAL = 26,
+    TYPE_HEXFLOATLITEAL = 29,
+    TYPE_HEXLITERAL = 27,
     TYPE_IFELSESTMT = 14,
     TYPE_IFSTMT = 13,
     TYPE_INITVALLIST = 7,
-    TYPE_LVAL = 20,
-    TYPE_RVAL = 24,
-    TYPE_RETURNSTMT = 18,
-    TYPE_UNAEXP = 23,
+    TYPE_LVAL = 21,
+    TYPE_RVAL = 25,
+    TYPE_RETURNSTMT = 19,
+    TYPE_UNAEXP = 24,
     TYPE_VARDECL = 5,
     TYPE_VARDEF = 6,
     TYPE_WHILESTMT = 15,
@@ -262,6 +263,13 @@ public:
     JsonASTBase(value_t &value) : value_(value) {}
     int getID() { return value_["id"].get<int>(); }
     string_t &getKind() { return value_["kind"].get_ref<string_t &>(); }
+    Location getLocation() {
+        if (value_.contains("position")) {
+            return {value_["position"]["lineStart"].get<int>(), value_["position"]["lineEnd"].get<int>(),
+                    value_["position"]["columnStart"].get<int>(), value_["position"]["columnEnd"].get<int>()};
+        }
+        return {0, 0, 0, 0};
+    }
     operator value_t &() { return value_; }
 };
 class Access : public JsonASTBase {
@@ -322,6 +330,12 @@ class DecLiteral : public JsonASTBase {
 public:
     DecLiteral(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DECLITERAL); }
     string_t &getValue() { return value_["value"].get_ref<string_t &>(); }
+};
+class DoWhileStmt : public JsonASTBase {
+public:
+    DoWhileStmt(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_DOWHILESTMT); }
+    value_t &getBody() { return value_["body"]; }
+    value_t &getCond() { return value_["cond"]; }
 };
 class EmptyStmt : public JsonASTBase {
 public:
@@ -455,6 +469,8 @@ struct Visitor {
                 return static_cast<SubTy *>(this)->visitContinueStmt(value);
             case TYPE_DECLITERAL:
                 return static_cast<SubTy *>(this)->visitDecLiteral(value);
+            case TYPE_DOWHILESTMT:
+                return static_cast<SubTy *>(this)->visitDoWhileStmt(value);
             case TYPE_EMPTYSTMT:
                 return static_cast<SubTy *>(this)->visitEmptyStmt(value);
             case TYPE_EXPSTMT:
@@ -524,6 +540,9 @@ struct Visitor {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitDecLiteral(DecLiteral value) {
+        return RetTy();
+    }
+    LR_TYPESPEC(RetTy) visitDoWhileStmt(DoWhileStmt value) {
         return RetTy();
     }
     LR_TYPESPEC(RetTy) visitEmptyStmt(EmptyStmt value) {
@@ -726,8 +745,10 @@ public:
             // record the position
             value_t &reduce_value = values.back();
             if (position && reduce_value.is_object()) {
-                reduce_value["position"] = {{"line",   loc.line_start},
-                                            {"column", loc.column_start}};
+                reduce_value["position"] = {{"lineStart",   loc.line_start},
+                                            {"columnStart", loc.column_start},
+                                            {"lineEnd",     loc.line_end},
+                                            {"columnEnd",   loc.column_end}};
             }
             stack.erase(stack.begin() + first, stack.end());
             if (trans->accept()) {
@@ -814,9 +835,12 @@ public:
         value_t value = value_t::array();
         ParserState *state = trans->state;
         do {
-            value.push_back({{"lexeme", parser_lexer.lexeme()},
-                             {"line",   parser_lexer.line_start()},
-                             {"column", parser_lexer.column_start()}});
+            value.push_back({{"lexeme",      parser_lexer.lexeme()},
+                             {"symbol",      parser_lexer.symbol()},
+                             {"lineStart",   parser_lexer.line_start()},
+                             {"columnStart", parser_lexer.column_start()},
+                             {"lineEnd",     parser_lexer.line_end()},
+                             {"columnEnd",   parser_lexer.column_end()}});
             parser_lexer.advance();
             if (ParserTransition *Goto = find_trans(state, parser_lexer.symbol())) {
                 stack.emplace_back(trans->state, 2, std::move(value), parser_lexer.location());

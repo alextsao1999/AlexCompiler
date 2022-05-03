@@ -11,10 +11,10 @@
 #include <memory>
 #include "Context.h"
 #include "SymbolTable.h"
-
+#include "PatternNode.h"
 enum BinaryOp {
     None,
-    Add,
+    Add = Pattern::Add,
     Sub,
     Mul,
     Div,
@@ -200,6 +200,22 @@ protected:
 
 };
 
+class AssignInst : public Instruction {
+public:
+    AssignInst(Value *lhs, Value *rhs) : Instruction(OpcodeAssign, {lhs, rhs}) {}
+    AssignInst(const AssignInst &other) : Instruction(other) {}
+
+    Value *getLHS() const { return getOperand(0); }
+    Value *getRHS() const { return getOperand(1); }
+
+    void dump(std::ostream &os) override {
+        if (auto *LHS = getLHS()->as<Instruction>()) {
+            LHS->dumpName(os);
+        }
+        os << " = " << getRHS()->dumpOperandToString();
+    }
+};
+
 class OutputInst : public Instruction {
 public:
     ///< The output type for this instruction
@@ -243,7 +259,8 @@ public:
     void dump(std::ostream &os) override {
         dumpName(os) << " = alloca ";
         allocatedType->dump(os);
-        os << ", " << allocatedSize;
+        // We don't need to dump the size for now
+        // os << ", " << allocatedSize;
     }
 };
 
@@ -333,7 +350,14 @@ public:
 
     Type *getType() override {
         assert(numOperands > 0 && getOperand(0));
-        return getOperand(0)->getType();
+        // FIXME: Be careful about the recursive type
+        for (size_t I = 1; I < numOperands; ++I) {
+            if (getOperand(I)->isa<PhiInst>()) {
+                continue;
+            }
+            return getOperand(I)->getType();
+        }
+        return nullptr;
     }
 
     void fill(std::map<BasicBlock *, Value *> &values);
@@ -555,6 +579,30 @@ public:
         return getOperand(0);
     }
 
+};
+
+template<typename SubTy, typename RetTy = void>
+class InstVisitor {
+public:
+    RetTy visit(Value *value) {
+        if (value->isInstruction()) {
+            return visit(value->cast<Instruction>());
+        }
+        return RetTy();
+    }
+    RetTy visit(Instruction *inst) {
+        switch (inst->getOpcode()) {
+#define DEFINE_OPCODE(NAME, c, CLASS) case Opcode##NAME: \
+            return static_cast<SubTy *>(this)->visit##NAME(static_cast<CLASS *>(inst));
+            OPCODE_LIST(DEFINE_OPCODE)
+#undef DEFINE_OPCODE
+        default:
+            assert(false);
+        }
+    }
+#define DEFINE_OPCODE(NAME, c, CLASS) RetTy visit##NAME(CLASS *value) { return RetTy(); }
+    OPCODE_LIST(DEFINE_OPCODE);
+#undef DEFINE_OPCODE
 };
 
 #endif //DRAGONIR_INSTRUCTION_H

@@ -291,6 +291,24 @@ public:
         return nullptr;
     }
 
+    Value *visitDoWhileStmt(DoWhileStmt value) override {
+        auto *Body = BasicBlock::Create(curFunc, "do.body");
+        auto *Cond = BasicBlock::Create(curFunc, "do.cond");
+        auto *Leave = BasicBlock::Create(curFunc, "do.leave");
+        builder.createBr(Body);
+
+        builder.setInsertPoint(Body);
+        visit(value.getBody());
+        builder.createBr(Cond);
+
+        builder.setInsertPoint(Cond);
+        auto *CondVal = visit(value.getCond());
+        builder.createCondBr(CondVal, Body, Leave);
+
+        builder.setInsertPoint(Leave);
+        return nullptr;
+    }
+
     Value *visitIfElseStmt(IfElseStmt value) override {
         auto *Cond = BasicBlock::Create(curFunc, "if.cond");
         auto *Then = BasicBlock::Create(curFunc, "if.body");

@@ -10,8 +10,9 @@
 class SSADestructor : public FunctionPass {
 public:
     void runOnFunction(Function *function) override {
-        //splitCriticalEdge(function);
-        isolatePhiByCopy(function);
+        splitCriticalEdge(function);
+        //isolatePhiByCopy(function);
+        addAssignForPhi(function);
     }
 
     void isolatePhiByCopy(Function *function) {
@@ -42,7 +43,7 @@ public:
                     // Pred -> BB is a critical edge
                     auto *NewBB = new BasicBlock("split.critial.edge");
                     Pred->insertAfterThis(NewBB);
-                    auto *Terminator = Pred->getTerminator();
+                    /*auto *Terminator = Pred->getTerminator();
                     assert(Terminator);
                     // update successor
                     // FIXME: Phi?
@@ -50,8 +51,42 @@ public:
                         if (Terminator->getSuccessor(I) == &BB) {
                             Terminator->setSuccessor(I, NewBB);
                         }
-                    }
+                    }*/
+                    updateBasicBlock(&BB, Pred, NewBB);
                     NewBB->append(new BranchInst(&BB));
+                }
+            }
+        }
+    }
+    void updateBasicBlock(BasicBlock *bb, BasicBlock *oldBB, BasicBlock *newBB) {
+        for (auto Iter = bb->use_begin(); Iter != bb->use_end();) {
+            Use &Use = *Iter++;
+            if (auto *User = Use.getUser()->as<Instruction>()) {
+                if (User->getParent() == oldBB) {
+                    if (User->isTerminator()) {
+                        Use.set(newBB);
+                    }
+                }
+            }
+        }
+        for (auto Iter = oldBB->use_begin(); Iter != oldBB->use_end();) {
+            Use &Use = *Iter++;
+            if (auto *User = Use.getUser()->as<Instruction>()) {
+                if (User->getParent() == bb) {
+                    if (User->getOpcode() == OpcodePhi) {
+                        Use.set(newBB);
+                    }
+                }
+            }
+        }
+    }
+    void addAssignForPhi(Function *function) {
+        for (auto &BB: function->getBasicBlockList()) {
+            for (auto &Phi: BB.phis()) {
+                for (auto &Use: Phi.operands()) {
+                    auto *IncomingBB = Phi.getIncomingBlock(Use);
+                    auto *Assign = new AssignInst(&Phi, Use.getValue());
+                    IncomingBB->append(Assign);
                 }
             }
         }

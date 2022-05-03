@@ -5,8 +5,26 @@
 #ifndef DRAGON_MACHINEINSTR_H
 #define DRAGON_MACHINEINSTR_H
 
-class MachineInstr {
+#include <list>
+#include "PatternNode.h"
 
+class Operand {
+public:
+    enum Kind {
+        Reg,
+        Imm,
+    };
+    Kind kind;
+    Kind getKind() const {
+        return kind;
+    }
+};
+
+class MachineBlock;
+class MachineInstr : public NodeWithParent<MachineInstr, MachineBlock> {
+public:
+    unsigned opcode;
+    std::list<Operand> operands;
 };
 
 #endif //DRAGON_MACHINEINSTR_H

@@ -258,6 +258,7 @@ public:
 class ArgRule : public JsonASTBase {
 public:
     ArgRule(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_ARGRULE); }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
     value_t &getRule() { return value_["rule"]; }
     string_t &getType() { return value_["type"].get_ref<string_t &>(); }
 };

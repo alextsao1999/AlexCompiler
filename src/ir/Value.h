@@ -10,68 +10,67 @@
 #include "Range.h"
 #include "Opcode.h"
 
+class Value;
 class Type;
 class Use;
+template <typename UseT>
+struct UseGetter {
+    using value_type = UseT;
+    inline UseT *operator()(UseT *v) {
+        return v;
+    }
+};
+
+template <typename UseT, typename AsTy = Value>
+struct UserGetter {
+    using value_type = AsTy;
+    inline AsTy *operator()(UseT *v) {
+        return (AsTy *) v->getUser();
+    }
+};
+
+template <typename UseT = Use, typename F = UseGetter<UseT>>
+class UseIteratorImpl {
+private:
+    UseT *use = nullptr;
+public:
+    using iterator_category = std::forward_iterator_tag;
+    using value_type = typename F::value_type;
+    using difference_type = std::ptrdiff_t;
+    using pointer = value_type *;
+    using reference = value_type &;
+    using range = IterRange<UseIteratorImpl>;
+    UseIteratorImpl() {}
+    UseIteratorImpl(UseT *use) : use(use) {}
+    UseIteratorImpl(const UseIteratorImpl &other) : use(other.use) {}
+    bool operator==(const UseIteratorImpl &rhs) const {
+        return use == rhs.use;
+    }
+    bool operator!=(const UseIteratorImpl &rhs) const {
+        return !operator==(rhs);
+    }
+    bool atEnd() const {
+        return use == nullptr;
+    }
+    Use &getUse() const { return *use; }
+    pointer operator->() const { return F()(use); }
+    reference operator*() const { return *operator->(); }
+    UseIteratorImpl &operator++() {
+        use = use->getNext();
+        return *this;
+    }
+    UseIteratorImpl operator++(int) {
+        UseIteratorImpl tmp(*this);
+        operator++();
+        return tmp;
+    }
+};
 
 class Value {
     template<class Ty>
     friend class ListRefTrait;
     friend class Use;
 public:
-    template <typename UseT>
-    struct UseGetter {
-        using value_type = UseT;
-        inline UseT *operator()(UseT *v) {
-            return v;
-        }
-    };
-
-    template <typename UseT, typename AsTy = Value>
-    struct UserGetter {
-        using value_type = AsTy;
-        inline AsTy *operator()(UseT *v) {
-            return (AsTy *) v->getUser();
-        }
-    };
-
-    template <typename UseT = Use, typename F = UseGetter<UseT>>
-    class UseIteratorImpl {
-        friend class Use;
-    private:
-        UseT *use = nullptr;
-    public:
-        using iterator_category = std::forward_iterator_tag;
-        using value_type = typename F::value_type;
-        using difference_type = std::ptrdiff_t;
-        using pointer = value_type *;
-        using reference = value_type &;
-        using range = IterRange<UseIteratorImpl>;
-        UseIteratorImpl() {}
-        UseIteratorImpl(UseT *use) : use(use) {}
-        UseIteratorImpl(const UseIteratorImpl &other) : use(other.use) {}
-        bool operator==(const UseIteratorImpl &rhs) const {
-            return use == rhs.use;
-        }
-        bool operator!=(const UseIteratorImpl &rhs) const {
-            return !operator==(rhs);
-        }
-        bool atEnd() const {
-            return use == nullptr;
-        }
-        Use &getUse() const { return *use; }
-        pointer operator->() const { return F()(use); }
-        reference operator*() const { return *operator->(); }
-        UseIteratorImpl &operator++() {
-            use = use->next;
-            return *this;
-        }
-        UseIteratorImpl operator++(int) {
-            UseIteratorImpl tmp(*this);
-            operator++();
-            return tmp;
-        }
-    };
-
     using UseIterator = UseIteratorImpl<Use, UseGetter<Use>>;
     using UserIterator = UseIteratorImpl<Use, UserGetter<Use, Value>>;
 protected:
@@ -114,6 +113,12 @@ public:
     // 如果使用迭代器对调用Use.set() 会删除Use其的使用
     inline UseIterator::range getUses() {
         return iter(UseIterator(users), UseIterator());
+    }
+    inline UseIterator use_begin() {
+        return UseIterator(users);
+    }
+    inline UseIterator use_end() {
+        return UseIterator();
     }
 
     inline UserIterator::range getUsers() {
@@ -195,17 +200,21 @@ public:
     Use(Value *parent, Value *value) : parent(parent) {
         set(value);
     }
-
-    /// We don't need the = operator for now.
-    Use &operator=(const Use &rhs) = delete;
     Use(const Use &rhs) {
         parent = rhs.parent;
         set(rhs.value);
     }
-
     ~Use() {
         unset();
     }
+
+    /// We don't need the = operator for now.
+    Use &operator=(const Use &rhs) = delete;
+    /*Use &operator=(const Use &rhs) {
+        parent = rhs.parent;
+        set(rhs.value);
+        return *this;
+    }*/
 
     bool empty() const { return !value; }
 
@@ -245,16 +254,16 @@ public:
         return parent;
     }
 
+    /// Get the used value
+    inline Value *getValue() {
+        return value;
+    }
+
     inline const Value *getUser() const {
         return parent;
     }
 
     inline const Value *getValue() const {
-        return value;
-    }
-
-    /// Get the used value
-    inline Value *getValue() {
         return value;
     }
 
@@ -269,12 +278,6 @@ public:
     inline operator bool() const {
         return value;
     }
-
-    /*Use &operator=(const Use &rhs) {
-        parent = rhs.parent;
-        set(rhs.value);
-        return *this;
-    }*/
 
     inline Value *operator->() {
         return value;
@@ -407,7 +410,9 @@ inline std::ostream &dump_os(std::ostream &os, C c, F f, S s = ", ") {
 struct OperandDumper {
     template<typename T>
     inline std::string operator()(T &v) {
-        return v->dumpOperandToString();
+        if (v)
+            return v->dumpOperandToString();
+        return "null";
     }
     inline std::string operator()(Value *v) {
         return v->dumpOperandToString();
@@ -427,7 +432,7 @@ struct ValueDumper {
 };
 
 template<typename C, typename Pred = OperandDumper>
-std::string dump_str(const C &c, Pred fun= Pred(), const std::string &s = ", ") {
+std::string dump_str(const C &c, Pred fun = Pred(), const std::string &s = ", ") {
     std::string Out;
     for (auto Iter = c.begin() ; Iter != c.end(); ++Iter) {
         if (Iter != c.begin()) {

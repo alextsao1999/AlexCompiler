@@ -82,7 +82,7 @@ public:
         for (auto &Phi : bb->getPhis()) {
             if (isMeaningless(&Phi) || isRedundant(bb, &Phi)) {
                 assert(Phi.getOperandNum() > 0);
-                mapVN[&Phi] = mapVN[Phi.getOperand(0)];
+                mapVN[&Phi] = getVN(Phi.getOperand(0));
                 needToDelete.push_back(&Phi);
             } else {
                 mapVN[&Phi] = &Phi;
@@ -161,7 +161,7 @@ public:
             if (phi == &Phi) {
                 continue;
             }
-            if (!PhiVN && getVN(&Phi) == PhiVN) {
+            if (PhiVN && getVN(&Phi) == PhiVN) {
                 return true;
             }
         }

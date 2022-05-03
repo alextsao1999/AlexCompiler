@@ -65,6 +65,7 @@ Stmt -> LVal '=' Exp ';' @AssignStmt{lval: $1, value: $3}
       | 'if' '(' Exp ')' Stmt @IfStmt{cond: $3, then: $5}
       | 'if' '(' Exp ')' Stmt 'else' Stmt @IfElseStmt{cond: $3, then: $5, else: $7}
       | 'while' '(' Exp ')' Stmt @WhileStmt{cond: $3, body: $5}
+      | 'do' Stmt 'while' '(' Exp ')' ';' @DoWhileStmt{cond: $5, body: $2}
       | 'break' ';' @BreakStmt{}
       | 'continue' ';' @ContinueStmt{}
       | 'return' Exp ';' @ReturnStmt{value: $2}

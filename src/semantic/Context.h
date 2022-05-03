@@ -6,6 +6,7 @@
 #define DRAGON_CONTEXT_H
 
 #include <unordered_map>
+#include <memory>
 #include "Node.h"
 #include "Type.h"
 #include "Constant.h"

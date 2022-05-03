@@ -5,33 +5,31 @@ target ARM {
 
   // Define the machine instructions
   instructions {
-    ireg: Add(ireg, ireg);
-    ireg: Sub(ireg, ireg);
-    ireg: Mul(ireg, ireg);
-    ireg: Div(ireg, ireg);
-    ireg: Mod(ireg, ireg);
-    ireg: Neg(ireg);
-    ireg: Not(ireg);
-    ireg: And(ireg, ireg);
-    ireg: Or(ireg, ireg);
-    ireg: Xor(ireg, ireg);
-    ireg: AddMul(ireg, ireg);
-    Push(ireg);
-    Pop(ireg);
-    Mov(ireg, ireg);
+    ireg: add_rr(ireg, ireg);
+    ireg: sub_rr(ireg, ireg);
+    ireg: mul_rr(ireg, ireg);
+    ireg: div_rr(ireg, ireg);
+    ireg: mod_rr(ireg, ireg);
+    ireg: neg_rr(ireg);
+    ireg: not_rr(ireg);
+    ireg: and_rr(ireg, ireg);
+    ireg: or_rr(ireg, ireg);
+    ireg: xor_rr(ireg, ireg);
+    ireg: addmul_rrr(ireg, ireg, ireg);
+    push_r(ireg);
+    pop_r(ireg);
+    mov_rr(ireg, ireg);
   }
 
   // Define the rewriter patterns
   patterns {
     // add sub mul div
-    add($1, $2) = Add(ireg: $1, ireg: $2);
-    sub($1, $2) = Sub($1, $2);
-    mul($1, $2) = Mul($1, $2);
-    div($1, $2) = Div($1, $2);
-
-    add($1, mul($2, $3)) = AddMul($1, $2);
-
-
+    Add($1, $2) = add_rr(ireg: $1, ireg: $2);
+    Sub($1, $2) = sub_rr($1, $2);
+    Mul($1, $2) = mul_rr($1, $2);
+    Div($1, $2) = div_rr($1, $2);
+    Add($1, ireg:$2 Mul(ireg, ireg)) = addmul_rrr($1, $2, $3);
   }
+
 
 }

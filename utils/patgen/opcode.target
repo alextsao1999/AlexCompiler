@@ -1,0 +1,110 @@
+/* 16232*/  OPC_Scope, 64|128,1/*192*/, /*->16427*/ // 216 children in Scope
+/* 16235*/   OPC_MoveChild0,
+/* 16236*/   OPC_Scope, 83, /*->16321*/ // 4 children in Scope
+/* 16238*/    OPC_CheckOpcode, TARGET_VAL(ISD::SHL),
+/* 16241*/    OPC_MoveChild0,
+/* 16242*/    OPC_CheckAndImm, 127|128,127|128,127|128,127|128,15/*4294967295*/,
+/* 16248*/    OPC_RecordChild0, // #0 = $rs1
+/* 16249*/    OPC_MoveParent,
+/* 16250*/    OPC_Scope, 22, /*->16274*/ // 3 children in Scope
+/* 16252*/     OPC_CheckChild1Integer, 2,
+/* 16254*/     OPC_CheckChild1Type, MVT::i64,
+/* 16256*/     OPC_MoveParent,
+/* 16257*/     OPC_RecordChild1, // #1 = $rs2
+/* 16258*/     OPC_MoveChild1,
+/* 16259*/     OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16261*/     OPC_MoveParent,
+/* 16262*/     OPC_CheckType, MVT::i64,
+/* 16264*/     OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16266*/     OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH1ADD_UW), 0,
+                   MVT::i64, 2/*#Ops*/, 0, 1,
+               // Src: (add:{ *:[i64] } (shl:{ *:[i64] } (and:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 4294967295:{ *:[i64] }), 1:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+               // Dst: (SH1ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16274*/    /*Scope*/ 22, /*->16297*/
+/* 16275*/     OPC_CheckChild1Integer, 4,
+/* 16277*/     OPC_CheckChild1Type, MVT::i64,
+/* 16279*/     OPC_MoveParent,
+/* 16280*/     OPC_RecordChild1, // #1 = $rs2
+/* 16281*/     OPC_MoveChild1,
+/* 16282*/     OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16284*/     OPC_MoveParent,
+/* 16285*/     OPC_CheckType, MVT::i64,
+/* 16287*/     OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16289*/     OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH2ADD_UW), 0,
+                   MVT::i64, 2/*#Ops*/, 0, 1,
+               // Src: (add:{ *:[i64] } (shl:{ *:[i64] } (and:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 4294967295:{ *:[i64] }), 2:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+               // Dst: (SH2ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16297*/    /*Scope*/ 22, /*->16320*/
+/* 16298*/     OPC_CheckChild1Integer, 6,
+/* 16300*/     OPC_CheckChild1Type, MVT::i64,
+/* 16302*/     OPC_MoveParent,
+/* 16303*/     OPC_RecordChild1, // #1 = $rs2
+/* 16304*/     OPC_MoveChild1,
+/* 16305*/     OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16307*/     OPC_MoveParent,
+/* 16308*/     OPC_CheckType, MVT::i64,
+/* 16310*/     OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16312*/     OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH3ADD_UW), 0,
+                   MVT::i64, 2/*#Ops*/, 0, 1,
+               // Src: (add:{ *:[i64] } (shl:{ *:[i64] } (and:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 4294967295:{ *:[i64] }), 3:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+               // Dst: (SH3ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16320*/    0, /*End of Scope*/
+/* 16321*/   /*Scope*/ 34, /*->16356*/
+/* 16322*/    OPC_CheckAndImm, 127|128,127|128,127|128,127|128,31/*8589934591*/,
+/* 16328*/    OPC_MoveChild0,
+/* 16329*/    OPC_CheckOpcode, TARGET_VAL(ISD::SHL),
+/* 16332*/    OPC_RecordChild0, // #0 = $rs1
+/* 16333*/    OPC_CheckChild1Integer, 2,
+/* 16335*/    OPC_CheckChild1Type, MVT::i64,
+/* 16337*/    OPC_MoveParent,
+/* 16338*/    OPC_MoveParent,
+/* 16339*/    OPC_RecordChild1, // #1 = $rs2
+/* 16340*/    OPC_MoveChild1,
+/* 16341*/    OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16343*/    OPC_MoveParent,
+/* 16344*/    OPC_CheckType, MVT::i64,
+/* 16346*/    OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16348*/    OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH1ADD_UW), 0,
+                  MVT::i64, 2/*#Ops*/, 0, 1,
+              // Src: (add:{ *:[i64] } (and:{ *:[i64] } (shl:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 1:{ *:[i64] }), 8589934591:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+              // Dst: (SH1ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16356*/   /*Scope*/ 34, /*->16391*/
+/* 16357*/    OPC_CheckAndImm, 127|128,127|128,127|128,127|128,63/*17179869183*/,
+/* 16363*/    OPC_MoveChild0,
+/* 16364*/    OPC_CheckOpcode, TARGET_VAL(ISD::SHL),
+/* 16367*/    OPC_RecordChild0, // #0 = $rs1
+/* 16368*/    OPC_CheckChild1Integer, 4,
+/* 16370*/    OPC_CheckChild1Type, MVT::i64,
+/* 16372*/    OPC_MoveParent,
+/* 16373*/    OPC_MoveParent,
+/* 16374*/    OPC_RecordChild1, // #1 = $rs2
+/* 16375*/    OPC_MoveChild1,
+/* 16376*/    OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16378*/    OPC_MoveParent,
+/* 16379*/    OPC_CheckType, MVT::i64,
+/* 16381*/    OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16383*/    OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH2ADD_UW), 0,
+                  MVT::i64, 2/*#Ops*/, 0, 1,
+              // Src: (add:{ *:[i64] } (and:{ *:[i64] } (shl:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 2:{ *:[i64] }), 17179869183:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+              // Dst: (SH2ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16391*/   /*Scope*/ 34, /*->16426*/
+/* 16392*/    OPC_CheckAndImm, 127|128,127|128,127|128,127|128,127/*34359738367*/,
+/* 16398*/    OPC_MoveChild0,
+/* 16399*/    OPC_CheckOpcode, TARGET_VAL(ISD::SHL),
+/* 16402*/    OPC_RecordChild0, // #0 = $rs1
+/* 16403*/    OPC_CheckChild1Integer, 6,
+/* 16405*/    OPC_CheckChild1Type, MVT::i64,
+/* 16407*/    OPC_MoveParent,
+/* 16408*/    OPC_MoveParent,
+/* 16409*/    OPC_RecordChild1, // #1 = $rs2
+/* 16410*/    OPC_MoveChild1,
+/* 16411*/    OPC_CheckPredicate, 15, // Predicate_non_imm12
+/* 16413*/    OPC_MoveParent,
+/* 16414*/    OPC_CheckType, MVT::i64,
+/* 16416*/    OPC_CheckPatternPredicate, 19, // (Subtarget->hasStdExtZba()) && (Subtarget->is64Bit()) && (MF->getSubtarget().checkFeatures("+64bit"))
+/* 16418*/    OPC_MorphNodeTo1, TARGET_VAL(RISCV::SH3ADD_UW), 0,
+                  MVT::i64, 2/*#Ops*/, 0, 1,
+              // Src: (add:{ *:[i64] } (and:{ *:[i64] } (shl:{ *:[i64] } GPR:{ *:[i64] }:$rs1, 3:{ *:[i64] }), 34359738367:{ *:[i64] }), GPR:{ *:[i64] }<<P:Predicate_non_imm12>>:$rs2) - Complexity = 20
+              // Dst: (SH3ADD_UW:{ *:[i64] } GPR:{ *:[i64] }:$rs1, GPR:{ *:[i64] }:$rs2)
+/* 16426*/   0, /*End of Scope*/
+/* 16427*/  /*Scope*/ 88|128,1/*216*/, /*->16645*/

@@ -71,6 +71,49 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
+/*
+    auto Module = compileModule(R"(
+        int main(int a, int b){
+            int c = a;
+            do {
+                c = c + 1;
+            } while (c < 50);
+            return c;
+        }
+    )");
+*/
+
+    // swap
+/*
+    auto Module = compileModule(R"(
+        int main(int a, int b){
+            int x = 10;
+            int y = 20;
+            do {
+                int t = x;
+                x = y;
+                y = t;
+            } while (x == 20);
+            int c = x * 2 + y;
+            return c;
+        }
+    )");
+*/
+    // loss copy
+/*
+    auto Module = compileModule(R"(
+        int main(int a, int b){
+            int i = 1;
+            int y = 0;
+            do {
+                y = i;
+                i = i + 1;
+            } while (i == 2);
+            return y + 2;
+        }
+    )");
+*/
+
     auto Module = compileModule(R"(
         int main(int y){
             int a = y;
@@ -107,15 +150,18 @@ int main(int argc, char **argv) {
     BranchElim BE;
     LoopSimplify LS;
     SCCP SCCP;
+    SSADestructor Des;
 
     Dom.runOnFunction(Fun);
     Cons.runOnFunction(Fun);
     GVN.runOnFunction(Fun);
+    Des.runOnFunction(Fun);
+    /*
     BE.runOnFunction(Fun);
     Dom.runOnFunction(Fun);
     LA.runOnFunction(Fun);
     LS.runOnFunction(Fun);
-    Dom.runOnFunction(Fun);
+    Dom.runOnFunction(Fun);*/
     //SCCP.runOnFunction(Fun);
 
     Module->dump(std::cout);
