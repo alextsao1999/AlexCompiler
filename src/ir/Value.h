@@ -35,6 +35,14 @@ private:
 public:
     UseWrapper(UseT * iter) : _iter(iter) {}
     UseWrapper(const UseWrapper &r) : _iter(r._iter) {}
+    UseWrapper &operator+=(difference_type n) {
+        _iter += n;
+        return *this;
+    }
+    UseWrapper &operator-=(difference_type n) {
+        _iter -= n;
+        return *this;
+    }
     UseWrapper &operator++() {
         ++_iter;
         return *this;
