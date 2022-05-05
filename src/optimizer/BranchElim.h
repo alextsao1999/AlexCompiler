@@ -17,10 +17,10 @@ public:
     /// Otherwise, the program will crash.
     BranchElim() {}
 
-    void runOnFunction(Function *f) override {
+    void runOnFunction(Function &f) override {
         std::vector<BasicBlock *> Worklist;
 
-        f->forEachBlock([&](BasicBlock *bb) {
+        f.forEachBlock([&](BasicBlock *bb) {
             if (auto *Inst = bb->getTerminator()) {
                 if (Inst->getOpcode() == OpcodeCondBr) {
                     auto *CondBr = Inst->cast<CondBrInst>();
@@ -73,7 +73,7 @@ public:
                                 BB->succs_end());
             } else {
                 if (std::all_of(BB->preds_begin(), BB->preds_end(),
-                                [&](BasicBlock *Pred) { return Unreachable.count(Pred) != 0; })) {
+                                [&](BasicBlock *pred) { return Unreachable.count(pred) != 0; })) {
                     Unreachable.insert(BB);
                     Worklist.insert(Worklist.end(), BB->succs_begin(),
                                     BB->succs_end());
@@ -94,7 +94,7 @@ public:
         Unreachable.clear();
 
         ///< Combine the redundant basic blocks.
-        for (auto &BB : *f) {
+        for (auto &BB : f) {
             if (auto *Inst = BB.getTerminator()) {
                 while (Inst->getOpcode() == OpcodeBr) {
                     auto *BBSource = &BB;

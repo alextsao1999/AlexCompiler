@@ -10,11 +10,11 @@
 #include "LoopInfo.h"
 class LoopAnalyse : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override {
-        for (auto &BB: function->getBasicBlockList()) {
+    void runOnFunction(Function &function) override {
+        for (auto &BB: function.getBasicBlockList()) {
             for (auto *Pred: BB.preds()) {
                 if (BB.dominates(Pred)) {
-                    discover(function->loops.emplace_back(&BB, Pred));
+                    discover(function.loops.emplace_back(&BB, Pred));
                 }
             }
         }
@@ -57,10 +57,10 @@ public:
 
 class LoopPass : public FunctionPass {
 public:
-    virtual void runOnLoop(Loop *loop) = 0;
-    void runOnFunction(Function *function) override {
-        for (auto &Loop: function->loops) {
-            runOnLoop(&Loop);
+    virtual void runOnLoop(Loop &loop) = 0;
+    void runOnFunction(Function &function) override {
+        for (auto &Loop: function.loops) {
+            runOnLoop(Loop);
         }
     }
 };

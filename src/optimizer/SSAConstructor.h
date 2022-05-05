@@ -75,13 +75,13 @@ public:
     std::map<PhiInst *, PhiStatus> phiStatus; // Phi state for phi inst
     std::vector<PhiInst *> phiStack;
 
-    void runOnFunction(Function *function) override {
+    void runOnFunction(Function &function) override {
         phiStack.clear();
         varStatus.clear();
         phiStatus.clear();
         std::map<AllocaInst *, std::set<BasicBlock *>> DefBlocks;
         // Find all allocas def blocks
-        for (auto &BB: function->getBasicBlockList()) {
+        for (auto &BB: function) {
             for (auto &I : BB) {
                 if (I.getOpcode() == OpcodeStore) {
                     auto *Store = I.as<StoreInst>();
@@ -97,10 +97,10 @@ public:
         placing(DefBlocks);
 
         // rename phi nodes
-        rename(function->getEntryBlock());
+        rename(function.getEntryBlock());
 
         // prune unless phi nodes
-        prune(function->getEntryBlock());
+        prune(function.getEntryBlock());
 
         install();
     }

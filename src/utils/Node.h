@@ -216,6 +216,30 @@ public:
 
 };
 
+template<typename T, typename As, bool Reverse>
+class IterRange<NodeIter<T, As, Reverse>> {
+public:
+    using rev_t = IterRange<NodeIter<T, As, !Reverse>>;
+    using Iter = NodeIter<T, As, Reverse>;
+    Iter _begin;
+    Iter _end;
+public:
+    IterRange() {}
+    IterRange(const IterRange &r) : _begin(r._begin), _end(r._end) {}
+    IterRange(Iter begin, Iter anEnd) : _begin(begin), _end(anEnd) {}
+    Iter begin() const { return _begin; }
+    Iter end() const { return _end; }
+    bool empty() {
+        return _begin == _end;
+    }
+    bool empty() const {
+        return _begin == _end;
+    }
+    rev_t reverse() {
+        return rev_t((--_end).getReverse(), (--_begin).getReverse());
+    }
+};
+
 ///< Alloc traits
 template <typename T>
 struct ListAllocTrait {
@@ -541,7 +565,7 @@ protected:
     }
 
 };
-template<typename T, typename Traits = StrongRefTrait<T>>
+template<typename T, typename Traits = ListAllocTrait<T>>
 using NodeList = INodeListImpl<T, Traits, NodeSentinel>;
 
 template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<NodeTy>>
@@ -551,6 +575,7 @@ public:
     template <typename As>
     using iterator_as = typename NodeListTy::template iterator_as<As>;
     using iterator = typename NodeListTy::iterator;
+    using reverse_iterator = typename NodeListTy::reverse_iterator;
 
     NodeParent() = default;
 

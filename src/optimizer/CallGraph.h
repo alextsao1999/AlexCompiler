@@ -9,9 +9,9 @@
 #include "Function.h"
 class CallGraph : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override {
-        function->forEach<CallInst>([&](CallInst *callInst) {
-            function->addCallee(callInst->getCallee());
+    void runOnFunction(Function &function) override {
+        function.forEach<CallInst>([&](CallInst *callInst) {
+            function.addCallee(callInst->getCallee());
         });
     }
 

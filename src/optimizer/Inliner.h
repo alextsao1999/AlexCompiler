@@ -106,12 +106,12 @@ public:
 class Inliner : public FunctionPass {
 public:
     std::unordered_map<Value *, Value *> valueMap;
-    void runOnFunction(Function *function) override {
-        if (function->isDeclaration()) {
+    void runOnFunction(Function &function) override {
+        if (function.isDeclaration()) {
             return;
         }
         valueMap.clear();
-        function->forEach<CallInst>([this](CallInst *inst) {
+        function.forEach<CallInst>([this](CallInst *inst) {
             doInline(inst);
         });
     }

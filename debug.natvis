@@ -88,5 +88,29 @@
 -->
         </Expand>
     </Type>
+    <Type Name="PatternNode" Inheritable="true">
+        <DisplayString>{opcode}({numOperands}) </DisplayString>
+        <Expand>
+            <Item Name="[opcode]">(Pattern::Opcode) opcode</Item>
+            <Item Name="[numOperands]">numOperands</Item>
+            <ExpandedItem Condition="opcode == Pattern::Address">*(Address*)(this)</ExpandedItem>
+            <ExpandedItem Condition="opcode == Pattern::BlockAddress">*(BlockAddress*)(this)</ExpandedItem>
+            <ExpandedItem Condition="opcode == Pattern::Constant">*(ConstantNode*)(this)</ExpandedItem>
+            <ExpandedItem Condition="opcode == Pattern::PhyRegister">*(PhyRegNode*)(this)</ExpandedItem>
+            <ExpandedItem Condition="opcode == Pattern::VirRegister">*(VirRegNode*)(this)</ExpandedItem>
+            <ArrayItems>
+                <Size>numOperands</Size>
+                <ValuePointer>((PatternUse *)(this) - numOperands)</ValuePointer>
+            </ArrayItems>
+        </Expand>
+    </Type>
+    <Type Name="PatternUse">
+        <Expand>
+            <Item Name="[User]">parent</Item>
+            <ExpandedItem>*value</ExpandedItem>
+<!--            <Item Name="[value]">value</Item>-->
+        </Expand>
+    </Type>
+
 
 </AutoVisualizer>

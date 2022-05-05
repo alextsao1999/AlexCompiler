@@ -11,12 +11,7 @@ Value::Value() {
 }
 
 Value::~Value() {
-    Use *Cur = users;
-    while (Cur) {
-        auto *Next = Cur->getNext();
-        Cur->unset();
-        Cur = Next;
-    }
+    // replaceAllUsesWith(nullptr);
 }
 
 bool Value::isOnlyUsedOnce() const {

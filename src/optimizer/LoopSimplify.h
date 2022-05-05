@@ -10,8 +10,8 @@
 
 class LoopSimplify : public LoopPass {
 public:
-    void runOnLoop(Loop *loop) override {
-        if (auto *Header = loop->getHeader()) {
+    void runOnLoop(Loop &loop) override {
+        if (auto *Header = loop.getHeader()) {
             if (!Header->hasMultiplePredecessor()) {
                 return;
             }
@@ -23,7 +23,7 @@ public:
             for (auto I = Header->use_begin(); I != Header->use_end(); ) {
                 auto &Use = *I++;
                 if (auto *Instr = Use.getUser()->as<Instruction>()) {
-                    if (!loop->contains(Instr->getParent())) {
+                    if (!loop.contains(Instr->getParent())) {
                         Use.set(NewPreheader);
                     }
                 }

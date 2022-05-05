@@ -10,8 +10,8 @@
 
 class DCE : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override {
-        function->forEach([&](Instruction *instruction) {
+    void runOnFunction(Function &function) override {
+        function.forEach([&](Instruction *instruction) {
             switch (instruction->getOpcode()) {
                 case OpcodeAlloca:
                 case OpcodeCast:

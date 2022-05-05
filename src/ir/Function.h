@@ -11,6 +11,7 @@
 #include <SymbolTable.h>
 #include <Type.h>
 #include <LoopInfo.h>
+#include <MachineBlock.h>
 class Module;
 class Type;
 class Function : public Value, public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module> {
@@ -198,6 +199,11 @@ private:
     ///< CallGraph
     std::set<Function *> callers;
     std::set<Function *> callees;
+public:
+    ///< machine blocks
+    NodeList<MachineBlock> blocks;
+    std::map<BasicBlock *, MachineBlock *> mapBlocks;
+    PatternDAG dag;
 };
 
 #endif //DRAGONIR_FUNCTION_H

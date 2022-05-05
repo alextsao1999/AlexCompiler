@@ -44,7 +44,7 @@ TEST(Sys, Expr) {
         }
     )");
 
-    auto *Fun = Module->getFunction("main");
+    auto &Fun = *Module->getFunction("main");
 
 
     Dominance Dom;
@@ -63,12 +63,12 @@ TEST(Sys, Expr) {
     //LS.runOnFunction(Fun);
     Dom.runOnFunction(Fun);
 
-    for (auto &Loop: Fun->loops) {
+    for (auto &Loop: Fun.loops) {
         std::cout << "Loop: ";
         Loop.getHeader()->dumpName(std::cout) << std::endl;
     }
 
-    Fun->dump(std::cout);
+    Fun.dump(std::cout);
 }
 
 

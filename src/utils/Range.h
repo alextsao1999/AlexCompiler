@@ -4,7 +4,7 @@
 
 #ifndef DRAGONCOMPILER_RANGE_H
 #define DRAGONCOMPILER_RANGE_H
-
+#include <type_traits>
 template<typename Iter>
 class IterRange {
     Iter _begin;
@@ -21,6 +21,50 @@ public:
     bool empty() const {
         return _begin == _end;
     }
+};
+
+///< Seldom used, this class can be removed.
+template<typename Iter, typename F>
+class IterWrapper {
+public:
+    using value_type = typename F::value_type;
+    using reference = value_type *;
+    using pointer = value_type *;
+    using difference_type = typename std::iterator_traits<Iter>::difference_type;
+    using iterator_category = typename std::iterator_traits<Iter>::iterator_category;
+private:
+    Iter _iter;
+public:
+    IterWrapper(Iter iter) : _iter(iter) {}
+    IterWrapper(const IterWrapper &r) : _iter(r._iter) {}
+    IterWrapper &operator++() {
+        ++_iter;
+        return *this;
+    }
+    IterWrapper operator++(int) {
+        IterWrapper tmp(*this);
+        ++_iter;
+        return tmp;
+    }
+    bool operator!=(const IterWrapper &r) {
+        return _iter != r._iter;
+    }
+    bool operator==(const IterWrapper &r) {
+        return _iter == r._iter;
+    }
+
+    difference_type operator-(const IterWrapper &r) {
+        return _iter - r._iter;
+    }
+
+    pointer operator->() {
+        return F()(*_iter);
+    }
+
+    reference operator*() {
+        return F()(*_iter);
+    }
+
 };
 
 template<typename Iter>

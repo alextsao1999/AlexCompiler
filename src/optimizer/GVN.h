@@ -65,12 +65,12 @@ public:
     std::map<Value *, Value *> mapVN;
     std::vector<Instruction *> needToDelete;
 
-    void runOnFunction(Function *function) override {
+    void runOnFunction(Function &function) override {
         mapVN.clear();
-        for (auto &Param : function->getParams()) {
+        for (auto &Param : function.getParams()) {
             mapVN[Param.get()] = Param.get();
         }
-        doGVN(function->getEntryBlock());
+        doGVN(function.getEntryBlock());
         for (auto &Instr : needToDelete) {
             Instr->eraseFromParent();
         }

@@ -28,7 +28,17 @@ enum TypeID {
     TypeClass,
     TypeError
 };
-
+enum MachineType {
+    MachineVoid,
+    MachineI1,
+    MachineI8,
+    MachineI16,
+    MachineI32,
+    MachineI64,
+    MachineF32,
+    MachineF64,
+    MachinePtr,
+};
 class Type {
 protected:
     Context *context = nullptr;
@@ -140,6 +150,10 @@ public:
 
     auto params() {
         return iter(containedType + 1, containedType + containedTypeCount);
+    }
+
+    MachineType getMachineType() const {
+        return MachineI1;
     }
 
     virtual void dump(std::ostream &os) {
@@ -290,7 +304,6 @@ public:
 
 };
 
-
 inline unsigned Type::getBitSize() {
     switch (getTypeId()) {
         case TypeVoid:
@@ -303,6 +316,5 @@ inline unsigned Type::getBitSize() {
     unreachable();
     return 0;
 }
-
 
 #endif //DRAGONCOMPILER_TYPE_H

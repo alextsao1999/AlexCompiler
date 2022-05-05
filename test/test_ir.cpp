@@ -42,8 +42,8 @@ TEST(IR, BasicBlock) {
     auto *DomPass = new Dominance();
     auto *SSAPass = new SSAConstructor();
 
-    DomPass->runOnFunction(&F);
-    SSAPass->runOnFunction(&F);
+    DomPass->runOnFunction(F);
+    SSAPass->runOnFunction(F);
 
     EXPECT_EQ_VALUE(BB, R"(
         BB:			 --- preds=() succs=()
@@ -83,8 +83,8 @@ TEST(IR, DeadBlock) {
     auto *DomPass = new Dominance();
     auto *SSAPass = new SSAConstructor();
 
-    DomPass->runOnFunction(F);
-    SSAPass->runOnFunction(F);
+    DomPass->runOnFunction(*F);
+    SSAPass->runOnFunction(*F);
 
     F->dump(std::cout);
 
@@ -201,7 +201,7 @@ TEST(IR, IDF) {
     Builder.createRet();
 
     auto *DomPass = new Dominance();
-    DomPass->runOnFunction(F);
+    DomPass->runOnFunction(*F);
 
     EXPECT_EQ_VALUE(F, R"(def test() -> void {
         entry:    preds=() succs=(%1) doms=(%1)
@@ -271,7 +271,7 @@ TEST(IR, IDF) {
     Builder.setInsertPoint(BBNews[3]);
     Builder.createRet();
 
-    DomPass->runOnFunction(F);
+    DomPass->runOnFunction(*F);
 
     EXPECT_EQ_VALUE(F, R"(def test() -> void {
         entry:    preds=() succs=(%if.true, %if.false) doms=(%if.true, %if.false, %leave)
@@ -403,9 +403,9 @@ TEST(IR, Loop) {
     auto *SSAPass = new SSAConstructor();
     auto *LoopPass = new LoopAnalyse();
 
-    DomPass->runOnFunction(F);
-    SSAPass->runOnFunction(F);
-    LoopPass->runOnFunction(F);
+    DomPass->runOnFunction(*F);
+    SSAPass->runOnFunction(*F);
+    LoopPass->runOnFunction(*F);
 
     for (auto &Loop: F->loops) {
         std::cout << "Loop: " << Loop.getHeader()->getName() << std::endl;
@@ -415,13 +415,13 @@ TEST(IR, Loop) {
 }
 
 TEST(IR, LoopSimplify) {
-    Function *F = new Function("test", Context.getVoidFunTy());
+    Function F("test", Context.getVoidFunTy());
 
     BasicBlock *BB[] = {
-            BasicBlock::Create(F, "entry"),
-            BasicBlock::Create(F, "loop.body"),
-            BasicBlock::Create(F, "loop.cond"),
-            BasicBlock::Create(F, "leave"),
+            BasicBlock::Create(&F, "entry"),
+            BasicBlock::Create(&F, "loop.body"),
+            BasicBlock::Create(&F, "loop.cond"),
+            BasicBlock::Create(&F, "leave"),
     };
 
     IRBuilder Builder;
@@ -447,9 +447,7 @@ TEST(IR, LoopSimplify) {
     LoopPass->runOnFunction(F);
     LoopSimplifyPass->runOnFunction(F);
 
-    F->dump(std::cout);
-
-    delete F;
+    F.dump(std::cout);
 }
 
 TEST(PN, 0) {

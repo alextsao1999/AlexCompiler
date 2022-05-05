@@ -11,7 +11,8 @@
 class Operand {
 public:
     enum Kind {
-        Reg,
+        VirReg,
+        PhyReg,
         Imm,
     };
     Kind kind;
@@ -24,7 +25,25 @@ class MachineBlock;
 class MachineInstr : public NodeWithParent<MachineInstr, MachineBlock> {
 public:
     unsigned opcode;
+    Operand def;
     std::list<Operand> operands;
+    bool hasDef: 1 = true;
+    bool hasUse: 1 = true;
+
+    auto defs_begin() {
+        return &def;
+    }
+    auto defs_end() {
+        return &def + hasDef;
+    }
+    auto op_begin() {
+        return operands.begin();
+    }
+    auto op_end() {
+        return operands.end();
+    }
+
+
 };
 
 #endif //DRAGON_MACHINEINSTR_H

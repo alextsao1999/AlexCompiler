@@ -13,6 +13,59 @@
 class Value;
 class Type;
 class Use;
+template<typename UseT, typename AsTy = Value>
+struct UseOpWrapper {
+    using type = AsTy;
+    using value_type = std::remove_pointer_t<typename std::remove_reference_t<AsTy>>;
+    inline value_type *operator()(UseT &use) const {
+        return (value_type *) use.getValue();
+    }
+};
+
+template<typename UseT, typename AsTy>
+class UseWrapper {
+public:
+    using value_type = AsTy;
+    using reference = value_type *;
+    using pointer = value_type *;
+    using difference_type = typename std::iterator_traits<UseT *>::difference_type;
+    using iterator_category = typename std::random_access_iterator_tag;
+private:
+    UseT *_iter;
+public:
+    UseWrapper(UseT * iter) : _iter(iter) {}
+    UseWrapper(const UseWrapper &r) : _iter(r._iter) {}
+    UseWrapper &operator++() {
+        ++_iter;
+        return *this;
+    }
+    UseWrapper operator++(int) {
+        IterWrapper tmp(*this);
+        ++_iter;
+        return tmp;
+    }
+    difference_type operator-(const UseWrapper &r) const {
+        return _iter - r._iter;
+    }
+    bool operator!=(const UseWrapper &r) {
+        return _iter != r._iter;
+    }
+    bool operator==(const UseWrapper &r) {
+        return _iter == r._iter;
+    }
+
+/*
+    pointer operator->() {
+        return (AsTy *) (_iter);
+    }
+*/
+
+    reference operator*() {
+        return (AsTy *) (_iter->getValue());
+    }
+
+};
+
 template <typename UseT>
 struct UseGetter {
     using value_type = UseT;

@@ -14,7 +14,7 @@
 
 class LICM : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override {
+    void runOnFunction(Function &function) override {
 
     }
 };

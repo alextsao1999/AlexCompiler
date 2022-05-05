@@ -250,8 +250,8 @@ public:
 
 class SCCP : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override {
-        SCCPFunction Func(function);
+    void runOnFunction(Function &function) override {
+        SCCPFunction Func(&function);
         Func.runOnEntry();
 
     }

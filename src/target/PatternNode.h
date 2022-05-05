@@ -30,14 +30,63 @@ namespace Pattern {
         Le,
         Gt,
         Ge,
+        Root,
         Stack,
+        Constant,
         Operands,
         Address,
+        BlockAddress,
         Call,
-        Register,
+        PhyRegister,
+        VirRegister,
+        CopyFromReg,
+        Jump,
+        CondJump,
+        Load,
+        Store,
         Return,
-        LAST_OPCODE,
+        LastOpcode,
     };
+
+    inline const char *dump(unsigned opcode) {
+        switch (opcode) {
+            case None: return "None";
+            case Add: return "Add";
+            case Sub: return "Sub";
+            case Mul: return "Mul";
+            case Div: return "Div";
+            case Rem: return "Rem";
+            case Mod: return "Mod";
+            case Shl: return "Shl";
+            case Shr: return "Shr";
+            case And: return "And";
+            case Or: return "Or";
+            case Xor: return "Xor";
+            case Eq: return "Eq";
+            case Ne: return "Ne";
+            case Lt: return "Lt";
+            case Le: return "Le";
+            case Gt: return "Gt";
+            case Ge: return "Ge";
+            case Root: return "Root";
+            case Stack: return "Stack";
+            case Constant: return "Constant";
+            case Operands: return "Operands";
+            case Address: return "Address";
+            case BlockAddress: return "BlockAddress";
+            case Call: return "Call";
+            case PhyRegister: return "PhyRegister";
+            case VirRegister: return "VirRegister";
+            case CopyFromReg: return "CopyFromReg";
+            case Jump: return "Jump";
+            case CondJump: return "CondJump";
+            case Load: return "Load";
+            case Store: return "Store";
+            case Return: return "Return";
+            case LastOpcode: return "LastOpcode";
+            default: return "Unknown";
+        }
+    }
 } // namespace Pattern
 
 class PatternUse;
@@ -46,7 +95,6 @@ public:
     int id = 0;
     NodeLoc() = default;
     NodeLoc(int id) : id(id) {}
-
 };
 
 /**
@@ -78,6 +126,9 @@ public:
         Ptr->numOperands = nodes.size();
         return static_cast<T *>(Ptr);
     }
+public:
+    using iterator = UseWrapper<PatternUse, PatternNode>;
+    using op_range = IterRange<iterator>;
 protected:
     PatternUse *users = nullptr;
     unsigned opcode = 0;
@@ -88,18 +139,21 @@ protected:
 public:
     using UseIterator = UseIteratorImpl<PatternUse, UseGetter<PatternUse>>;
     using UserIterator = UseIteratorImpl<PatternUse, UserGetter<PatternUse, PatternNode>>;
-    PatternNode(unsigned int opcode) : opcode(opcode) {}
+    PatternNode(unsigned opcode) : opcode(opcode) {}
 
     inline unsigned getOpcode() const {
         return opcode;
     }
-
     inline unsigned getNumOperands() const {
         return numOperands;
     }
 
     inline PatternUse *getHungoffOperands();
+    inline const PatternUse *getHungoffOperands() const;
     inline void setHungOffOperand(unsigned index, PatternNode *operand);
+
+    inline PatternNode *getChild(unsigned index);
+    inline void setChild(unsigned index, PatternNode *child);
 
     inline void setLoc(NodeLoc l) {
         loc = l;
@@ -111,6 +165,10 @@ public:
     void setType(Type *t) {
         type = t;
     }
+
+    op_range op() { return op_range(op_begin(), op_end()); }
+    iterator op_begin() { return iterator(operand_begin()); }
+    iterator op_end() { return iterator(operand_end()); }
 
     inline UseIterator::range getUses() {
         return iter(UseIterator(users), UseIterator());
@@ -141,11 +199,14 @@ public:
         return iter(UserAsIter(users), UserAsIter());
     }
 
+    inline IterRange<PatternUse *> operands() { return iter(operand_begin(), operand_end()); }
+    inline PatternUse *operand_begin() { return getHungoffOperands(); }
+    inline PatternUse *operand_end();
+
     template<typename T>
     inline T *as() { return opcode == T::OPCODE ? static_cast<T *>(this) : nullptr; }
     template<typename T>
     inline bool is() const { return opcode == T::OPCODE; }
-
 };
 
 class PatternUse {
@@ -243,9 +304,26 @@ inline PatternUse *PatternNode::getHungoffOperands() {
     return reinterpret_cast<PatternUse *>(this) - numOperands;
 }
 
+inline const PatternUse *PatternNode::getHungoffOperands() const {
+    return reinterpret_cast<const PatternUse *>(this) - numOperands;
+}
+
+PatternNode *PatternNode::getChild(unsigned int index) {
+    return getHungoffOperands()[index].getValue();
+}
+
 void PatternNode::setHungOffOperand(unsigned int index, PatternNode *operand) {
     assert(index < numOperands);
     getHungoffOperands()[index].set(operand);
+}
+
+void PatternNode::setChild(unsigned int index, PatternNode *child) {
+    assert(index < numOperands);
+    getHungoffOperands()[index].set(child);
+}
+
+PatternUse *PatternNode::operand_end() {
+    return getHungoffOperands() + numOperands;
 }
 
 template<unsigned Opcode, unsigned OpNum>
@@ -270,47 +348,38 @@ class AddNode : public PatternNodeBase<Pattern::Add, 2> {
 public:
     AddNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class SubNode : public PatternNodeBase<Pattern::Sub, 2> {
 public:
     SubNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class MulNode : public PatternNodeBase<Pattern::Mul, 2> {
 public:
     MulNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class DivNode : public PatternNodeBase<Pattern::Div, 2> {
 public:
     DivNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class ModNode : public PatternNodeBase<Pattern::Mod, 2> {
 public:
     ModNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class ShlNode : public PatternNodeBase<Pattern::Shl, 2> {
 public:
     ShlNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class ShrNode : public PatternNodeBase<Pattern::Shr, 2> {
 public:
     ShrNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class AndNode : public PatternNodeBase<Pattern::And, 2> {
 public:
     AndNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class OrNode : public PatternNodeBase<Pattern::Or, 2> {
 public:
     OrNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
-
 class XorNode : public PatternNodeBase<Pattern::Xor, 2> {
 public:
     XorNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
@@ -323,18 +392,45 @@ public:
     Register(unsigned int regId) : regId(regId) {}
     unsigned getRegId() const { return regId; }
 };
-class RegisterNode : public PatternNodeBase<Pattern::Register, 0> {
+class PhyRegNode : public PatternNodeBase<Pattern::PhyRegister, 0> {
     Register reg;
 public:
-    RegisterNode(const Register &reg) : reg(reg) {}
+    PhyRegNode(Register reg) : reg(reg) {}
     inline Register getRegister() const {
         return reg;
     }
 };
+class VirRegNode : public PatternNodeBase<Pattern::VirRegister, 1> {
+public:
+    VirRegNode(PatternNode *child) : PatternNodeBase({child}) {}
+    PatternNode *getNode() { return getChild(0); }
+};
+
+class CopyFromReg : public PatternNodeBase<Pattern::CopyFromReg, 0> {
+public:
+    Value *value;
+    CopyFromReg(Value *value) : value(value) {}
+};
 
 class ReturnNode : public PatternNodeBase<Pattern::Return, 1> {
 public:
+    ReturnNode() : PatternNodeBase({nullptr}) {}
     ReturnNode(PatternNode *value) : PatternNodeBase({value}) {}
+
+    bool isRetVoid() { return getChild(0) == nullptr; }
+};
+
+class LoadNode : public PatternNodeBase<Pattern::Load, 1> {
+public:
+    LoadNode(PatternNode *value) : PatternNodeBase({value}) {}
+};
+class StoreNode : public PatternNodeBase<Pattern::Store, 2> {
+public:
+    StoreNode(PatternNode *value, PatternNode *addr) : PatternNodeBase({value, addr}) {}
+
+    PatternNode *getValue() { return getChild(0); }
+    PatternNode *getAddr() { return getChild(1); }
+
 };
 
 class OperandList : public PatternNode {
@@ -367,8 +463,40 @@ public:
     Value *getValue() const {
         return value;
     }
-
     void setValue(Value *v) {
+        this->value = v;
+    }
+};
+class ConstantNode : public PatternNode {
+    Value *value;
+public:
+    constexpr static unsigned OPCODE = Pattern::Constant;
+    void *operator new(size_t S) { return PatternNode::operator new(S, 0); }
+    void operator delete(void *Ptr) { return PatternNode::operator delete(Ptr); }
+public:
+    ConstantNode(Value *value) : PatternNode(OPCODE), value(value) {}
+
+    Value *getValue() const {
+        return value;
+    }
+    void setValue(Value *v) {
+        this->value = v;
+    }
+};
+
+class BasicBlock;
+class BlockAddress : public PatternNode {
+    BasicBlock *value;
+public:
+    constexpr static unsigned OPCODE = Pattern::BlockAddress;
+    void *operator new(size_t S) { return PatternNode::operator new(S, 0); }
+    void operator delete(void *Ptr) { return PatternNode::operator delete(Ptr); }
+public:
+    BlockAddress(BasicBlock *value) : PatternNode(OPCODE), value(value) {}
+    BasicBlock *getValue() const {
+        return value;
+    }
+    void setValue(BasicBlock *v) {
         this->value = v;
     }
 };
@@ -378,6 +506,25 @@ public:
     constexpr static unsigned OPCODE = Pattern::Call;
     CallNode() : PatternNode(OPCODE) {}
 
+};
+
+class CondJump : public PatternNodeBase<Pattern::CondJump, 3> {
+public:
+    CondJump(PatternNode *cond, PatternNode *trueTarget, PatternNode *falseTarget) : PatternNodeBase({cond, trueTarget, falseTarget}) {}
+    PatternNode *getCond() { return getChild(0); }
+    PatternNode *getTrueTarget() { return getChild(1); }
+    PatternNode *getFalseTarget() { return getChild(2); }
+};
+class Jump : public PatternNodeBase<Pattern::Jump, 1> {
+public:
+    Jump(PatternNode *target) : PatternNodeBase({target}) {}
+    PatternNode *getTarget() { return getChild(0); }
+};
+
+class RootNode : public PatternNode {
+public:
+    constexpr static unsigned OPCODE = Pattern::Root;
+    RootNode() : PatternNode(OPCODE) {}
 };
 
 #endif //DRAGON_PATTERNNODE_H

@@ -237,6 +237,9 @@ public:
         return iter(list.begin(), ++iterator(lastPhi));
     }
 
+    range_iter instrs() {
+        return iter(list.begin(), list.end());
+    }
     range_iter getInstrs() const {
         if (lastPhi == list.end()) {
             return iter(list.begin(), list.end());

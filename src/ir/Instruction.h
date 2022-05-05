@@ -89,7 +89,10 @@ protected:
         new (&UseElements[size]) Use(user, value);
         return std::unique_ptr<Use[]>(UseElements);
     }
-  public:
+public:
+    using iterator = IterWrapper<Use *, UseOpWrapper<Use, Value>>;
+    using op_range = IterRange<iterator>;
+public:
     Instruction() = delete;
     Instruction(BasicBlock *parent, Opcode opcode);
     Instruction(Opcode opcode) : Instruction(opcode, OpcodeNum[opcode]) {}
@@ -168,6 +171,10 @@ protected:
     IterRange<Use *> operands() const {
         return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
     }
+
+    iterator op_begin() const { return iterator(getTrailingOperand()); }
+    iterator op_end() const { return iterator(getTrailingOperand() + getOperandNum()); }
+    op_range ops() { return op_range(op_begin(), op_end()); }
 
     virtual unsigned getNumSuccessors() const { return 0; }
     virtual BasicBlock *getSuccessor(unsigned i) const { return nullptr; }
@@ -309,7 +316,7 @@ public:
 
     Type *getType() override {
         assert(getVal());
-        return getVal()->getType();
+        return nullptr;
     }
 
     Value *getVal() const {
@@ -590,6 +597,9 @@ public:
         }
         return RetTy();
     }
+    inline RetTy visit(Instruction &inst) {
+        return visit(&inst);
+    }
     RetTy visit(Instruction *inst) {
         switch (inst->getOpcode()) {
 #define DEFINE_OPCODE(NAME, c, CLASS) case Opcode##NAME: \
@@ -600,7 +610,7 @@ public:
             assert(false);
         }
     }
-#define DEFINE_OPCODE(NAME, c, CLASS) RetTy visit##NAME(CLASS *value) { return RetTy(); }
+#define DEFINE_OPCODE(NAME, c, CLASS) virtual RetTy visit##NAME(CLASS *value) { return RetTy(); }
     OPCODE_LIST(DEFINE_OPCODE);
 #undef DEFINE_OPCODE
 };

@@ -7,6 +7,22 @@
 
 #include "PatternNode.h"
 class PatternDAG {
+public:
+    NodeList<PatternNode> allNodes;
+    PatternNode *rootNode = nullptr;
+
+    void setRootNode(const std::vector<PatternNode *> &nodes) {
+        rootNode = PatternNode::createNode<RootNode>(nodes);
+    }
+
+    void setRootNode(PatternNode *node) {
+        rootNode = node;
+        allNodes.push_back(node);
+    }
+
+    PatternNode *getRootNode() {
+        return rootNode;
+    }
 
 };
 

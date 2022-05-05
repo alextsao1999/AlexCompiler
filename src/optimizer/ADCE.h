@@ -11,10 +11,10 @@
 class ADCE : public FunctionPass {
 public:
     std::set<Value *> lives;
-    void runOnFunction(Function *function) override {
+    void runOnFunction(Function &function) override {
         lives.clear();
         std::vector<Instruction *> Worklist;
-        for (auto &BB: *function) {
+        for (auto &BB: function) {
             for (auto &I: BB) {
                 if (I.hasSideEffects()) {
                     Worklist.push_back(&I);
@@ -33,7 +33,7 @@ public:
             }
         }
 
-        function->forEach([&](Instruction *instr) {
+        function.forEach([&](Instruction *instr) {
             if (!isLive(instr)) {
                 instr->eraseFromParent();
             }

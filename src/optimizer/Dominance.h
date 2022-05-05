@@ -16,12 +16,12 @@ public:
     std::vector<BasicBlock *> bbReorder;
     std::map<BasicBlock *, size_t> bbIndex;
 
-    void runOnFunction(Function *function) override {
+    void runOnFunction(Function &function) override {
         visited.clear();
         bbIndex.clear();
         bbReorder.clear();
 
-        auto *EntryBlock = function->getEntryBlock();
+        auto *EntryBlock = function.getEntryBlock();
         assert(EntryBlock);
         // compute reverse post order
         RPO(EntryBlock);

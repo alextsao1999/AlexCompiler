@@ -18,6 +18,8 @@
 #include "LoopSimplify.h"
 #include "Codegen.h"
 #include "SCCP.h"
+#include "PDBuilder.h"
+#include "ARMSelector.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -71,17 +73,13 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
-/*
     auto Module = compileModule(R"(
         int main(int a, int b){
-            int c = a;
-            do {
-                c = c + 1;
-            } while (c < 50);
-            return c;
+            int x = a + b * 2;
+            return x;
         }
     )");
-*/
+
 
     // swap
 /*
@@ -113,19 +111,6 @@ int main(int argc, char **argv) {
         }
     )");
 */
-
-    auto Module = compileModule(R"(
-        int main(int y){
-            int a = y;
-            int b = a + 23;
-            if (b == 0) {
-                a = 1;
-            } else {
-                a = 2;
-            }
-            return a;
-        }
-    )");
 /*
     auto Module = compileModule(R"(
         int main(){
@@ -141,7 +126,7 @@ int main(int argc, char **argv) {
         }
     )");
 */
-    auto *Fun = Module->getFunction("main");
+    auto &Fun = *Module->getFunction("main");
     // Module->dump(std::cout);
     Dominance Dom;
     SSAConstructor Cons;
@@ -155,7 +140,7 @@ int main(int argc, char **argv) {
     Dom.runOnFunction(Fun);
     Cons.runOnFunction(Fun);
     GVN.runOnFunction(Fun);
-    Des.runOnFunction(Fun);
+    //Des.runOnFunction(Fun);
     /*
     BE.runOnFunction(Fun);
     Dom.runOnFunction(Fun);
@@ -163,6 +148,11 @@ int main(int argc, char **argv) {
     LS.runOnFunction(Fun);
     Dom.runOnFunction(Fun);*/
     //SCCP.runOnFunction(Fun);
+
+    PDBuilder PD;
+    PD.runOnFunction(Fun);
+    ARMSelector AS;
+    AS.runOnFunction(Fun);
 
     Module->dump(std::cout);
 

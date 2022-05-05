@@ -20,7 +20,7 @@ public:
 
 class FunctionPass : public Pass {
 public:
-    virtual void runOnFunction(Function *function) = 0;
+    virtual void runOnFunction(Function &function) = 0;
     virtual void initialize(Module *module) {}
     virtual void finalize(Module *module) {}
     void run(Module *module) override;
@@ -28,7 +28,7 @@ public:
 
 class BasicBlockPass : public FunctionPass {
 public:
-    void runOnFunction(Function *function) override;
+    void runOnFunction(Function &function) override;
     virtual void runOnBasicBlock(BasicBlock *basicBlock) = 0;
 };
 
