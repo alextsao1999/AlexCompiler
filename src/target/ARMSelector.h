@@ -26,15 +26,12 @@ public:
 
         constexpr auto ImmOrReg = Imm | IReg;
         constexpr auto AddRR =
-                ret(add(IReg, add(ImmOrReg, ImmOrReg)))
+                ret(add(IReg, add(IReg, Imm)))
                 | ret(add(IReg, mul(ImmOrReg, ImmOrReg)));
 
         SelectContext Ctx;
         auto Res = AddRR(Stack[0], Ctx);
-
-        auto Rule =
-                AddRR(Stack[0], Ctx) >> Emit(Pattern::Add, 1, 2);
-
+        test();
         //Rule.apply(Stack[0], Ctx, block);
         std::cout << Res;
 

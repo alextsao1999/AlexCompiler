@@ -7,6 +7,8 @@
 
 #include "Type.h"
 #include "PatternNode.h"
+#include "MachineInstr.h"
+#include "MachineBlock.h"
 #include <functional>
 namespace Matcher {
     template<bool Cond, typename Then, typename Else>
@@ -75,6 +77,8 @@ namespace Matcher {
     struct join_t<S, set<>>{
         using type = S;
     };
+    template<typename S1, typename S2>
+    using join = typename join_t<S1, S2>::type;
 
     //// get_element
     template <typename S, size_t Index> struct get_element_t {
@@ -101,6 +105,32 @@ namespace Matcher {
     template <typename N, typename E, int Index> struct set_element_t<set<N>, Index, E> {
         using type = std::enable_if_t<Index == 0, set<N>>;
     };
+
+    /// map
+    template<typename S, typename F> struct map_t {};
+    template<typename S, typename F> using map = typename map_t<S, F>::type;
+    template<typename S, typename ...Ts, typename F>
+    struct map_t<set<S, Ts...>, F> {
+        using type = prepend<map<set<Ts...>, F>, typename F::template apply<S>::type>;
+    };
+    template<typename S, typename F>
+    struct map_t<set<S>, F> {
+        using type = set<typename F::template apply<S>::type>;
+    };
+    template<typename F>
+    struct map_t<set<>, F> {
+        using type = set<>;
+    };
+
+    /// for each set
+    template<typename S, typename F> struct for_each_t {
+        using type = S;
+    };
+    template<typename ...Ts, typename F> struct for_each_t<set<Ts...>, F> {
+        using type = set<typename F::template apply<Ts>...>;
+    };
+    template<typename S, typename F>
+    using for_each = typename for_each_t<S, F>::type;
 
     class SelectContext {
     public:
@@ -148,16 +178,18 @@ namespace Matcher {
     constexpr auto operator|(auto lhs, auto rhs) {
         return MatchOpt(lhs, rhs);
     }
-    template<unsigned Opcode, typename T>
+
+    template<typename OpTy, typename T>
     class MatchSelector {
     public:
-        constexpr static unsigned OPCODE = Opcode;
+        constexpr static unsigned OPCODE = OpTy::OPCODE;
+    public:
         T matcher;
         constexpr MatchSelector() = default;
         constexpr MatchSelector(T matcher) : matcher(matcher) {}
 
         constexpr unsigned getOpcode() const {
-            return Opcode;
+            return OPCODE;
         }
 
         constexpr bool match(PatternNode *node, SelectContext &context) const {
@@ -165,10 +197,12 @@ namespace Matcher {
                 std::cout << "The node is null" << std::endl;
                 return false;
             }
-            if (Opcode != Pattern::None && node->getOpcode() != Opcode) {
-                std::cout << "Matching " << Pattern::dump(node->getOpcode()) << " -> " << Pattern::dump(Opcode)
-                          << " not matched" << std::endl;
-                return false;
+            if (OPCODE != Pattern::None) {
+                if (node->getOpcode() != OPCODE) {
+                    std::cout << "Matching " << Pattern::dump(OPCODE) << " for node "
+                              << Pattern::dump(node->getOpcode()) << " not matched" << std::endl;
+                    return false;
+                }
             }
             std::cout << "Matching " << Pattern::dump(node->getOpcode()) << " matched" << std::endl;
             context.enter();
@@ -189,14 +223,9 @@ namespace Matcher {
         constexpr MatchApplier(L matcher, R applier) : matcher(matcher), applier(applier) {}
 
         void apply(PatternNode *node, SelectContext &ctx, MachineBlock &mbb) {
-            if (matcher(node, ctx)) {
-                auto *Instr = applier(ctx);
-                mbb.append(Instr);
-            }
+
         }
     };
-
-
     constexpr auto Emit(unsigned opcode, auto ...args) {
         return [=](SelectContext &ctx) -> MachineInstr * {
             //constexpr int Values[] = {args...};
@@ -209,47 +238,39 @@ namespace Matcher {
             return Instr;
         };
     }
-
     constexpr auto operator>>(auto lhs, auto rhs) {
         return MatchApplier(lhs, rhs);
     }
 
-    /*template<typename T>
-    class Combiner {
+    template<typename ...Arg>
+    class IntSet {
     public:
-        static_assert(false, "Combiner is not implemented");
-        constexpr Combiner() {}
-    };
-    template<typename T>
-    class Combiner<T> {
-
-    };
-    template<unsigned Opcode, typename T, typename ...Args>
-    class Combiner<MatchOpt<MatchSelector<Opcode, T>, Args...>> {
-    public:
-        using CurTy = MatchSelector<Opcode, T>;
-        using OtherTy = MatchOpt<Args...>;
-        using Ty = MatchOpt<CurTy, Args...>;
-        constexpr static unsigned Opcodes[] = {Opcode};
-
-        Ty matcher;
-        constexpr Combiner(Ty matcher) : matcher(matcher) {}
-        void match(PatternNode *node, SelectContext &context) const {
-            //auto M = matcher.matchers.get<CurTy>().matcher;
-
+        std::tuple<Arg...> values;
+        constexpr IntSet(Arg... values) : values(values...) {}
+        constexpr auto operator[](size_t index) const {
+            return std::get<index>(values);
         }
-    };*/
 
-    template<unsigned Opcode>
+        constexpr size_t size() const {
+            return sizeof...(Arg);
+        }
+    };
+    // IntSet append
+    template<typename ...L, typename ...R>
+    constexpr auto operator+(IntSet<L...> lhs, IntSet<R...> rhs) {
+        return IntSet<L..., R...>();
+    }
+
+    template<typename OpTy>
     constexpr auto sel(auto t) {
-        return MatchSelector<Opcode, decltype(t)>(t);
+        return MatchSelector<OpTy, decltype(t)>(t);
     }
     constexpr auto opt(auto ...args) {
         return MatchOpt(args...);
     }
-    template<unsigned Opcode>
+    template<typename OpTy>
     constexpr auto type(MachineType type) {
-        return sel<Opcode>([=](PatternNode *node, SelectContext &context) {
+        return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
             if (node->getType()->getMachineType() == type) {
                 context.push(node);
                 return true;
@@ -259,23 +280,23 @@ namespace Matcher {
         });
     }
     constexpr auto reg(MachineType ty) {
-        return type<Pattern::VirRegister>(ty) | type<Pattern::PhyRegister>(ty) | type<Pattern::CopyFromReg>(ty);
+        return type<VirRegNode>(ty) | type<PhyRegNode>(ty) | type<CopyFromReg>(ty);
     }
     constexpr auto imm(MachineType type) {
-        return sel<Pattern::Constant>([=](PatternNode *node, SelectContext &context) {
+        return sel<ConstantNode>([=](PatternNode *node, SelectContext &context) {
             context.push(node);
             return true;
         });
     }
-    template<unsigned Opcode>
+    template<typename OpTy>
     constexpr auto unary(auto val) {
-        return sel<Opcode>([=](PatternNode *node, SelectContext &context) {
+        return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
             return val(node->getChild(0), context);
         });
     }
-    template<unsigned Opcode>
+    template<typename OpTy>
     constexpr auto bin(auto lhs, auto rhs) {
-        return sel<Opcode>([=](PatternNode *node, SelectContext &context) {
+        return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
             if (!lhs(node->getChild(0), context)) {
                 return false;
             }
@@ -286,29 +307,124 @@ namespace Matcher {
         });
     }
     constexpr auto add(auto lhs, auto rhs) {
-        return bin<Pattern::Add>(lhs, rhs);
+        return bin<AddNode>(lhs, rhs);
     }
     constexpr auto sub(auto lhs, auto rhs) {
-        return bin<Pattern::Sub>(lhs, rhs);
+        return bin<SubNode>(lhs, rhs);
     }
     constexpr auto mul(auto lhs, auto rhs) {
-        return bin<Pattern::Mul>(lhs, rhs);
+        return bin<MulNode>(lhs, rhs);
     }
     constexpr auto div(auto lhs, auto rhs) {
-        return bin<Pattern::Div>(lhs, rhs);
+        return bin<DivNode>(lhs, rhs);
     }
     constexpr auto ret(auto val) {
-        return unary<Pattern::Return>(val);
+        return unary<ReturnNode>(val);
     }
 
     constexpr auto IReg = reg(MachineI32);
     constexpr auto FReg = reg(MachineF32);
     constexpr auto Imm = imm(MachineI32);
 
-    constexpr void test() {
-        constexpr  auto B = Imm | Imm;
-        //constexpr auto A = Combiner(B);
 
+    template<typename T>
+    class OpSetGetter {};
+
+    template<typename OpTy, typename T>
+    class OpSetGetter<MatchSelector<OpTy, T>> {
+    public:
+        using OpSet = set<OpTy>;
+    };
+    template<>
+    class OpSetGetter<MatchOpt<>> {
+    public:
+        using OpSet = set<>;
+    };
+    template<typename Cur, typename ...Args>
+    class OpSetGetter<MatchOpt<Cur, Args...>> {
+    public:
+        using OpSet = join<typename OpSetGetter<Cur>::OpSet, typename OpSetGetter<MatchOpt<Args...>>::OpSet>;
+    };
+    template<typename T>
+    using GetOpSet = typename OpSetGetter<T>::OpSet;
+
+    template<typename MatchOptTy, typename OpTy>
+    struct FindForMatchOpt {};
+    template<typename MatchOpTy, typename OpTy>
+    using find_op = typename FindForMatchOpt<MatchOpTy, OpTy>::type;
+    template<typename OpTy, typename CurOpTy, typename T, typename ...Args>
+    struct FindForMatchOpt<MatchOpt<MatchSelector<CurOpTy, T>, Args...>, OpTy> {
+        using cur_type = MatchSelector<CurOpTy, T>;
+        using others = MatchOpt<Args...>;
+        using type = if_v<std::is_same_v<OpTy, CurOpTy>,
+                prepend<find_op<others, OpTy>, cur_type>,
+                find_op<others, OpTy>>;
+    };
+    template<typename OpTy>
+    struct FindForMatchOpt<MatchOpt<>, OpTy> {
+        ///< not found
+        using type = set<>;
+    };
+
+    template<typename Ty>
+    struct OpTyMapper {
+        template<typename E>
+        struct apply {
+            using type = E;
+        };
+
+        template<typename OpTy, typename T>
+        struct apply<MatchSelector<OpTy, T>> {
+            using type = find_op<Ty, OpTy>;
+        };
+    };
+
+    template<typename T>
+    class Combiner {
+    public:
+        //static_assert(false, "Combiner is not implemented");
+        constexpr Combiner() {}
+    };
+    template<>
+    class Combiner<MatchOpt<>> {
+    public:
+        using OpSet = set<>;
+    };
+    template<typename OpTy, typename T, typename ...Args>
+    class Combiner<MatchOpt<MatchSelector<OpTy, T>, Args...>> {
+    public:
+        using CurTy = MatchSelector<OpTy, T>;
+        using CurOpSet = GetOpSet<CurTy>;
+        using OtherOptTy = MatchOpt<Args...>;
+        using OtherOpSet = typename OpSetGetter<OtherOptTy>::OpSet;
+        using Ty = MatchOpt<CurTy, Args...>;
+        using OpSet = join<CurOpSet, OtherOpSet>;
+        using Matcher = map<OpSet, OpTyMapper<Ty>>;
+        Ty matcher;
+        constexpr Combiner(Ty matcher) : matcher(matcher) {}
+        void match(PatternNode *node, SelectContext &context) const {
+            //auto M = matcher.matchers.get<CurTy>().matcher;
+        }
+    };
+    template<typename ...Opts, typename ...Args>
+    class Combiner<MatchOpt<MatchOpt<Opts...>, Args...>> {
+    public:
+        using CurTy = MatchOpt<Opts...>;
+        using OtherOptTy = MatchOpt<Args...>;
+        using OtherOptSet = typename Combiner<OtherOptTy>::OpSet;
+        using Ty = MatchOpt<CurTy, Args...>;
+        using OpSet = join<GetOpSet<CurTy>, OtherOptSet>;
+    };
+
+    constexpr auto combine(auto opt) {
+        return Combiner<decltype(opt)>(opt);
+    }
+    void test() {
+        constexpr auto B = Imm | Imm;
+        constexpr auto A = combine(B);
+
+        std::cout << typeid(A).name() << std::endl;
+        std::cout << typeid(decltype(A)).name() << std::endl;
 
     }
 
