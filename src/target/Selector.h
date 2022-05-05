@@ -34,6 +34,7 @@ namespace Matcher {
     template<typename ...T, typename E> struct contains_t<set<T...>, E> {
         constexpr static bool value = (std::is_same<E, T>::value || ... || false);
     };
+    template<typename S, typename E> constexpr bool contains = contains_t<S, E>::value;
 
     //// append
     template<typename S, typename E, bool = contains_t<S, E>::value> struct add_t {
@@ -166,6 +167,12 @@ namespace Matcher {
                 return (args(node, context) || ...);
             }, matchers);
         }
+
+        /// get
+        template<typename T>
+        constexpr auto get() const {
+            return std::get<T>(matchers);
+        }
     };
 
     class MatchEpsilon {
@@ -182,7 +189,9 @@ namespace Matcher {
     template<typename OpTy, typename T>
     class MatchSelector {
     public:
+        using Op = OpTy;
         constexpr static unsigned OPCODE = OpTy::OPCODE;
+        constexpr static Pattern::Opcode OPC = (Pattern::Opcode) OPCODE;
     public:
         T matcher;
         constexpr MatchSelector() = default;
@@ -240,25 +249,6 @@ namespace Matcher {
     }
     constexpr auto operator>>(auto lhs, auto rhs) {
         return MatchApplier(lhs, rhs);
-    }
-
-    template<typename ...Arg>
-    class IntSet {
-    public:
-        std::tuple<Arg...> values;
-        constexpr IntSet(Arg... values) : values(values...) {}
-        constexpr auto operator[](size_t index) const {
-            return std::get<index>(values);
-        }
-
-        constexpr size_t size() const {
-            return sizeof...(Arg);
-        }
-    };
-    // IntSet append
-    template<typename ...L, typename ...R>
-    constexpr auto operator+(IntSet<L...> lhs, IntSet<R...> rhs) {
-        return IntSet<L..., R...>();
     }
 
     template<typename OpTy>
@@ -326,27 +316,31 @@ namespace Matcher {
     constexpr auto FReg = reg(MachineF32);
     constexpr auto Imm = imm(MachineI32);
 
-
     template<typename T>
     class OpSetGetter {};
-
-    template<typename OpTy, typename T>
-    class OpSetGetter<MatchSelector<OpTy, T>> {
-    public:
-        using OpSet = set<OpTy>;
-    };
-    template<>
-    class OpSetGetter<MatchOpt<>> {
-    public:
-        using OpSet = set<>;
+    template<typename T>
+    using get_opset = typename OpSetGetter<T>::opset;
+    template<typename OpTy, typename T> struct OpSetGetter<MatchSelector<OpTy, T>> {
+        ///< get opset for MatchSelector
+        using opset = set<OpTy>;
     };
     template<typename Cur, typename ...Args>
-    class OpSetGetter<MatchOpt<Cur, Args...>> {
-    public:
-        using OpSet = join<typename OpSetGetter<Cur>::OpSet, typename OpSetGetter<MatchOpt<Args...>>::OpSet>;
+    struct OpSetGetter<MatchOpt<Cur, Args...>> {
+        ///< get opset for MatchOpt
+        using opset = join<get_opset<Cur>, get_opset<MatchOpt<Args...>>>;
     };
-    template<typename T>
-    using GetOpSet = typename OpSetGetter<T>::OpSet;
+    template<> struct OpSetGetter<MatchOpt<>> {
+        ///< get opset for MatchOpt
+        using opset = set<>;
+    };
+    template<typename T, typename ...Ts> struct OpSetGetter<set<T, Ts...>> {
+        ///< get opset for set of selector
+        using opset = join<get_opset<T>, get_opset<set<Ts...>>>;
+    };
+    template<> struct OpSetGetter<set<>> {
+        ///< get opset for set of selector
+        using opset = set<>;
+    };
 
     template<typename MatchOptTy, typename OpTy>
     struct FindForMatchOpt {};
@@ -366,65 +360,159 @@ namespace Matcher {
         using type = set<>;
     };
 
-    template<typename Ty>
-    struct OpTyMapper {
-        template<typename E>
-        struct apply {
-            using type = E;
-        };
+    template<typename SelTy, typename OpTy>
+    struct FindSelectorForOp {};
+    template<typename SelTy, typename OpTy>
+    using find_sel = typename FindSelectorForOp<SelTy, OpTy>::selset;
+    template<typename T, typename ...Ts, typename OpTy>
+    struct FindSelectorForOp<MatchOpt<T, Ts...>, OpTy> {
+        using selset = join<find_sel<T, OpTy>, find_sel<MatchOpt<Ts...>, OpTy>>;
+    };
+    template<typename OpTy>
+    struct FindSelectorForOp<MatchOpt<>, OpTy> {
+        using selset = set<>;
+    };
+    template<typename CurOpTy, typename T>
+    struct FindSelectorForOp<MatchSelector<CurOpTy, T>, CurOpTy> {
+        using selset = set<MatchSelector<CurOpTy, T>>;
+    };
+    template<typename CurOpTy, typename T, typename OpTy>
+    struct FindSelectorForOp<MatchSelector<CurOpTy, T>, OpTy> {
+        using selset = if_v<std::is_same_v<OpTy, CurOpTy>,
+                set<MatchSelector<CurOpTy, T>>,
+                set<>>;
+    };
 
-        template<typename OpTy, typename T>
-        struct apply<MatchSelector<OpTy, T>> {
-            using type = find_op<Ty, OpTy>;
+    template<typename Ty> struct OpToSelMapper {
+        // Ty -> SelTy
+        template<typename Op> struct apply {
+            using type = find_sel<Ty, Op>;
         };
     };
 
-    template<typename T>
+    template<typename Ty, typename CurTy = Ty>
     class Combiner {
     public:
-        //static_assert(false, "Combiner is not implemented");
         constexpr Combiner() {}
     };
-    template<>
-    class Combiner<MatchOpt<>> {
+    template<typename Ty>
+    class Combiner<Ty, MatchOpt<>> {
     public:
         using OpSet = set<>;
     };
-    template<typename OpTy, typename T, typename ...Args>
-    class Combiner<MatchOpt<MatchSelector<OpTy, T>, Args...>> {
+    template<typename Ty, typename OpTy, typename T, typename ...Args>
+    class Combiner<Ty, MatchOpt<MatchSelector<OpTy, T>, Args...>> {
     public:
-        using CurTy = MatchSelector<OpTy, T>;
-        using CurOpSet = GetOpSet<CurTy>;
-        using OtherOptTy = MatchOpt<Args...>;
-        using OtherOpSet = typename OpSetGetter<OtherOptTy>::OpSet;
-        using Ty = MatchOpt<CurTy, Args...>;
-        using OpSet = join<CurOpSet, OtherOpSet>;
-        using Matcher = map<OpSet, OpTyMapper<Ty>>;
+        using CurTy = MatchOpt<MatchSelector<OpTy, T>, Args...>;
+        using OpSet = get_opset<CurTy>;
+        using Matcher = map<OpSet, OpToSelMapper<Ty>>;
         Ty matcher;
         constexpr Combiner(Ty matcher) : matcher(matcher) {}
-        void match(PatternNode *node, SelectContext &context) const {
-            //auto M = matcher.matchers.get<CurTy>().matcher;
+        constexpr auto operator()(auto lhs, auto rhs) {
+            return matcher(lhs, rhs);
         }
     };
-    template<typename ...Opts, typename ...Args>
-    class Combiner<MatchOpt<MatchOpt<Opts...>, Args...>> {
+    template<typename Ty, typename ...Opts, typename ...Args>
+    class Combiner<Ty, MatchOpt<MatchOpt<Opts...>, Args...>> {
     public:
         using CurTy = MatchOpt<Opts...>;
         using OtherOptTy = MatchOpt<Args...>;
         using OtherOptSet = typename Combiner<OtherOptTy>::OpSet;
-        using Ty = MatchOpt<CurTy, Args...>;
-        using OpSet = join<GetOpSet<CurTy>, OtherOptSet>;
+        using OpSet = join<get_opset<CurTy>, OtherOptSet>;
+        using Matcher = map<OpSet, OpToSelMapper<Ty>>;
+        Ty matcher;
+        constexpr Combiner(Ty matcher) : matcher(matcher) {}
     };
 
+    template<typename T>
+    using get_matcher = map<get_opset<T>, OpToSelMapper<T>>;
+
+    template<typename T, typename SelTy, typename ...>
+    struct SelectorHelper {};
+    template<typename SelTy, typename T, typename ...Ts>
+    struct SelectorHelper<MatchOpt<T, Ts...>, SelTy> {
+        using type = MatchOpt<T, Ts...>;
+        inline static SelTy get(type val) {
+            return SelectorHelper<type, SelTy, Ts...>::get(val);
+        }
+    };
+    template<typename T, typename SelTy, typename CurOpTy, typename CurT, typename ...Ts>
+    struct SelectorHelper<T, SelTy, MatchSelector<CurOpTy, CurT>, Ts...> {
+        using CurTy = MatchSelector<CurOpTy, CurT>;
+        inline static SelTy get(T val) {
+            if (std::is_same_v<SelTy, CurTy>) {
+                return val.template get<SelTy>();
+            }
+            return SelectorHelper<T, SelTy, Ts...>::get(val);
+        }
+    };
+    template<typename T, typename SelTy, typename ...Es, typename ...Ts>
+    struct SelectorHelper<T, SelTy, MatchOpt<Es...>, Ts...> {
+        using CurTy = MatchOpt<Es...>;
+        inline static SelTy get(T val) {
+            if(contains<get_opset<CurTy>, typename SelTy::Op>) {
+                return SelectorHelper<CurTy, SelTy>::get(val.template get<CurTy>());
+            }
+            return SelectorHelper<T, SelTy, Ts...>::get(val);
+        }
+    };
+
+    template<typename T>
+    constexpr auto get_selector(auto val) {
+        return SelectorHelper<decltype(val), T>::get(val);
+    }
     constexpr auto combine(auto opt) {
         return Combiner<decltype(opt)>(opt);
     }
-    void test() {
-        constexpr auto B = Imm | Imm;
-        constexpr auto A = combine(B);
 
-        std::cout << typeid(A).name() << std::endl;
-        std::cout << typeid(decltype(A)).name() << std::endl;
+    inline void test() {
+        //constexpr auto A = combine(add(Imm, Imm) | add(IReg, Imm));
+        /*constexpr auto A = combine(add(Imm, Imm) | ret(IReg));
+        std::cout << typeid(get_element<decltype(A)::Matcher, 0>).name() << std::endl;
+        std::cout << Pattern::dump(get_element<get_element<decltype(A)::Matcher, 0>, 0>::OPCODE) << std::endl;*/
+
+        //find_sel<>
+
+
+        /*constexpr auto A = add(Imm, Imm) | add(IReg, IReg) | add(IReg, Imm) | add(Imm, IReg) | ret(IReg) | ret(Imm);
+        constexpr auto C = combine(A);
+        using T = decltype(C)::Matcher;
+        std::cout << typeid(T).name() << std::endl;
+        using TT = get_element<T, 0>;
+        using F = get_element<TT, 0>; // MatchSelector
+        auto S = get_selector<F>(A);
+        std::cout << Pattern::dump(get_element<TT, 0>::OPCODE) << std::endl;*/
+
+        constexpr auto A = add(IReg, IReg);
+
+        using AT = decltype(A);
+        std::cout << typeid(AT).name() << std::endl;
+        //using Sel = FindSelectorForOp<decltype(A), AddNode>::selset;
+
+
+        using Sel = find_sel<AT, AddNode>;
+
+        std::cout << typeid(Sel).name() << std::endl;
+
+        std::cout << std::endl << std::endl;
+
+
+        //using Opset = get_matcher<decltype(A)>;
+
+
+        //using matcher = get_matcher<T>;
+        //std::cout << typeid(get_element<T, 0>).name() << std::endl;
+
+
+        /*using T = get_matcher<decltype(A)>;
+        using Add = get_element<T, 0>;
+
+        std::cout << typeid(get_element<Add, 0>).name() << std::endl;
+        std::cout << typeid(get_element<Add, 1>).name() << std::endl;
+
+        auto add = get_selector<get_element<Add, 0>>(A);*/
+
+        //std::cout << typeid(get_opset<decltype(A)>).name() << std::endl;
 
     }
 
