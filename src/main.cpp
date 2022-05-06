@@ -19,7 +19,7 @@
 #include "Codegen.h"
 #include "SCCP.h"
 #include "PDBuilder.h"
-#include "ARMSelector.h"
+#include "Lowering.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -151,7 +151,7 @@ int main(int argc, char **argv) {
 
     PDBuilder PD;
     PD.runOnFunction(Fun);
-    ARMSelector AS;
+    Lowering AS;
     AS.runOnFunction(Fun);
 
     Module->dump(std::cout);

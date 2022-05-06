@@ -107,6 +107,7 @@ protected:
     // override new
     void *operator new(size_t size, size_t useSize);
 public:
+    static constexpr unsigned OPCODE = Pattern::None;
     // override delete
     void operator delete(void *p);
     static PatternNode *New(unsigned opcode, unsigned numOperands) {
@@ -402,8 +403,10 @@ public:
 };
 class VirRegNode : public PatternNodeBase<Pattern::VirRegister, 1> {
 public:
+    int regId = 0;
     VirRegNode(PatternNode *child) : PatternNodeBase({child}) {}
     PatternNode *getNode() { return getChild(0); }
+    unsigned getRegId() const { return regId; }
 };
 
 class CopyFromReg : public PatternNodeBase<Pattern::CopyFromReg, 0> {

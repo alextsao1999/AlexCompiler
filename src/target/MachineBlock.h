@@ -10,7 +10,8 @@
 #include "MachineInstr.h"
 #include "PatternDAG.h"
 class BasicBlock;
-class MachineBlock : public NodeParent<MachineBlock, MachineInstr>, public Node<MachineBlock> {
+
+class MachineBlock : public NodeParent<MachineBlock, MachineInstr, ListAllocTrait<MachineInstr>>, public Node<MachineBlock> {
 public:
     std::string name;
     BasicBlock *origin;
@@ -28,6 +29,38 @@ public:
 
     void setRootNode(PatternNode *node) { this->rootNode = node; }
     PatternNode *getRootNode() { return rootNode; }
+
+    void append(MachineInstr *instr) {
+        list.push_back(instr);
+    }
+};
+
+
+class MIBuilder {
+public:
+    MachineBlock &block;
+    MachineInstr *instr;
+    MIBuilder(MachineBlock &block) : block(block) {
+        instr = new MachineInstr();
+    }
+    ~MIBuilder() {
+        block.append(instr);
+    }
+
+    MIBuilder &setOpcode(unsigned opcode) {
+        instr->opcode = opcode;
+        return *this;
+    }
+
+    MIBuilder &addReg(unsigned reg) {
+        //instr->operands.push_back(0);
+        return *this;
+    }
+
+    MIBuilder &addImm(int imm) {
+        //instr->operands.push_back(1);
+        return *this;
+    }
 
 };
 
