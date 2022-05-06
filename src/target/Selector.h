@@ -129,6 +129,12 @@ namespace Matcher {
 
     class SelectContext {
     public:
+        Context *context;
+        SelectContext(Context *context) : context(context) {}
+
+        Context *getContext() {
+            return context;
+        }
         std::vector<PatternNode *> nodes;
         std::vector<std::vector<PatternNode *>> scopes;
         void clear() {
@@ -222,6 +228,43 @@ namespace Matcher {
         }
         constexpr auto operator()(PatternNode *node, SelectContext& context) const {
             return match(node, context);
+        }
+    };
+    template<typename OpTy, typename ...Args>
+    class MatchNode {
+    public:
+        using Op = OpTy;
+        constexpr static unsigned OPCODE = OpTy::OPCODE;
+        constexpr static Pattern::Opcode OPC = (Pattern::Opcode) OPCODE;
+    public:
+        using Ty = std::tuple<Args...>;
+        template<size_t Index, typename ...Es>
+        struct MatchNodeHelper {
+            inline static constexpr bool match(Ty children, PatternNode *node, SelectContext &context) {
+                return true;
+            }
+        };
+        template<size_t Index, typename E, typename ...Es>
+        struct MatchNodeHelper<Index, E, Es...> {
+            inline static constexpr bool match(Ty children, PatternNode *node, SelectContext &context) {
+                if (auto *Child = node->getChild(Index)) {
+                    auto M = std::get<Index>(children);
+                    if (!M(Child, context)) {
+                        return false;
+                    }
+                    return MatchNodeHelper<Index + 1, Es...>::match(children, node, context);
+                }
+                assert("The node is null" && false);
+                return false;
+            }
+        };
+        std::tuple<Args...> childrens;
+        constexpr MatchNode(Args... matchers) : childrens(matchers...) {}
+        constexpr auto operator()(PatternNode *node, SelectContext& context) const {
+            return match(node, context);
+        }
+        inline constexpr bool match(PatternNode *node, SelectContext& context) const {
+            return MatchNodeHelper<0, Args...>::match(childrens, node, context);
         }
     };
 
@@ -347,7 +390,13 @@ namespace Matcher {
         return unary<ReturnNode>(val);
     }
 
-    template<size_t Index = 0, typename ...Args>
+    constexpr auto same(int index) {
+        return sel<PatternNode>([=](PatternNode *node, SelectContext &context) {
+            return context[index] == node;
+        });
+    }
+
+    /*template<size_t Index = 0, typename ...Args>
     struct MatchHelper {
         constexpr static inline bool match(auto tuple, PatternNode *node, SelectContext &context) {
             return true;
@@ -369,6 +418,10 @@ namespace Matcher {
         return sel<Node>([=](PatternNode *node, SelectContext &context) {
             return MatchHelper<0, Args...>::match(Tuple, node, context);
         });
+    }*/
+    template<typename Node, typename ...Args>
+    constexpr auto rule(Args...args) {
+        return MatchNode<Node, Args...>(args...);
     }
 
     constexpr auto IReg = reg(MachineI32);
@@ -389,6 +442,10 @@ namespace Matcher {
     using get_opset = tune_opset<typename OpSetGetter<std::remove_const_t<T>>::opset>;
     template<typename OpTy, typename T> struct OpSetGetter<MatchSelector<OpTy, T>> {
         ///< get opset for MatchSelector
+        using opset = set<OpTy>;
+    };
+    template<typename OpTy, typename ...Ts> struct OpSetGetter<MatchNode<OpTy, Ts...>> {
+        ///< get opset for MatchNode
         using opset = set<OpTy>;
     };
     template<typename Cur, typename ...Args>
@@ -445,7 +502,14 @@ namespace Matcher {
                 set<MatchSelector<CurOpTy, T>>,
                 set<>>;
     };
+    template<typename CurOpTy, typename ...Ts, typename OpTy>
+    struct FindSelectorForOp<MatchNode<CurOpTy, Ts...>, OpTy> {
+        using selset = if_v<std::is_same_v<OpTy, CurOpTy>,
+                set<MatchNode<CurOpTy, Ts...>>,
+                set<>>;
+    };
 
+    ///< This helper class is used to get the selector value whose type is SelTy
     template<typename T, typename SelTy, size_t Index = 0, typename ...>
     struct SelectorHelper {};
     template<typename SelTy, size_t Index, typename ...Ts>
@@ -455,9 +519,28 @@ namespace Matcher {
             return SelectorHelper<T, SelTy, 0, Ts...>::get(val);
         }
     };
+    template<typename T, typename SelTy, size_t Index, typename ...Es, typename ...Ts>
+    struct SelectorHelper<T, SelTy, Index, MatchOpt<Es...>, Ts...> {
+        using CurTy = MatchOpt<Es...>;
+        template<typename ...Args>
+        constexpr inline static SelTy get(MatchOpt<Args...> val) {
+            if constexpr (contains<find_sel<CurTy, typename SelTy::Op>, SelTy>) {
+                return SelectorHelper<CurTy, SelTy>::get(std::get<Index>(val.matchers));
+            }
+            return SelectorHelper<T, SelTy, Index + 1, Ts...>::get(val);
+        }
+    };
     template<typename SelTy, size_t Index, typename OpTy, typename T>
     struct SelectorHelper<MatchSelector<OpTy, T>, SelTy, Index> {
         using type = MatchSelector<OpTy, T>;
+        constexpr inline static SelTy get(type val) {
+            static_assert(std::is_same_v<SelTy, type>, "Selector type mismatch");
+            return val;
+        }
+    };
+    template<typename SelTy, size_t Index, typename OpTy, typename ...Ts>
+    struct SelectorHelper<MatchNode<OpTy, Ts...>, SelTy, Index> {
+        using type = MatchNode<OpTy, Ts...>;
         constexpr inline static SelTy get(type val) {
             static_assert(std::is_same_v<SelTy, type>, "Selector type mismatch");
             return val;
@@ -474,18 +557,19 @@ namespace Matcher {
             return SelectorHelper<T, SelTy, Index + 1, Ts...>::get(val);
         }
     };
-    template<typename T, typename SelTy, size_t Index, typename ...Es, typename ...Ts>
-    struct SelectorHelper<T, SelTy, Index, MatchOpt<Es...>, Ts...> {
-        using CurTy = MatchOpt<Es...>;
+    template<typename T, typename SelTy, size_t Index, typename CurOpTy, typename ...CurTs, typename ...Ts>
+    struct SelectorHelper<T, SelTy, Index, MatchNode<CurOpTy, CurTs...>, Ts...> {
+        using CurTy = MatchNode<CurOpTy, CurTs...>;
         template<typename ...Args>
         constexpr inline static SelTy get(MatchOpt<Args...> val) {
-            if constexpr (contains<find_sel<CurTy, typename SelTy::Op>, SelTy>) {
-                return SelectorHelper<CurTy, SelTy>::get(std::get<Index>(val.matchers));
+            if constexpr (std::is_same_v<SelTy, CurTy>) {
+                return std::get<Index>(val.matchers);
             }
             return SelectorHelper<T, SelTy, Index + 1, Ts...>::get(val);
         }
     };
 
+    ///< The helper class is used to call the matching function for the selector value by specifying op/opset.
     template<typename OpTy, typename T, typename = find_sel<T, OpTy>>
     struct SelMatchForOpHelper {
         constexpr inline static auto match(T val, PatternNode *node, SelectContext &ctx) {
@@ -592,7 +676,7 @@ namespace Matcher {
         //constexpr auto C = SelectorHelper<AT, AddRR1>::get(A);
 
         //SelMatchForOpHelper<AddNode>::
-        SelectContext Ctx;
+        //SelectContext Ctx;
         //match_for_op<AddNode>(A, nullptr, Ctx);
         //std::cout << Pattern::dump(C.OPCODE) << std::endl;
 

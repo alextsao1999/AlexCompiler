@@ -20,6 +20,7 @@
 #include "SCCP.h"
 #include "PDBuilder.h"
 #include "Lowering.h"
+#include "Liveness.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -150,9 +151,11 @@ int main(int argc, char **argv) {
     //SCCP.runOnFunction(Fun);
 
     PDBuilder PD;
-    PD.runOnFunction(Fun);
     Lowering AS;
+    Liveness LV;
+    PD.runOnFunction(Fun);
     AS.runOnFunction(Fun);
+    LV.runOnFunction(Fun);
 
     Module->dump(std::cout);
 

@@ -6,7 +6,7 @@
 #define DRAGON_LIVENESS_H
 
 #include "MachinePass.h"
-class Liveness : public MachineBlockPass {
+class Liveness : public MachinePass {
 public:
     using BlockSet = std::unordered_map<MachineBlock *, std::set<PatternNode *>>;
     BlockSet liveKills;
@@ -19,21 +19,21 @@ public:
 
     void computeLocalLiveness(Function *func) {
         for (auto &MBB: func->blocks) {
-            auto &liveGen = liveGens[&MBB];
-            auto &liveKill = liveKills[&MBB];
-            for (auto &inst: MBB.instrs()) {
-                /*for (auto &use: inst.getUses()) {
-                    if (use->isVirReg() || use->isArgument()) {
-                        if (!liveKill.count(use)) {
-                            liveGen.insert(use);
+            auto &LiveGen = liveGens[&MBB];
+            auto &LiveKill = liveKills[&MBB];
+            for (auto &Inst: MBB.instrs()) {
+                for (auto &Use: Inst.op()) {
+                    if (Use.isVirReg()) {
+                        if (!LiveKill.count(Use.getOrigin())) {
+                            LiveGen.insert(Use.getOrigin());
                         }
                     }
                 }
-                if (auto *Def = inst.getDef()) {
-                    if (Def->isVirReg() || Def->isArgument()) {
-                        liveKill.insert(Def);
+                for (auto &Def : Inst.defs()){
+                    if (Def.isVirReg()) {
+                        LiveKill.insert(Def.getOrigin());
                     }
-                }*/
+                }
             }
         }
     }
@@ -63,18 +63,14 @@ public:
         } while (Changed);
     }
 
-    /*void dump(Function *function) {
-        for (auto &MBB: function->MBBs) {
-            std::cout << MBB->name << ":" << std::endl;
-            std::cout << "Preds:" << MBB->preds << std::endl;
-            std::cout << "Succs:" << MBB->succs << std::endl;
-            dump_os(MBB->liveOutSet, [](PatternTree *node) -> auto & {
-                return node->pretty(std::cout);
-            });
+    void dump(Function *function) {
+        for (auto &MBB: function->blocks) {
+            std::cout << MBB.name << ":" << std::endl;
+            std::cout << "Preds:" << dump_str(MBB.preds, [](MachineBlock *mbb) { return mbb->name; }) << std::endl;
+            std::cout << "Succs:" << dump_str(MBB.succs, [](MachineBlock *mbb) { return mbb->name; }) << std::endl;
             std::cout << std::endl;
         }
-    }*/
+    }
 };
-
 
 #endif //DRAGON_LIVENESS_H

@@ -29,7 +29,7 @@ class Param : public Value {
     Type *type;
 public:
     Param() : type(nullptr) {}
-    Param(std::string_view name, Type *type) : name(name), type(type) {
+    Param(StrView name, Type *type) : name(name), type(type) {
         incRef();
     }
 

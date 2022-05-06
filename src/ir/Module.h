@@ -15,9 +15,9 @@
 class Context;
 class Module : public NodeParent<Module, Function> {
 public:
-    explicit Module(std::string_view name, Context &context) : name(name), context(&context) {}
+    explicit Module(StrView name, Context &context) : name(name), context(&context) {}
 
-    inline Function *createFunction(std::string_view fn, Type *type) {
+    inline Function *createFunction(StrView fn, Type *type) {
         Function *F = new Function(this, fn, type);
         append(F);
         functions.emplace(fn, F);

@@ -20,12 +20,19 @@ public:
 
     virtual bool doApplyRule(PatternNode *node, SelectContext &ctx, MachineBlock &block) {
         constexpr auto ImmOrReg = Imm | IReg;
+        constexpr auto RegAlloc = sel<PatternNode>([](PatternNode *node, SelectContext &ctx) {
+            if (node->getType() == ctx.getContext()->getInt32Ty()) {
+                node->replaceWith(new VirRegNode(node));
+                return true;
+            }
+            return false;
+        });
         constexpr auto Rule =
                 add(IReg, Imm)
                 | add(IReg, IReg)
                 | sub(IReg, Imm)
-                | sub(IReg, IReg)
-                ;
+                | sub(IReg, same(0))
+                | ret(RegAlloc);
 
         /*constexpr auto Rule =
                 add(IReg, Imm) > Emit(Pattern::Add, 0, 2)
@@ -44,7 +51,7 @@ public:
         std::vector<PatternNode *> Stack;
         Stack.insert(Stack.begin(), RootNode->op_begin(), RootNode->op_end());
 
-        SelectContext Ctx;
+        SelectContext Ctx(block.getOrigin()->getContext());
         while (!Stack.empty()) {
             auto *Node = Stack.back();
             Stack.pop_back();

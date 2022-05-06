@@ -5,7 +5,7 @@
 #include "BasicBlock.h"
 #include "Function.h"
 
-BasicBlock *BasicBlock::Create(Function *parent, std::string_view name) {
+BasicBlock *BasicBlock::Create(Function *parent, StrView name) {
     assert(parent);
     return new BasicBlock(parent, name);
 }
@@ -22,7 +22,7 @@ SymbolTable *BasicBlock::getSymbolTable() const {
     return nullptr;
 }
 
-BasicBlock::BasicBlock(Function *parent, std::string_view name)
+BasicBlock::BasicBlock(Function *parent, StrView name)
     : NodeWithParent(parent), name(name) {
     if (auto *ST = getSymbolTable()) {
         // FIXME: Just for allocating count ahead of time

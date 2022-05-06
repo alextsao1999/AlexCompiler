@@ -13,7 +13,7 @@ class Function;
 class BasicBlock : public Value, public NodeWithParent<BasicBlock, Function>, public NodeParent<BasicBlock, Instruction> {
     friend class Dominance;
 public:
-    static BasicBlock *Create(Function *parent, std::string_view name);
+    static BasicBlock *Create(Function *parent, StrView name);
     template<typename BBTy, typename UseIt>
     class PredIter {
     public:
@@ -133,8 +133,8 @@ public:
     using range_iter_phi = IterRange<iterator_phi>;
 public:
     explicit BasicBlock() {}
-    explicit BasicBlock(std::string_view name) : name(name) {}
-    explicit BasicBlock(Function *parent, std::string_view name);
+    explicit BasicBlock(StrView name) : name(name) {}
+    explicit BasicBlock(Function *parent, StrView name);
 
     // FIXME: It's for debug now.
     unsigned count = 0;

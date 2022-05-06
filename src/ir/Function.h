@@ -12,15 +12,16 @@
 #include <Type.h>
 #include <LoopInfo.h>
 #include <MachineBlock.h>
+#include <Target.h>
 class Module;
 class Type;
 class Function : public Value, public NodeParent<Function, BasicBlock>, public NodeWithParent<Function, Module> {
 public:
-    static Function *Create(Module *module, std::string_view name, Type *type);
-    static Function *Create(std::string_view name, Type *type);
+    static Function *Create(Module *module, StrView name, Type *type);
+    static Function *Create(StrView name, Type *type);
 public:
-    Function(Module *parent, std::string_view name, Type *ft);
-    Function(std::string_view name, Type *ft) : name(name), type(ft) {}
+    Function(Module *parent, StrView name, Type *ft);
+    Function(StrView name, Type *ft) : name(name), type(ft) {}
 
     const std::string &getName() const {
         return name;
@@ -38,7 +39,7 @@ public:
         return type;
     }
 
-    Module *getModule() const {
+    inline Module *getModule() const {
         return module;
     }
 
@@ -78,8 +79,10 @@ public:
         return BB;
     }
 
-    Param *addParam(std::string_view paramName, Type *paramType) {
-        return params.emplace_back(new Param(paramName, paramType)).get();
+    Param *addParam(StrView paramName, Type *paramType) {
+        auto *P = new Param(paramName, paramType);
+        params.emplace_back(P);
+        return P;
     }
 
     Param *getParam(unsigned index) {
@@ -180,6 +183,10 @@ public:
         return nullptr;
     }
 
+    TargetInfo *getTargetInfo() {
+        return nullptr;
+    }
+
     ///< function loops
     std::list<Loop> loops;
 private:
@@ -203,6 +210,7 @@ public:
     ///< machine blocks
     NodeList<MachineBlock> blocks;
     std::map<BasicBlock *, MachineBlock *> mapBlocks;
+    std::map<PatternNode *, std::set<Operand *>> mapOperands;
     PatternDAG dag;
 };
 

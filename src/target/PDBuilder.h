@@ -61,6 +61,7 @@ public:
     template<typename T, typename ...Args>
     T *newNode(Value *val, Args &&...args) {
         auto *Node = new T(std::forward<Args>(args)...);
+        Node->setType(val->getType());
         curFunc->dag.allNodes.push_back(Node);
         mapValueToNode[val] = Node;
         return Node;
@@ -104,6 +105,7 @@ public:
         auto *RHS = visit(value->getRHS());
         Node->setChild(0, LHS);
         Node->setChild(1, RHS);
+        Node->setType(value->getType());
         return Node;
     }
 

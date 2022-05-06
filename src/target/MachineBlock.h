@@ -9,10 +9,12 @@
 #include "Node.h"
 #include "MachineInstr.h"
 #include "PatternDAG.h"
+class Function;
 class BasicBlock;
 
 class MachineBlock : public NodeParent<MachineBlock, MachineInstr, ListAllocTrait<MachineInstr>>, public Node<MachineBlock> {
 public:
+    unsigned level = 0;
     std::string name;
     BasicBlock *origin;
     std::vector<MachineBlock *> preds;
@@ -20,8 +22,15 @@ public:
     std::set<PatternNode *> liveInSet;
     std::set<PatternNode *> liveOutSet;
     PatternNode *rootNode = nullptr;
+public:
     MachineBlock(const std::string &name, BasicBlock *origin) : name(name), origin(origin) {}
+
+    const std::string &getName() const {
+        return name;
+    }
+    ///< Origin of the block
     BasicBlock *getOrigin() { return origin; }
+    Function *getFunction();
 
     auto instrs() { return iter(begin(), end()); }
     iterator begin() { return list.begin(); }
@@ -30,9 +39,9 @@ public:
     void setRootNode(PatternNode *node) { this->rootNode = node; }
     PatternNode *getRootNode() { return rootNode; }
 
-    void append(MachineInstr *instr) {
-        list.push_back(instr);
-    }
+    void append(MachineInstr *instr);
+    void remove(MachineInstr *instr);
+
 };
 
 
@@ -52,13 +61,18 @@ public:
         return *this;
     }
 
-    MIBuilder &addReg(unsigned reg) {
-        //instr->operands.push_back(0);
+    MIBuilder &addOp(Operand op) {
+        instr->operands.emplace_back(new Operand(op));
         return *this;
     }
 
-    MIBuilder &addImm(int imm) {
-        //instr->operands.push_back(1);
+    MIBuilder &addOp(PatternNode *node) {
+        instr->operands.emplace_back(new Operand(Operand::from(node)));
+        return *this;
+    }
+
+    MIBuilder &addImm(int64_t imm) {
+        instr->operands.emplace_back(new Operand(Operand::imm(imm)));
         return *this;
     }
 

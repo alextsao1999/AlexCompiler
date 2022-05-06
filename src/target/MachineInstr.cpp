@@ -3,3 +3,6 @@
 //
 
 #include "MachineInstr.h"
+#include "MachineBlock.h"
+#include "Function.h"
+

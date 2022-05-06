@@ -156,6 +156,8 @@ public:
     inline PatternNode *getChild(unsigned index);
     inline void setChild(unsigned index, PatternNode *child);
 
+    inline void replaceWith(PatternNode *node);
+
     inline void setLoc(NodeLoc l) {
         loc = l;
     }
@@ -327,6 +329,14 @@ PatternUse *PatternNode::operand_end() {
     return getHungoffOperands() + numOperands;
 }
 
+void PatternNode::replaceWith(PatternNode *node) {
+    assert(node != nullptr);
+    for (auto It = node->use_begin(); It != node->use_end();) {
+        auto &Use = *It++;
+        Use.set(node);
+    }
+}
+
 template<unsigned Opcode, unsigned OpNum>
 class PatternNodeBase : public PatternNode {
 public:
@@ -386,13 +396,14 @@ public:
     XorNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
 
-class Register {
+/*class Register {
     unsigned regId;
 public:
     Register() {}
     Register(unsigned int regId) : regId(regId) {}
     unsigned getRegId() const { return regId; }
-};
+};*/
+using Register = unsigned;
 class PhyRegNode : public PatternNodeBase<Pattern::PhyRegister, 0> {
     Register reg;
 public:

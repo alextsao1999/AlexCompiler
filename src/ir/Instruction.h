@@ -403,9 +403,13 @@ public:
         trailingOperands = AllocateUses(this, incomings.size());
         incomingBlocks = AllocateUses(this, incomings.size());
         size_t I = 0;
-        for (auto &[val, bb] : incomings) {
+        /*for (auto &[val, bb] : incomings) {
             setOperand(I, val);
             setIncomingBlock(I, bb);
+        }*/
+        for (auto &V: incomings) {
+            setOperand(I, V.first);
+            setIncomingBlock(I, V.second);
         }
     }
 
