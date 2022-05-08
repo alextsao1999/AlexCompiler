@@ -433,6 +433,10 @@ public:
         return callee;
     }
 
+    void setCallee(Function *c) {
+        callee = c;
+    }
+
     void dump(std::ostream &os) override;
 
     unsigned getArgNum() const {
@@ -444,7 +448,7 @@ public:
     }
 
     auto args() {
-        return iter(getTrailingOperand(), getTrailingOperand() + getOperandNum());
+        return iter(op_begin(), op_end());
     }
 
 };

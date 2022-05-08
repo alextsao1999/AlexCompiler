@@ -54,6 +54,9 @@ public:
         add(Level::Fatal, msg);
     }
 
+    bool hasError() {
+        return diags.size() > 0;
+    }
     void print(std::ostream &os) const {
         for (auto &Diag : diags) {
             switch (Diag.first) {
@@ -91,6 +94,7 @@ class Codegen : public Visitor<Codegen, Value *> {
     IRBuilder builder;
     ///< The map records all the undef functions.
     std::unordered_map<std::string, std::vector<CallInst *>> undefs;
+    std::unordered_map<std::string, Function *> funcs;
     ///< The diagnostics data.
     Diagnostic diags;
 public:
@@ -110,7 +114,18 @@ public:
 
     Value *visitCompUnit(CompUnit value) override {
         curModule = std::make_unique<Module>("Module", context);
-        return visit(value.getValue());
+        auto *V = visit(value.getValue());
+        for (auto &[name, calls]: undefs) {
+            auto *F = funcs[name];
+            if (!F) {
+                diags.addFatal("undefined function: " + name);
+                continue;
+            }
+            for (auto &call: calls) {
+                call->setCallee(F);
+            }
+        }
+        return V;
     }
 
     Value *visitFuncDef(FuncDef value) override {
@@ -126,6 +141,10 @@ public:
         }
         auto *FuncTy = context.getFunctionTy(RetTy);
         curFunc = Function::Create(curModule.get(), value.getName(), FuncTy);
+
+        ///< Map the function name to the function.
+        funcs[value.getName()] = curFunc;
+
         // generate entry block
         auto *BB = BasicBlock::Create(curFunc, "entry");
         builder.setInsertPoint(BB);
@@ -347,7 +366,9 @@ public:
 
         builder.setInsertPoint(Then);
         visit(value.getThen());
-        builder.createBr(Leave);
+        if (!builder.getInsertBlock()->getTerminator()) {
+            builder.createBr(Leave);
+        }
 
         builder.setInsertPoint(Leave);
         return nullptr;
@@ -366,6 +387,21 @@ public:
         }
         auto *Val = visit(value.getValue());
         return builder.createRet(Val);
+    }
+
+    Value *visitFuncCall(FuncCall value) override {
+        std::vector<Value *> args;
+        for (auto &arg : value.getArgs()) {
+            auto *V = visit(arg);
+            assert(V);
+            args.push_back(V);
+        }
+        auto *F = funcs[value.getName()];
+        auto *Call = builder.createCall(F, args);
+        if (F == nullptr) {
+            undefs[value.getName()].push_back(Call);
+        }
+        return Call;
     }
 
 };

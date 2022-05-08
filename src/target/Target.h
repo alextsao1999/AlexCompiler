@@ -45,20 +45,21 @@ public:
         return false;
     }
 
-    virtual const char *getRegName(unsigned reg) const {
+    virtual const char *getRegName(unsigned regNo) const {
         const char *regNames[] = {
-                "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"
+                "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7",
+                "s0", "s1", "s2", "s3", "s4", "s5", "s6", "s7",
         };
-        return regNames[reg];
+        return regNames[regNo];
     }
 
     const std::vector<Register> &getTempRegList() const {
-        static std::vector<Register> tempRegList = {0, 1/*, 2, 3, 4, 5, 6, 7*/};
+        static std::vector<Register> tempRegList = {0, 1, 2, 3, 4, 5, 6, 7};
         return tempRegList;
     }
 
     const std::vector<Register> &getSaveRegList() const {
-        static std::vector<Register> saveRegList = {8, 9/*, 10, 11, 12, 13, 14, 15*/};
+        static std::vector<Register> saveRegList = {8, 9, 10, 11, 12, 13, 14, 15};
         return saveRegList;
     }
 

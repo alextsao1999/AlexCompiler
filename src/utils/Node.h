@@ -143,6 +143,10 @@ public:
         parent->insertBefore(node, static_cast<T *>(this));
     }
 
+    bool isSentinel() const {
+        return parent->list->get_sentinel() == this;
+    }
+
 };
 
 template<typename Ty, typename As = Ty, bool Reverse = false>
@@ -570,6 +574,7 @@ using NodeList = INodeListImpl<T, Traits, NodeSentinel>;
 
 template<typename ParentTy, typename NodeTy, typename Traits = StrongRefTrait<NodeTy>>
 class NodeParent {
+    template<typename T, typename ParentT> friend class NodeWithParent;
 public:
     using NodeListTy = INodeListImpl<NodeTy, Traits, NodeSentinel>;
     template <typename As>

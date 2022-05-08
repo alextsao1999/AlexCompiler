@@ -62,11 +62,11 @@ public:
     }
 
     MIBuilder &addDef(RegID reg) {
-        instr->def = Operand::reg(reg);
+        instr->defOp = Operand::reg(reg);
         return *this;
     }
     MIBuilder &addDef(Operand op) {
-        instr->def = op;
+        instr->defOp = op;
         return *this;
     }
 

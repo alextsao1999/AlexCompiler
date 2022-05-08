@@ -92,6 +92,29 @@ public:
                 .build();
     }
 
+    MachineInstr *visitCall(CallInst *value, MachineBlock &mbb) override {
+        MIBuilder builder;
+        builder.setOpcode(TargetCall);
+        builder.addDef(Register::phy(0));
+        for (int i = 0; i < value->getArgNum(); ++i) {
+            MIBuilder Builder;
+            Builder.setOpcode(TargetMove)
+                    .addDef(Register::phy(i))
+                    .addOp(getValueOp(value->getArg(i)));
+            mbb.append(Builder.build());
+        }
+        builder.build();
+        auto *Callee = value->getCallee();
+        auto *Entry = Callee->getEntryBlock();
+        mbb.append(MIBuilder().setOpcode(TargetCall).addOp(getBlockLabel(Entry)).build());
+        auto Reg = getValueReg(value);
+        return MIBuilder()
+                .setOpcode(TargetMove)
+                .addDef(Reg)
+                .addUse(Register::phy(0))
+                .build();
+    }
+
     MachineInstr *visitBr(BranchInst *value, MachineBlock &mbb) override {
         return MIBuilder()
                 .setOpcode(TargetBr)
@@ -128,26 +151,6 @@ public:
                     .addOp(getValueOp(value->getRetVal()))
                     .build();
         return MIBuilder().setOpcode(TargetRet).build();
-    }
-
-    MachineInstr *visitCall(CallInst *value, MachineBlock &mbb) override {
-        MIBuilder builder;
-        builder.setOpcode(TargetCall);
-        builder.addDef(Register::phy(0));
-        for (int i = 0; i < value->getArgNum(); ++i) {
-            MIBuilder Builder;
-            Builder.setOpcode(TargetMove)
-                    .addDef(Register::phy(i))
-                    .addOp(getValueOp(value->getArg(i)));
-            mbb.append(Builder.build());
-        }
-        builder.build();
-        auto Reg = getValueReg(value);
-        return MIBuilder()
-                .setOpcode(TargetMove)
-                .addDef(Reg)
-                .addUse(Register::phy(0))
-                .build();
     }
 
     MachineInstr *visitLoad(LoadInst *value, MachineBlock &mbb) override {

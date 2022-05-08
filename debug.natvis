@@ -112,6 +112,9 @@
         </Expand>
     </Type>
     <Type Name="Register">
+        <DisplayString Condition="(regId == 0xffffffff)">{{ Invalid }}</DisplayString>
+        <DisplayString Condition="((regId &amp; 0xffff0000) == 0x10000)">{{ VirReg: {regId &amp; 0xffff} }}</DisplayString>
+        <DisplayString Condition="((regId &amp; 0x10000) == 0)">{{ PhyReg:{regId &amp; 0xffff} }}</DisplayString>
         <Expand>
             <Item Name="[RegNo]">regId &amp; 0xffff</Item>
             <Item Name="[IsVirReg]">((regId &amp; 0x10000) == 0x10000)</Item>

@@ -96,12 +96,15 @@ Exp -> Exp '+' Exp @BinExp{@string_t& op: @2, left: $1, right: $3}
      | '!' Exp @UnaExp{op: @2, val: $1}
      | '(' Exp ')' $1
      | Ident @RVal{@string_t& name: $1}
+     | Ident '(' FuncCallArgs ')' @FuncCall{@string_t& name: $1, args: $3}
      | Number $1
      ;
 
+FuncCallArgs -> FuncCallArgs ',' Exp $1[$3] | Exp [$1] | [];
+
 Number -> "[0-9]+" @DecLiteral{@string_t& value: @1}
         | "0[xX][0-9a-fA-F]+" @HexLiteral{@string_t& value:@1}
-        | "([0-9]*\.[0-9]+|[0-9]+\.|[0-9]+)([eE](\+|\-)?[0-9]+)?[fFlL]?" @FloatLiteal{@string_t& value: @1}
+        | "([0-9]*\.[0-9]+|[0-9]+\.|[0-9]+)([eE](\+|\-)?[0-9]+)?[fFlL]" @FloatLiteal{@string_t& value: @1}
         | "0[xX]([0-9a-fA-F]*\.[0-9a-fA-F]+|[0-9a-fA-F]+\.|[0-9a-fA-F]+)([pP](\+|\-)?[0-9]+)?[fFlL]?" @HexFloatLiteal{value: @1}
         ;
 

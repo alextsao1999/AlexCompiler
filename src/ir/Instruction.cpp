@@ -225,7 +225,10 @@ Context *Instruction::getContext() const {
 
 void CallInst::dump(std::ostream &os) {
     dumpName(os) << " = call ";
-    callee->dumpAsOperand(os);
+    if (callee)
+        callee->dumpAsOperand(os);
+    else
+        os << "@null";
     os << "(" << dump_str(operands()) << ")";
 }
 

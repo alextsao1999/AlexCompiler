@@ -12,7 +12,7 @@
 #include "MachinePass.h"
 #include "PatternNode.h"
 
-using ColorTy = Register;
+using ColorTy = unsigned;
 
 class GraphNode {
 public:
@@ -20,6 +20,7 @@ public:
     std::set<GraphNode *> Sames; // Dash edges (move operation)
     Register Reg;
     int Degree = 0;
+    unsigned SpillSlot = 0;
     bool isSpilled = false;
     bool isTemp = true;
     void addEdge(GraphNode *node) {
@@ -276,11 +277,13 @@ public:
         int slot = 0;
         for (auto &Edge: spillNode->Edges) {
             if (Edge->isSpilled) {
-                slot++;
+                usedColor.insert({Edge, Edge->SpillSlot});
             }
         }
-        func->spillSlotCount = func->spillSlotCount > slot ? func->spillSlotCount : slot;
-        func->spillSlots[virReg] = slot;
+        while (usedColor.count({spillNode, slot})) {
+            slot++;
+        }
+        spillNode->SpillSlot = slot;
         for (auto &Op: func->mapOperands[virReg]) {
             *Op = Operand::slot(slot);
         }
@@ -291,8 +294,8 @@ public:
         auto *TI = func->getTargetInfo();
         RegisterCount = TI->getSaveRegList().size() + TI->getTempRegList().size();
 
-        func->dumpMBB(std::cout);
-        std::cout << "-------------------------------------------------------" << std::endl;
+        /*func->dumpMBB(std::cout);
+        std::cout << "-------------------------------------------------------" << std::endl;*/
         buildIGraph();
 
         bool next;

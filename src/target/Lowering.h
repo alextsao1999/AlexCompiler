@@ -46,6 +46,7 @@ public:
     }
 
     void buildOnBlock(MachineBlock &mbb) {
+        return;
         block = &mbb;
         auto *BB = mbb.getOrigin();
         std::vector<PatternNode *> RootNodes;

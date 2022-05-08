@@ -159,7 +159,7 @@ class MachineInstr : public NodeWithParent<MachineInstr, MachineBlock> {
 public:
     using iterator = NodeList<Operand>::iterator;
     unsigned opcode = 0;
-    Operand def;
+    Operand defOp;
     NodeList<Operand> operands;
     MachineInstr() {}
     MachineInstr(unsigned opcode) : opcode(opcode) {}
@@ -169,30 +169,33 @@ public:
     }
 
     bool hasDef() const {
-        return def.kind != Operand::Nop;
+        return defOp.kind != Operand::Nop;
     }
     void setDef(Operand d) {
-        def = d;
+        defOp = d;
     }
 
+    Operand def() const {
+        return defOp;
+    }
     auto defs() {
         return iter(defs_begin(), defs_end());
     }
     Operand *defs_begin() {
-        return &def;
+        return &defOp;
     }
     Operand *defs_end() {
-        return &def + hasDef();
+        return &defOp + hasDef();
     }
 
     auto defs() const {
         return iter(defs_begin(), defs_end());
     }
     const Operand *defs_begin() const {
-        return &def;
+        return &defOp;
     }
     const Operand *defs_end() const {
-        return &def + hasDef();
+        return &defOp + hasDef();
     }
 
     Operand &getOp(size_t i) const {

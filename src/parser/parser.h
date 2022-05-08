@@ -229,15 +229,16 @@ enum {
     TYPE_CONSTDEF = 3,
     TYPE_CONSTINITVALLIST = 4,
     TYPE_CONTINUESTMT = 18,
-    TYPE_DECLITERAL = 26,
+    TYPE_DECLITERAL = 27,
     TYPE_DOWHILESTMT = 16,
     TYPE_EMPTYSTMT = 20,
     TYPE_EXPSTMT = 11,
-    TYPE_FLOATLITEAL = 28,
+    TYPE_FLOATLITEAL = 29,
+    TYPE_FUNCCALL = 26,
     TYPE_FUNCDEF = 8,
     TYPE_FUNCPARAM = 9,
-    TYPE_HEXFLOATLITEAL = 29,
-    TYPE_HEXLITERAL = 27,
+    TYPE_HEXFLOATLITEAL = 30,
+    TYPE_HEXLITERAL = 28,
     TYPE_IFELSESTMT = 14,
     TYPE_IFSTMT = 13,
     TYPE_INITVALLIST = 7,
@@ -351,6 +352,12 @@ public:
     FloatLiteal(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FLOATLITEAL); }
     string_t &getValue() { return value_["value"].get_ref<string_t &>(); }
 };
+class FuncCall : public JsonASTBase {
+public:
+    FuncCall(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCCALL); }
+    value_t &getArgs() { return value_["args"]; }
+    string_t &getName() { return value_["name"].get_ref<string_t &>(); }
+};
 class FuncDef : public JsonASTBase {
 public:
     FuncDef(value_t &value) : JsonASTBase(value) { LR_ASSERT(value["id"] == TYPE_FUNCDEF); }
@@ -434,166 +441,171 @@ public:
     value_t &getBody() { return value_["body"]; }
     value_t &getCond() { return value_["cond"]; }
 };
-template<typename SubTy, typename RetTy = void>
+template<typename SubTy, typename RetTy = void, typename...Args>
 struct Visitor {
-    RetTy visit(value_t &value) {
+    RetTy visit(value_t &value, Args &&...args) {
         if (value.is_null()) {
             return RetTy();
         }
         if (value.is_array()) {
             for (auto &val : value) {
-                visit(val);
+                visit(val, std::forward<Args>(args)...);
             }
             return RetTy();
         }
         switch (value["id"].get<int>()) {
             case TYPE_ACCESS:
-                return static_cast<SubTy *>(this)->visitAccess(value);
+                return static_cast<SubTy *>(this)->visitAccess(value, std::forward<Args>(args)...);
             case TYPE_ASSIGNSTMT:
-                return static_cast<SubTy *>(this)->visitAssignStmt(value);
+                return static_cast<SubTy *>(this)->visitAssignStmt(value, std::forward<Args>(args)...);
             case TYPE_BINEXP:
-                return static_cast<SubTy *>(this)->visitBinExp(value);
+                return static_cast<SubTy *>(this)->visitBinExp(value, std::forward<Args>(args)...);
             case TYPE_BLOCK:
-                return static_cast<SubTy *>(this)->visitBlock(value);
+                return static_cast<SubTy *>(this)->visitBlock(value, std::forward<Args>(args)...);
             case TYPE_BREAKSTMT:
-                return static_cast<SubTy *>(this)->visitBreakStmt(value);
+                return static_cast<SubTy *>(this)->visitBreakStmt(value, std::forward<Args>(args)...);
             case TYPE_COMPUNIT:
-                return static_cast<SubTy *>(this)->visitCompUnit(value);
+                return static_cast<SubTy *>(this)->visitCompUnit(value, std::forward<Args>(args)...);
             case TYPE_CONSTDECL:
-                return static_cast<SubTy *>(this)->visitConstDecl(value);
+                return static_cast<SubTy *>(this)->visitConstDecl(value, std::forward<Args>(args)...);
             case TYPE_CONSTDEF:
-                return static_cast<SubTy *>(this)->visitConstDef(value);
+                return static_cast<SubTy *>(this)->visitConstDef(value, std::forward<Args>(args)...);
             case TYPE_CONSTINITVALLIST:
-                return static_cast<SubTy *>(this)->visitConstInitValList(value);
+                return static_cast<SubTy *>(this)->visitConstInitValList(value, std::forward<Args>(args)...);
             case TYPE_CONTINUESTMT:
-                return static_cast<SubTy *>(this)->visitContinueStmt(value);
+                return static_cast<SubTy *>(this)->visitContinueStmt(value, std::forward<Args>(args)...);
             case TYPE_DECLITERAL:
-                return static_cast<SubTy *>(this)->visitDecLiteral(value);
+                return static_cast<SubTy *>(this)->visitDecLiteral(value, std::forward<Args>(args)...);
             case TYPE_DOWHILESTMT:
-                return static_cast<SubTy *>(this)->visitDoWhileStmt(value);
+                return static_cast<SubTy *>(this)->visitDoWhileStmt(value, std::forward<Args>(args)...);
             case TYPE_EMPTYSTMT:
-                return static_cast<SubTy *>(this)->visitEmptyStmt(value);
+                return static_cast<SubTy *>(this)->visitEmptyStmt(value, std::forward<Args>(args)...);
             case TYPE_EXPSTMT:
-                return static_cast<SubTy *>(this)->visitExpStmt(value);
+                return static_cast<SubTy *>(this)->visitExpStmt(value, std::forward<Args>(args)...);
             case TYPE_FLOATLITEAL:
-                return static_cast<SubTy *>(this)->visitFloatLiteal(value);
+                return static_cast<SubTy *>(this)->visitFloatLiteal(value, std::forward<Args>(args)...);
+            case TYPE_FUNCCALL:
+                return static_cast<SubTy *>(this)->visitFuncCall(value, std::forward<Args>(args)...);
             case TYPE_FUNCDEF:
-                return static_cast<SubTy *>(this)->visitFuncDef(value);
+                return static_cast<SubTy *>(this)->visitFuncDef(value, std::forward<Args>(args)...);
             case TYPE_FUNCPARAM:
-                return static_cast<SubTy *>(this)->visitFuncParam(value);
+                return static_cast<SubTy *>(this)->visitFuncParam(value, std::forward<Args>(args)...);
             case TYPE_HEXFLOATLITEAL:
-                return static_cast<SubTy *>(this)->visitHexFloatLiteal(value);
+                return static_cast<SubTy *>(this)->visitHexFloatLiteal(value, std::forward<Args>(args)...);
             case TYPE_HEXLITERAL:
-                return static_cast<SubTy *>(this)->visitHexLiteral(value);
+                return static_cast<SubTy *>(this)->visitHexLiteral(value, std::forward<Args>(args)...);
             case TYPE_IFELSESTMT:
-                return static_cast<SubTy *>(this)->visitIfElseStmt(value);
+                return static_cast<SubTy *>(this)->visitIfElseStmt(value, std::forward<Args>(args)...);
             case TYPE_IFSTMT:
-                return static_cast<SubTy *>(this)->visitIfStmt(value);
+                return static_cast<SubTy *>(this)->visitIfStmt(value, std::forward<Args>(args)...);
             case TYPE_INITVALLIST:
-                return static_cast<SubTy *>(this)->visitInitValList(value);
+                return static_cast<SubTy *>(this)->visitInitValList(value, std::forward<Args>(args)...);
             case TYPE_LVAL:
-                return static_cast<SubTy *>(this)->visitLVal(value);
+                return static_cast<SubTy *>(this)->visitLVal(value, std::forward<Args>(args)...);
             case TYPE_RVAL:
-                return static_cast<SubTy *>(this)->visitRVal(value);
+                return static_cast<SubTy *>(this)->visitRVal(value, std::forward<Args>(args)...);
             case TYPE_RETURNSTMT:
-                return static_cast<SubTy *>(this)->visitReturnStmt(value);
+                return static_cast<SubTy *>(this)->visitReturnStmt(value, std::forward<Args>(args)...);
             case TYPE_UNAEXP:
-                return static_cast<SubTy *>(this)->visitUnaExp(value);
+                return static_cast<SubTy *>(this)->visitUnaExp(value, std::forward<Args>(args)...);
             case TYPE_VARDECL:
-                return static_cast<SubTy *>(this)->visitVarDecl(value);
+                return static_cast<SubTy *>(this)->visitVarDecl(value, std::forward<Args>(args)...);
             case TYPE_VARDEF:
-                return static_cast<SubTy *>(this)->visitVarDef(value);
+                return static_cast<SubTy *>(this)->visitVarDef(value, std::forward<Args>(args)...);
             case TYPE_WHILESTMT:
-                return static_cast<SubTy *>(this)->visitWhileStmt(value);
+                return static_cast<SubTy *>(this)->visitWhileStmt(value, std::forward<Args>(args)...);
             default:
                 LR_UNREACHED();
         }
     }
-    LR_TYPESPEC(RetTy) visitAccess(Access value) {
+    LR_TYPESPEC(RetTy) visitAccess(Access value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitAssignStmt(AssignStmt value) {
+    LR_TYPESPEC(RetTy) visitAssignStmt(AssignStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitBinExp(BinExp value) {
+    LR_TYPESPEC(RetTy) visitBinExp(BinExp value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitBlock(Block value) {
+    LR_TYPESPEC(RetTy) visitBlock(Block value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitBreakStmt(BreakStmt value) {
+    LR_TYPESPEC(RetTy) visitBreakStmt(BreakStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitCompUnit(CompUnit value) {
+    LR_TYPESPEC(RetTy) visitCompUnit(CompUnit value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitConstDecl(ConstDecl value) {
+    LR_TYPESPEC(RetTy) visitConstDecl(ConstDecl value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitConstDef(ConstDef value) {
+    LR_TYPESPEC(RetTy) visitConstDef(ConstDef value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitConstInitValList(ConstInitValList value) {
+    LR_TYPESPEC(RetTy) visitConstInitValList(ConstInitValList value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitContinueStmt(ContinueStmt value) {
+    LR_TYPESPEC(RetTy) visitContinueStmt(ContinueStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitDecLiteral(DecLiteral value) {
+    LR_TYPESPEC(RetTy) visitDecLiteral(DecLiteral value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitDoWhileStmt(DoWhileStmt value) {
+    LR_TYPESPEC(RetTy) visitDoWhileStmt(DoWhileStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitEmptyStmt(EmptyStmt value) {
+    LR_TYPESPEC(RetTy) visitEmptyStmt(EmptyStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitExpStmt(ExpStmt value) {
+    LR_TYPESPEC(RetTy) visitExpStmt(ExpStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitFloatLiteal(FloatLiteal value) {
+    LR_TYPESPEC(RetTy) visitFloatLiteal(FloatLiteal value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitFuncDef(FuncDef value) {
+    LR_TYPESPEC(RetTy) visitFuncCall(FuncCall value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitFuncParam(FuncParam value) {
+    LR_TYPESPEC(RetTy) visitFuncDef(FuncDef value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitHexFloatLiteal(HexFloatLiteal value) {
+    LR_TYPESPEC(RetTy) visitFuncParam(FuncParam value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitHexLiteral(HexLiteral value) {
+    LR_TYPESPEC(RetTy) visitHexFloatLiteal(HexFloatLiteal value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitIfElseStmt(IfElseStmt value) {
+    LR_TYPESPEC(RetTy) visitHexLiteral(HexLiteral value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitIfStmt(IfStmt value) {
+    LR_TYPESPEC(RetTy) visitIfElseStmt(IfElseStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitInitValList(InitValList value) {
+    LR_TYPESPEC(RetTy) visitIfStmt(IfStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitLVal(LVal value) {
+    LR_TYPESPEC(RetTy) visitInitValList(InitValList value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitRVal(RVal value) {
+    LR_TYPESPEC(RetTy) visitLVal(LVal value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitReturnStmt(ReturnStmt value) {
+    LR_TYPESPEC(RetTy) visitRVal(RVal value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitUnaExp(UnaExp value) {
+    LR_TYPESPEC(RetTy) visitReturnStmt(ReturnStmt value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitVarDecl(VarDecl value) {
+    LR_TYPESPEC(RetTy) visitUnaExp(UnaExp value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitVarDef(VarDef value) {
+    LR_TYPESPEC(RetTy) visitVarDecl(VarDecl value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitWhileStmt(WhileStmt value) {
+    LR_TYPESPEC(RetTy) visitVarDef(VarDef value, Args &&...args) {
+        return RetTy();
+    }
+    LR_TYPESPEC(RetTy) visitWhileStmt(WhileStmt value, Args &&...args) {
         return RetTy();
     }
 };

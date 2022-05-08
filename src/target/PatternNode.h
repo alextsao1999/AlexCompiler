@@ -429,7 +429,7 @@ public:
         return (regId & 0x10000) != 0;
     }
 public:
-    Register() {}
+    Register() : regId(0xffffffff) {}
     Register(unsigned regId) : regId(regId) {}
     Register(unsigned int regId, bool isPhy) : regId(regId | (isPhy ? 0 : 0x10000)) {}
     Register(const Register &other) : regId(other.regId) {}

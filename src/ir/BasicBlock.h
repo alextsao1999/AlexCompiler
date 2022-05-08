@@ -166,7 +166,7 @@ public:
 
     void append(Instruction *node) {
         if (getTerminator()) {
-            assert(!node->isTerminator());
+            assert(!node->isTerminator() && "BasicBlock already has terminator");
             insertBefore(getTerminator(), node);
         } else {
             NodeParent::append(node);

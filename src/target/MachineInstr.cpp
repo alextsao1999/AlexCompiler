@@ -62,6 +62,9 @@ void MachineInstr::dump(std::ostream &os) {
         case TargetBr:
             os << "br";
             break;
+        case TargetCall:
+            os << "call";
+            break;
         case TargetCmp:
             os << "cmp";
             break;
@@ -77,7 +80,7 @@ void MachineInstr::dump(std::ostream &os) {
     }
     os << " ";
     if (hasDef()) {
-        dumpOp(os << "def:", def);
+        dumpOp(os << "def:", defOp);
     }
     for (auto &op : ops()) {
         if (hasDef() || &op != op_begin().getPointer()) {
