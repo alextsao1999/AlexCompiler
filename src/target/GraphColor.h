@@ -11,6 +11,9 @@
 
 #include "MachinePass.h"
 #include "PatternNode.h"
+
+using ColorTy = Register;
+
 class GraphNode {
 public:
     std::set<GraphNode *> Edges; // Solid edges
@@ -43,7 +46,7 @@ struct GraphCompare {
 using OpStack = std::priority_queue<GraphNode *, std::vector<GraphNode *>, GraphCompare>;
 
 struct ColorHasher {
-    using Node = std::pair<GraphNode *, Register>;
+    using Node = std::pair<GraphNode *, ColorTy>;
     inline size_t operator()(const Node &node) const {
         return reinterpret_cast<size_t>(node.first) + node.second;
     }
@@ -51,7 +54,6 @@ struct ColorHasher {
 
 class GraphColor : public MachinePass {
 public:
-    using ColorTy = Register;
     int k = 0;
     Function *func = nullptr;
     std::unordered_map<PatternNode *, GraphNode> graph;
@@ -69,7 +71,7 @@ public:
             for (auto &Inst: MBB.instrs().reverse()) {
                 for (auto &Def: Inst.defs()) {
                     if (TI->isMove(Inst)) {
-                        auto *Use = Inst.operands[0]->getOrigin();
+                        auto *Use = Inst.getOp(0).getOrigin();
                         graph[Def.getOrigin()].addSame(&graph[Use]);
                     }
                     for (auto &Item: Live) {
@@ -85,17 +87,15 @@ public:
                 }
 
                 for (auto &Use: Inst.op()) {
-                    if (Use->isVirReg() /*|| Use->isArgument()*/) {
-                        Live.insert(Use->getOrigin());
+                    if (Use.isVirReg() /*|| Use->isArgument()*/) {
+                        Live.insert(Use.getOrigin());
                     }
                 }
             }
         }
-
         for (auto &[op, node]: graph) {
             node.Operand = op;
         }
-
     }
 
     void simplify() {
@@ -151,10 +151,12 @@ public:
         }
         return false;
     }
+
     void freeze() {
         // If neither simplify nor coalesce applies, we look for a move related edge, and remove it from the graph.
         // We are giving up the opportunity of coalescing these nodes.
     }
+
     void computeSpillCost() {
         /**
          * SPILLCOST(v) = (Σ(SB×10^N))/D, where
@@ -170,7 +172,7 @@ public:
             OpCount.clear();
             for (auto &Inst: MBB.instrs()) {
                 for (auto &Op: Inst.op()) {
-                    OpCount[Op->getOrigin()]++;
+                    OpCount[Op.getOrigin()]++;
                 }
                 for (auto &Def: Inst.defs()) {
                     OpCount[Def.getOrigin()]++;
@@ -185,7 +187,7 @@ public:
         }
     }
 
-    bool tryGetColor(GraphNode *node, Register &color) {
+    bool tryGetColor(GraphNode *node, ColorTy &color) {
         auto iter = nodeColor.find(node);
         if (iter == nodeColor.end()) {
             return false;
@@ -243,7 +245,7 @@ public:
             for (auto *edge: node->Edges) {
                 ColorTy color;
                 if (tryGetColor(edge, color)) {
-                    //usedColor.insert({node, color});
+                    usedColor.insert({node, color});
                 }
             }
             // 尝试染色, 无法染色就spill

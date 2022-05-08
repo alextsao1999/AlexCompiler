@@ -183,8 +183,9 @@ public:
         return nullptr;
     }
 
+    TargetInfo info;
     TargetInfo *getTargetInfo() {
-        return nullptr;
+        return &info;
     }
 
     ///< function loops

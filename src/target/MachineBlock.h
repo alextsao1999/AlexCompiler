@@ -8,7 +8,6 @@
 #include <set>
 #include "Node.h"
 #include "MachineInstr.h"
-#include "PatternDAG.h"
 class Function;
 class BasicBlock;
 
@@ -62,17 +61,17 @@ public:
     }
 
     MIBuilder &addOp(Operand op) {
-        instr->operands.emplace_back(new Operand(op));
+        instr->addOp(op);
         return *this;
     }
 
     MIBuilder &addOp(PatternNode *node) {
-        instr->operands.emplace_back(new Operand(Operand::from(node)));
+        instr->addOp(Operand::from(node));
         return *this;
     }
 
     MIBuilder &addImm(int64_t imm) {
-        instr->operands.emplace_back(new Operand(Operand::imm(imm)));
+        instr->addOp(Operand::imm(imm));
         return *this;
     }
 

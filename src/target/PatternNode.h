@@ -40,6 +40,7 @@ namespace Pattern {
         PhyRegister,
         VirRegister,
         CopyFromReg,
+        CopyToReg,
         Jump,
         CondJump,
         Load,
@@ -49,7 +50,7 @@ namespace Pattern {
     };
 
     inline const char *dump(unsigned opcode) {
-        switch (opcode) {
+        switch ((Opcode) opcode) {
             case None: return "None";
             case Add: return "Add";
             case Sub: return "Sub";
@@ -78,12 +79,12 @@ namespace Pattern {
             case PhyRegister: return "PhyRegister";
             case VirRegister: return "VirRegister";
             case CopyFromReg: return "CopyFromReg";
+            case CopyToReg: return "CopyToReg";
             case Jump: return "Jump";
             case CondJump: return "CondJump";
             case Load: return "Load";
             case Store: return "Store";
             case Return: return "Return";
-            case LastOpcode: return "LastOpcode";
             default: return "Unknown";
         }
     }
@@ -138,6 +139,8 @@ protected:
     NodeLoc loc;
     PatternNode(unsigned opcode, unsigned numOperands) : opcode(opcode), numOperands(numOperands) {}
 public:
+    ///< The index of this node in the pattern dag.
+    int index = 0;
     using UseIterator = UseIteratorImpl<PatternUse, UseGetter<PatternUse>>;
     using UserIterator = UseIteratorImpl<PatternUse, UserGetter<PatternUse, PatternNode>>;
     PatternNode(unsigned opcode) : opcode(opcode) {}
@@ -156,6 +159,7 @@ public:
     inline PatternNode *getChild(unsigned index);
     inline void setChild(unsigned index, PatternNode *child);
 
+    inline bool isShared() const;
     inline void replaceWith(PatternNode *node);
 
     inline void setLoc(NodeLoc l) {
@@ -337,6 +341,10 @@ void PatternNode::replaceWith(PatternNode *node) {
     }
 }
 
+bool PatternNode::isShared() const {
+    return users && users->getNext();
+}
+
 template<unsigned Opcode, unsigned OpNum>
 class PatternNodeBase : public PatternNode {
 public:
@@ -396,14 +404,25 @@ public:
     XorNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
 
-/*class Register {
+class Register {
     unsigned regId;
+    bool isPhy: 1 = false;
 public:
     Register() {}
     Register(unsigned int regId) : regId(regId) {}
-    unsigned getRegId() const { return regId; }
-};*/
-using Register = unsigned;
+    Register(const Register &other) : regId(other.regId), isPhy(other.isPhy) {}
+    Register &operator=(const Register &other) {
+        regId = other.regId;
+        isPhy = other.isPhy;
+    }
+    bool operator==(const Register &other) const {
+        return regId == other.regId && isPhy == other.isPhy;
+    }
+
+    operator unsigned() const {
+        return regId & 0xffff + (isPhy ? 0x10000 : 0);
+    }
+};
 class PhyRegNode : public PatternNodeBase<Pattern::PhyRegister, 0> {
     Register reg;
 public:
@@ -414,16 +433,18 @@ public:
 };
 class VirRegNode : public PatternNodeBase<Pattern::VirRegister, 1> {
 public:
-    int regId = 0;
     VirRegNode(PatternNode *child) : PatternNodeBase({child}) {}
     PatternNode *getNode() { return getChild(0); }
-    unsigned getRegId() const { return regId; }
 };
 
 class CopyFromReg : public PatternNodeBase<Pattern::CopyFromReg, 0> {
 public:
     Value *value;
     CopyFromReg(Value *value) : value(value) {}
+};
+class CopyToReg : public PatternNodeBase<Pattern::CopyToReg, 2> {
+public:
+    CopyToReg(PatternNode *reg, PatternNode *val) : PatternNodeBase({reg, val}) {}
 };
 
 class ReturnNode : public PatternNodeBase<Pattern::Return, 1> {
@@ -535,10 +556,13 @@ public:
     PatternNode *getTarget() { return getChild(0); }
 };
 
+class MachineBlock;
 class RootNode : public PatternNode {
 public:
+    MachineBlock *block;
     constexpr static unsigned OPCODE = Pattern::Root;
-    RootNode() : PatternNode(OPCODE) {}
+    RootNode(MachineBlock *block) : PatternNode(OPCODE), block(block) {}
+    MachineBlock *getBlock() { return block; }
 };
 
 #endif //DRAGON_PATTERNNODE_H

@@ -84,7 +84,7 @@ public:
             for (auto *Succ: BB->succs()) {
                 for (auto &V : Succ->getPhis()) {
                     auto *Phi = V.cast<PhiInst>();
-                    if (auto *Use = Phi->findIncoming(BB)) {
+                    if (auto *Use = Phi->findIncomingUse(BB)) {
                         Phi->removeIncoming(Use);
                     }
                 }

@@ -10,9 +10,12 @@
 class SSADestructor : public FunctionPass {
 public:
     void runOnFunction(Function &function) override {
-        //splitCriticalEdge(function);
-        isolatePhiByCopy(&function);
-        //addAssignForPhi(function);
+        //splitCriticalEdge(&function);
+        //isolatePhiByCopy(&function);
+        //splitCriticalEdge(&function);
+        //addAssignForPhi(&function);
+        addCopyAtEnd(&function);
+        std::cout << "SSADestructor" << std::endl;
     }
 
     void isolatePhiByCopy(Function *function) {
@@ -92,19 +95,32 @@ public:
     }
 
     // Sequentialize the parallel copy, we have already isolate the copy, so we don't need to do this.
-    /*void sequentializePC(ParallelCopy *Instr) {
-        std::map<PatternTree *, PatternTree *> loc;
-        std::map<PatternTree *, PatternTree *> pred;
-        std::vector<PatternTree *> todo;
-        std::vector<PatternTree *> ready;
-        PatternTree *n = nullptr;
-
-        for (auto &copy : Instr->getCopies()) {
-            auto *Left = visit(copy.Left);
-            auto *Right = genTreeByOperand(copy.Right->cast<Operand>());
-            loc[Right] = Right; // loc[a] 表示a的最后储存位置
-            pred[Left] = Right; // pred[b] 表示储存在b中的初始值
-            todo.push_back(Left);
+    std::map<BasicBlock *, std::vector<std::pair<Value *, Value *>>> copyAtBegin;
+    std::map<BasicBlock *, std::vector<std::pair<Value *, Value *>>> copyAtEnd;
+    void addCopyAtEnd(Function *function) {
+        for (auto &BB: *function) {
+            for (auto &Phi: BB.phis()) {
+                for (auto &Use: Phi.operands()) {
+                    auto *IncomingBB = Phi.getIncomingBlock(Use);
+                    auto &CopyAtEnd = copyAtEnd[IncomingBB];
+                    CopyAtEnd.emplace_back(&Phi, Use.getValue());
+                }
+            }
+        }
+        for (auto &BB: *function) {
+            sequentializeCopyAtEnd(&BB);
+        }
+    }
+    void sequentializeCopyAtEnd(BasicBlock *block) {
+        auto &Copies = copyAtEnd[block];
+        std::map<Value *, Value *> loc;
+        std::map<Value *, Value *> pred;
+        std::vector<Value *> todo;
+        std::vector<Value *> ready;
+        for (auto &[Phi, Value]: Copies) {
+            loc[Value] = Value;
+            pred[Phi] = Value;
+            todo.push_back(Phi);
         }
 
         for (auto &Left: todo) {
@@ -112,35 +128,33 @@ public:
                 ready.push_back(Left);
             }
         }
+
         while (!todo.empty()) {
             while (!ready.empty()) {
-                PatternTree *b = ready.back();
-                PatternTree *a = pred[b];
-                PatternTree *c = loc[a];
+                Value *b = ready.back();
+                Value *a = pred[b];
+                Value *c = loc[a];
                 ready.pop_back();
                 // emit c -> b
                 loc[a] = b;
-                addStmt(create<TreeMove>(b, c));
+                block->append(new AssignInst(b, c));
                 if (a == c && pred[a]) {
                     ready.push_back(a);
                 }
             }
-            PatternTree *b = todo.back();
+            Value *b = todo.back();
             todo.pop_back();
             if (b != loc[pred[b]]) {
                 // 如果b的初始值的最后储存位置和
                 // emit b -> n
-                if (!n) {
-                    n = curFun->genTemp();
-                }
-                loc[b] = n;
+                auto *Copy = new CopyInst(b);
+                block->append(Copy);
+                loc[b] = Copy;
                 ready.push_back(b);
-                n->pretty(std::cout) << " = ";
-                b->pretty(std::cout) << std::endl;
-                addStmt(create<TreeMove>(n, b));
             }
         }
-    }*/
+    }
+
 };
 
 #endif //DRAGON_SSADESTRUCTOR_H

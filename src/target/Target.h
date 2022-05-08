@@ -6,6 +6,9 @@
 #define DRAGON_TARGET_H
 
 #include <MachineInstr.h>
+#include <PatternDAG.h>
+#include <Constant.h>
+#include <functional>
 class TargetInfo {
 public:
     TargetInfo() = default;
@@ -29,6 +32,17 @@ public:
 
     std::vector<Register> getSaveRegList() const {
         return {};
+    }
+
+    virtual PatternNode *loweringArgument(PatternDAG &DAG, Param *param, int i) const {
+        return DAG.getPhyReg(i);
+    }
+
+    virtual PatternNode *loweringReturn(PatternDAG &DAG, PatternNode *val) const {
+        if (!val) {
+            return nullptr;
+        }
+        return DAG.getCopyToReg(DAG.getPhyReg(0), val);
     }
 
 };

@@ -8,7 +8,7 @@
 #include <list>
 #include "PatternNode.h"
 
-class Operand {
+class Operand : public Node<Operand> {
 public:
     enum Kind {
         Nop,
@@ -81,10 +81,10 @@ public:
 class MachineBlock;
 class MachineInstr : public NodeWithParent<MachineInstr, MachineBlock> {
 public:
-    using iterator = std::vector<std::unique_ptr<Operand>>::iterator;
+    using iterator = NodeList<Operand>::iterator;
     unsigned opcode = 0;
     Operand def;
-    std::vector<std::unique_ptr<Operand>> operands;
+    NodeList<Operand> operands;
     MachineInstr() {}
     MachineInstr(unsigned opcode) : opcode(opcode) {}
 
@@ -106,7 +106,11 @@ public:
     }
 
     Operand &getOp(size_t i) {
-        return *operands[i];
+        return *(operands.begin() + i);
+    }
+
+    void addOp(Operand op) {
+        operands.push_back(new Operand(op));
     }
 
     auto op() {

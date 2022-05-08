@@ -261,15 +261,30 @@ namespace Matcher {
         std::tuple<Args...> childrens;
         constexpr MatchNode(Args... matchers) : childrens(matchers...) {}
         constexpr auto operator()(PatternNode *node, SelectContext& context) const {
+            if (node->isShared()) {
+                // FIXME: We can't select shared node.
+                return false;
+            }
             return match(node, context);
         }
         inline constexpr bool match(PatternNode *node, SelectContext& context) const {
+            if (OPCODE != Pattern::None) {
+                if (node->getOpcode() != OPCODE) {
+                    std::cout << "Matching " << Pattern::dump(OPCODE) << " for node "
+                              << Pattern::dump(node->getOpcode()) << " not matched" << std::endl;
+                    return false;
+                }
+                std::cout << "Matching " << Pattern::dump(node->getOpcode()) << " matched" << std::endl;
+            } else {
+                std::cout << "Matching Any for node " << Pattern::dump(node->getOpcode()) << std::endl;
+            }
             return MatchNodeHelper<0, Args...>::match(childrens, node, context);
         }
     };
 
-    constexpr auto operator|(auto lhs, auto rhs) {
-        return MatchOpt(lhs, rhs);
+    template<typename L, typename R>
+    constexpr auto operator|(L lhs, R rhs) {
+        return MatchOpt<L, R>(lhs, rhs);
     }
 
     template<typename L, typename R>
@@ -296,19 +311,21 @@ namespace Matcher {
             return applier1.apply(node, ctx, mbb) || applier2.apply(node, ctx, mbb);
         }
     };
-    template<typename L, typename R>
-    constexpr auto operator||(MatchApplierCat<L, R> lhs, auto rhs) {
-        return MatchApplierCat(lhs, rhs);
+    template<typename L, typename R, typename T>
+    constexpr auto operator||(MatchApplierCat<L, R> lhs, T rhs) {
+        return MatchApplierCat<MatchApplierCat<L, R>, T>(lhs, rhs);
+    }
+    template<typename L, typename R, typename T>
+    constexpr auto operator||(MatchApplier<L, R> lhs, T rhs) {
+        return MatchApplierCat<MatchApplier<L, R>, T>(lhs, rhs);
     }
     template<typename L, typename R>
-    constexpr auto operator||(MatchApplier<L, R> lhs, auto rhs) {
-        return MatchApplierCat(lhs, rhs);
-    }
-    constexpr auto operator>(auto lhs, auto rhs) {
-        return MatchApplier(lhs, rhs);
+    constexpr auto operator>(L lhs, R rhs) {
+        return MatchApplier<L, R>(lhs, rhs);
     }
 
-    constexpr auto Emit(unsigned opc, auto ...args) {
+    template<typename ...Args>
+    constexpr auto Emit(unsigned opc, Args ...args) {
         return [=](SelectContext &ctx, MachineBlock &mbb) -> MachineInstr * {
             auto *Instr = new MachineInstr();
             std::vector<PatternNode *> Nodes;
@@ -321,12 +338,41 @@ namespace Matcher {
         };
     }
 
-    template<typename OpTy>
-    constexpr auto sel(auto t) {
-        return MatchSelector<OpTy, decltype(t)>(t);
+
+    /*template<size_t Index = 0, typename ...Args>
+    struct MatchHelper {
+        constexpr static inline bool match(auto tuple, PatternNode *node, SelectContext &context) {
+            return true;
+        }
+    };
+    template<size_t Index, typename Arg, typename ...Args>
+    struct MatchHelper<Index, Arg, Args...> {
+        constexpr static inline bool match(auto tuple, PatternNode *node, SelectContext &context) {
+            auto R = std::get<Index>(tuple);
+            if (!R(node->getChild(Index), context)) {
+                return false;
+            }
+            return MatchHelper<Index + 1, Args...>::match(tuple, node, context);
+        }
+    };
+    template<typename Node, typename ...Args>
+    constexpr auto rule(Args...args) {
+        auto Tuple = std::make_tuple(args...);
+        return sel<Node>([=](PatternNode *node, SelectContext &context) {
+            return MatchHelper<0, Args...>::match(Tuple, node, context);
+        });
+    }*/
+    template<typename Node, typename ...Args>
+    constexpr auto rule(Args...args) {
+        return MatchNode<Node, Args...>(args...);
     }
-    constexpr auto opt(auto ...args) {
-        return MatchOpt(args...);
+    template<typename OpTy, typename T>
+    constexpr auto sel(T t) {
+        return MatchSelector<OpTy, T>(t);
+    }
+    template<typename ...Ts>
+    constexpr auto opt(Ts ...args) {
+        return MatchOpt<Ts...>(args...);
     }
     template<typename OpTy>
     constexpr auto type(MachineType type) {
@@ -356,15 +402,16 @@ namespace Matcher {
             return true;
         });
     }
-    template<typename OpTy>
-    constexpr auto unary(auto val) {
-        return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
+    template<typename OpTy, typename T>
+    constexpr auto unary(T val) {
+        /*return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
             return val(node->getChild(0), context);
-        });
+        });*/
+        return rule<OpTy>(val);
     }
-    template<typename OpTy>
-    constexpr auto bin(auto lhs, auto rhs) {
-        return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
+    template<typename OpTy, typename L, typename R>
+    constexpr auto bin(L lhs, R rhs) {
+        /*return sel<OpTy>([=](PatternNode *node, SelectContext &context) {
             if (!lhs(node->getChild(0), context)) {
                 return false;
             }
@@ -372,56 +419,25 @@ namespace Matcher {
                 return false;
             }
             return true;
-        });
+        });*/
+        return rule<OpTy>(lhs, rhs);
     }
-    constexpr auto add(auto lhs, auto rhs) {
-        return bin<AddNode>(lhs, rhs);
+#define DEF_UNARY(NAME, OPTY) template<typename L> constexpr auto NAME(L val) { \
+        return unary<OPTY>(val); \
     }
-    constexpr auto sub(auto lhs, auto rhs) {
-        return bin<SubNode>(lhs, rhs);
+#define DEF_BINARY(NAME, OPTY) template<typename L, typename R> constexpr auto NAME(L lhs, R rhs) { \
+        return bin<OPTY>(lhs, rhs); \
     }
-    constexpr auto mul(auto lhs, auto rhs) {
-        return bin<MulNode>(lhs, rhs);
-    }
-    constexpr auto div(auto lhs, auto rhs) {
-        return bin<DivNode>(lhs, rhs);
-    }
-    constexpr auto ret(auto val) {
-        return unary<ReturnNode>(val);
-    }
+    DEF_BINARY(add, AddNode);
+    DEF_BINARY(sub, SubNode);
+    DEF_BINARY(mul, MulNode);
+    DEF_BINARY(div, DivNode);
+    DEF_UNARY(ret, ReturnNode);
 
     constexpr auto same(int index) {
         return sel<PatternNode>([=](PatternNode *node, SelectContext &context) {
             return context[index] == node;
         });
-    }
-
-    /*template<size_t Index = 0, typename ...Args>
-    struct MatchHelper {
-        constexpr static inline bool match(auto tuple, PatternNode *node, SelectContext &context) {
-            return true;
-        }
-    };
-    template<size_t Index, typename Arg, typename ...Args>
-    struct MatchHelper<Index, Arg, Args...> {
-        constexpr static inline bool match(auto tuple, PatternNode *node, SelectContext &context) {
-            auto R = std::get<Index>(tuple);
-            if (!R(node->getChild(Index), context)) {
-                return false;
-            }
-            return MatchHelper<Index + 1, Args...>::match(tuple, node, context);
-        }
-    };
-    template<typename Node, typename ...Args>
-    constexpr auto rule(Args...args) {
-        auto Tuple = std::make_tuple(args...);
-        return sel<Node>([=](PatternNode *node, SelectContext &context) {
-            return MatchHelper<0, Args...>::match(Tuple, node, context);
-        });
-    }*/
-    template<typename Node, typename ...Args>
-    constexpr auto rule(Args...args) {
-        return MatchNode<Node, Args...>(args...);
     }
 
     constexpr auto IReg = reg(MachineI32);
@@ -639,7 +655,8 @@ namespace Matcher {
         using Matcher = map<OpSet, OpToSelMapper<Ty>>;
         Ty matcher;
         constexpr Combiner(Ty matcher) : matcher(matcher) {}
-        constexpr auto operator()(auto lhs, auto rhs) {
+        template<typename L, typename R>
+        constexpr auto operator()(L lhs, R rhs) {
             return matcher(lhs, rhs);
         }
     };

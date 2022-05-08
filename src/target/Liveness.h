@@ -15,6 +15,10 @@ public:
     void runOnFunction(Function &function) override {
         computeLocalLiveness(&function);
         computeGlobalLiveness(&function);
+
+        std::cout << "Liveness: " << std::endl;
+        std::cout << function.dag.dump() << std::endl;
+        std::cout << std::endl;
     }
 
     void computeLocalLiveness(Function *func) {

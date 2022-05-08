@@ -236,6 +236,9 @@ public:
     using Instruction::Instruction;
     inline Type *getOutputType() const { return type; }
     void setType(Type *ty) { this->type = ty; }
+    Type *getType() override {
+        return getOutputType();
+    }
     void dump(std::ostream &os) override {
         dumpName(os) << " = ";
         Instruction::dump(os);
@@ -290,7 +293,7 @@ public:
 class LoadInst : public OutputInst {
 public:
     LoadInst() : OutputInst(OpcodeLoad) {}
-    LoadInst(Value *ptr) : OutputInst(OpcodeLoad, {ptr}) {}
+    LoadInst(Value *ptr) : OutputInst(ptr->getType(), OpcodeLoad, {ptr}) {}
     LoadInst(const LoadInst &other) : OutputInst(other) {}
 
     Value *getPtr() const {
@@ -311,7 +314,7 @@ public:
 class CopyInst : public OutputInst {
 public:
     CopyInst() : OutputInst(OpcodeCopy) {}
-    CopyInst(Value *val) : OutputInst(OpcodeCopy, {val}) {}
+    CopyInst(Value *val) : OutputInst(val->getType(), OpcodeCopy, {val}) {}
     CopyInst(const CopyInst &other) : OutputInst(other) {}
 
     Type *getType() override {
@@ -325,19 +328,10 @@ public:
 };
 
 class CastInst : public OutputInst {
-    Type *targetType;
 public:
     CastInst() : OutputInst(OpcodeCast) {}
-    CastInst(const CastInst &other) : OutputInst(other), targetType(other.targetType) {}
-    CastInst(Type *type) : OutputInst(OpcodeCast), targetType(type) {}
-
-    Type *getType() override {
-        return targetType;
-    }
-
-    Type *getTargetType() const {
-        return targetType;
-    }
+    CastInst(const CastInst &other) : OutputInst(other) {}
+    CastInst(Type *type) : OutputInst(type, OpcodeCast) {}
 
     Value *getVal() const {
         return getOperand(0);
@@ -346,7 +340,6 @@ public:
 
 class PhiInst : public OutputInst {
 public:
-    static PhiInst *Create(BasicBlock *bb, StrView name = "");
     static PhiInst *Create(Type *ty, BasicBlock *bb, StrView name = "");
 public:
     PhiInst() : OutputInst(OpcodePhi) {}
@@ -355,25 +348,21 @@ public:
     PhiInst(const PhiInst &other);
     ~PhiInst() override = default;
 
-    Type *getType() override {
-        assert(numOperands > 0 && getOperand(0));
-        // FIXME: Be careful about the recursive type
-        for (size_t I = 1; I < numOperands; ++I) {
-            if (getOperand(I)->isa<PhiInst>()) {
-                continue;
-            }
-            return getOperand(I)->getType();
-        }
-        return nullptr;
-    }
-
     void fill(std::map<BasicBlock *, Value *> &values);
     BasicBlock *getIncomingBlock(Use &use) const;
     BasicBlock *getIncomingBlock(size_t i) const;
-    Use *findIncoming(BasicBlock *bb) {
+    Use *findIncomingUse(BasicBlock *bb) {
         for (auto I = 0; I < getOperandNum(); ++I) {
             if (getIncomingBlock(I) == bb) {
                 return getUse(I);
+            }
+        }
+        return nullptr;
+    }
+    Value *findIncomingValue(BasicBlock *bb) {
+        for (auto I = 0; I < getOperandNum(); ++I) {
+            if (getIncomingBlock(I) == bb) {
+                return getOperand(I);
             }
         }
         return nullptr;
@@ -403,13 +392,9 @@ public:
         trailingOperands = AllocateUses(this, incomings.size());
         incomingBlocks = AllocateUses(this, incomings.size());
         size_t I = 0;
-        /*for (auto &[val, bb] : incomings) {
+        for (auto &[val, bb] : incomings) {
             setOperand(I, val);
             setIncomingBlock(I, bb);
-        }*/
-        for (auto &V: incomings) {
-            setOperand(I, V.first);
-            setIncomingBlock(I, V.second);
         }
     }
 

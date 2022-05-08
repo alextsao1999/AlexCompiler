@@ -126,11 +126,11 @@ public:
         }
         auto *FuncTy = context.getFunctionTy(RetTy);
         curFunc = Function::Create(curModule.get(), value.getName(), FuncTy);
-        // codegen params
-        visit(value.getParams());
         // generate entry block
         auto *BB = BasicBlock::Create(curFunc, "entry");
         builder.setInsertPoint(BB);
+        // codegen params
+        visit(value.getParams());
         // codegen body
         visit(value.getBody());
         table.leaveScope();
@@ -146,8 +146,11 @@ public:
     Value *visitFuncParam(FuncParam value) override {
         assert(curFunc);
         auto *Param = curFunc->addParam(value.getName(), table.getType(value.getType()));
-        table.addVar(value.getName(), Param);
-        return Param;
+        //table.addVar(value.getName(), Param);
+        auto *Alloca = builder.createAlloca(Param->getType(), value.getName());
+        builder.createStore(Alloca, Param);
+        table.addVar(value.getName(), Alloca);
+        return Alloca;
     }
 
     Value *visitVarDecl(VarDecl value) override {
@@ -257,6 +260,7 @@ public:
             return nullptr;
         }
         if (auto *P = Alloca->as<Param>()) {
+            assert(false && "parameter cannot be used as a value");
             return P;
         }
         return builder.createLoad(Alloca);

@@ -1,72 +1,160 @@
 //
-// Created by Alex on 2022/5/4.
+// Created by Alex on 2022/3/13.
 //
 
 #ifndef DRAGON_LOWERING_H
 #define DRAGON_LOWERING_H
 
+#include "Function.h"
 #include "MachinePass.h"
-#include "Selector.h"
-
-using namespace Matcher;
-class Lowering : public MachineBlockPass {
+///< Pattern DAG Builder
+class Lowering : public MachinePass, public InstVisitor<Lowering, PatternNode *> {
 public:
-    Lowering() {}
+    std::map<Value *, PatternNode *> mapValueToNode;
+    MachineBlock *block = nullptr;
+    Function *curFunc = nullptr;
+    void runOnFunction(Function &function) override {
+        curFunc = &function;
+        mapValueToNode.clear();
 
-    void runOnMachineBlock(MachineBlock &block) override {
-        doSelectOnDAG(block);
-    }
+        auto *TI = function.getTargetInfo();
+        assert(TI);
+        int I = 0;
+        for (auto &Param: function.getParams()) {
+            auto *Node = TI->loweringArgument(function.dag, Param.get(), I++);
+            mapValueToNode[Param.get()] = Node;
+        }
 
+        for (auto &BB: function) {
+            auto &MBB = function.mapBlocks[&BB];
+            MBB = new MachineBlock(BB.dumpOperandToString(), &BB);
+            function.blocks.push_back(MBB);
+            buildOnBlock(*MBB);
+        }
 
-    virtual bool doApplyRule(PatternNode *node, SelectContext &ctx, MachineBlock &block) {
-        constexpr auto ImmOrReg = Imm | IReg;
-        constexpr auto RegAlloc = sel<PatternNode>([](PatternNode *node, SelectContext &ctx) {
-            if (node->getType() == ctx.getContext()->getInt32Ty()) {
-                node->replaceWith(new VirRegNode(node));
-                return true;
+        ///< Update successor and predecessor
+        for (auto &MBB: function.blocks) {
+            for (auto *Succ: MBB.getOrigin()->succs()) {
+                assert(function.mapBlocks[Succ]);
+                MBB.succs.push_back(function.mapBlocks[Succ]);
             }
-            return false;
-        });
-        constexpr auto Rule =
-                add(IReg, Imm)
-                | add(IReg, IReg)
-                | sub(IReg, Imm)
-                | sub(IReg, same(0))
-                | ret(RegAlloc);
-
-        /*constexpr auto Rule =
-                add(IReg, Imm) > Emit(Pattern::Add, 0, 2)
-                || ret(add(IReg, add(IReg, Imm))) > Emit(Pattern::Add, 0, 3)
-                || ret(sub(IReg, IReg)) > Emit(Pattern::Add, 0, 4)
-                || add(IReg, mul(ImmOrReg, ImmOrReg)) > Emit(Pattern::Add, 0, 5);*/
-
-        auto Res = Rule(node, ctx);
-
-        return Res;
-    }
-
-    void doSelectOnDAG(MachineBlock &block) {
-        auto *RootNode = block.getRootNode();
-
-        std::vector<PatternNode *> Stack;
-        Stack.insert(Stack.begin(), RootNode->op_begin(), RootNode->op_end());
-
-        SelectContext Ctx(block.getOrigin()->getContext());
-        while (!Stack.empty()) {
-            auto *Node = Stack.back();
-            Stack.pop_back();
-
-            if (doApplyRule(Node, Ctx, block)) {
-                Stack.insert(Stack.end(), Ctx.begin(), Ctx.end());
-                Stack.clear();
-            } else {
-                std::cout << "Couldn't select node" << std::endl;
+            for (auto *Pred: MBB.getOrigin()->preds()) {
+                assert(function.mapBlocks[Pred]);
+                MBB.preds.push_back(function.mapBlocks[Pred]);
             }
         }
-        //Rule.apply(Stack[0], Ctx, block);
+    }
+
+    void buildOnBlock(MachineBlock &mbb) {
+        block = &mbb;
+        auto *BB = mbb.getOrigin();
+        std::vector<PatternNode *> RootNodes;
+        for (auto &Inst: BB->instrs().reverse()) {
+            if (mapValueToNode.find(&Inst) == mapValueToNode.end()) {
+                auto *Node = InstVisitor::visit(&Inst);
+                RootNodes.push_back(Node);
+            }
+        }
+
+        auto *Node = PatternNode::createNode<RootNode>(RootNodes, &mbb);
+        curFunc->dag.setRootNode(Node);
+        mbb.setRootNode(Node);
+    }
+
+    template<typename T, typename ...Args>
+    T *newNode(Value *val, Args &&...args) {
+        auto *Node = new T(std::forward<Args>(args)...);
+        Node->setType(val->getType());
+        curFunc->dag.addNode(Node);
+        mapValueToNode[val] = Node;
+        return Node;
+    }
+
+    PatternNode *visit(Value *val) {
+        if (mapValueToNode.find(val) != mapValueToNode.end()) {
+            return mapValueToNode[val];
+        }
+        if (val->isBasicBlock()) {
+            return newNode<BlockAddress>(val, val->cast<BasicBlock>());
+        }
+        if (val->isConstant()) {
+            return newNode<ConstantNode>(val, val->cast<Constant>());
+        }
+        auto *Node = InstVisitor::visit(val);
+        if (Node == nullptr) {
+            std::cerr << "Don't know how to handle " << val->dumpOperandToString() << std::endl;
+        }
+        return Node;
+    }
+
+    PatternNode *visitRet(RetInst *value) override {
+        // FIXME: better way to lower ret void
+        if (value->getRetVal() == nullptr) {
+            return newNode<ReturnNode>(value);
+        }
+        auto *TI = curFunc->getTargetInfo();
+        auto *Node = TI->loweringReturn(curFunc->dag, visit(value->getRetVal()));
+        return newNode<ReturnNode>(value, Node);
+    }
+
+    PatternNode *visitLoad(LoadInst *value) override {
+        return newNode<LoadNode>(value, visit(value->getPtr()));
+    }
+
+    PatternNode *visitBinary(BinaryInst *value) override {
+        auto BinOp = value->getOp();
+        auto *Node = PatternNode::New(BinOp, 2);
+        mapValueToNode[value] = Node;
+        curFunc->dag.addNode(Node);
+        auto *LHS = visit(value->getLHS());
+        auto *RHS = visit(value->getRHS());
+        Node->setChild(0, LHS);
+        Node->setChild(1, RHS);
+        Node->setType(value->getType());
+        return Node;
+    }
+
+    PatternNode *visitGetPtr(GetPtrInst *value) override {
+        return InstVisitor::visitGetPtr(value);
+    }
+
+    PatternNode *visitAlloca(AllocaInst *value) override {
+        return InstVisitor::visitAlloca(value);
+    }
+
+    PatternNode *visitCopy(CopyInst *value) override {
+        return InstVisitor::visitCopy(value);
+    }
+
+    PatternNode *visitAssign(AssignInst *value) override {
+        return InstVisitor::visitAssign(value);
+    }
+
+    PatternNode *visitCondBr(CondBrInst *value) override {
+        return newNode<CondJump>(value, visit(value->getCond()), visit(value->getTrueTarget()),
+                                 visit(value->getFalseTarget()));
+    }
+
+    PatternNode *visitBr(BranchInst *value) override {
+        return newNode<Jump>(value, visit(value->getTarget()));
+    }
+
+    PatternNode *visitPhi(PhiInst *value) override {
+        return newNode<CopyFromReg>(value, value);
+    }
+
+    PatternNode *visitUnary(UnaryInst *value) override {
+        return InstVisitor::visitUnary(value);
+    }
+
+    PatternNode *visitStore(StoreInst *value) override {
+        return newNode<StoreNode>(value, visit(value->getPtr()), visit(value->getVal()));
+    }
+
+    PatternNode *visitCall(CallInst *value) override {
+        return InstVisitor::visitCall(value);
     }
 
 };
-
 
 #endif //DRAGON_LOWERING_H

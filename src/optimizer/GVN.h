@@ -132,7 +132,7 @@ public:
     }
 
     void adjustPhiNode(BasicBlock *bb, PhiInst *phi) {
-        if (auto *Use = phi->findIncoming(bb)) {
+        if (auto *Use = phi->findIncomingUse(bb)) {
             if (auto *VN = getVN(Use->getValue())) {
                 Use->set(VN);
             }

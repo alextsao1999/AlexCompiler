@@ -138,13 +138,6 @@ void CondBrInst::setFalseTarget(BasicBlock *target) {
     setOperand(2, target);
 }
 
-PhiInst *PhiInst::Create(BasicBlock *bb, StrView name) {
-    auto *Phi = new PhiInst();
-    bb->addPhi(Phi);
-    Phi->setName(name);
-    return Phi;
-}
-
 PhiInst *PhiInst::Create(Type *type, BasicBlock *bb, StrView name) {
     auto *Phi = new PhiInst(type);
     bb->addPhi(Phi);
@@ -208,7 +201,7 @@ void PhiInst::dump(std::ostream &os) {
     os << dump_str(operands(), [this](Use &use) {
         auto *BB = getIncomingBlock(use);
         if (BB == nullptr) {
-            return "[null: " + use->dumpOperandToString() + "]";
+            return use.getValue() ? "[null: " + use->dumpOperandToString() + "]" : "[null: null]";
         }
         return "[" + BB->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
     });

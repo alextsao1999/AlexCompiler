@@ -18,8 +18,8 @@
 #include "LoopSimplify.h"
 #include "Codegen.h"
 #include "SCCP.h"
-#include "PDBuilder.h"
 #include "Lowering.h"
+#include "MachineSelect.h"
 #include "Liveness.h"
 static Context Context;
 
@@ -74,16 +74,22 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
+/*
     auto Module = compileModule(R"(
         int main(int a, int b){
+            int d = 10;
             int x = a + b * 2;
-            return x;
+            d = d * 2;
+            if (x == 100) { b = 200; }
+            int c = x + 2 * b;
+            c = c + d;
+            return x + c;
         }
     )");
+*/
 
 
     // swap
-/*
     auto Module = compileModule(R"(
         int main(int a, int b){
             int x = 10;
@@ -97,7 +103,6 @@ int main(int argc, char **argv) {
             return c;
         }
     )");
-*/
     // loss copy
 /*
     auto Module = compileModule(R"(
@@ -141,7 +146,7 @@ int main(int argc, char **argv) {
     Dom.runOnFunction(Fun);
     Cons.runOnFunction(Fun);
     GVN.runOnFunction(Fun);
-    //Des.runOnFunction(Fun);
+    Des.runOnFunction(Fun);
     /*
     BE.runOnFunction(Fun);
     Dom.runOnFunction(Fun);
@@ -150,12 +155,12 @@ int main(int argc, char **argv) {
     Dom.runOnFunction(Fun);*/
     //SCCP.runOnFunction(Fun);
 
-    PDBuilder PD;
-    Lowering AS;
+    /*Lowering PD;
+    MachineSelect AS;
     Liveness LV;
     PD.runOnFunction(Fun);
     AS.runOnFunction(Fun);
-    LV.runOnFunction(Fun);
+    LV.runOnFunction(Fun);*/
 
     Module->dump(std::cout);
 
