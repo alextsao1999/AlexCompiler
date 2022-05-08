@@ -8,6 +8,7 @@
 #include <list>
 #include "PatternNode.h"
 
+class MachineBlock;
 class Operand : public Node<Operand> {
 public:
     static Operand undefined() {
@@ -22,27 +23,57 @@ public:
         Op.value.imm = value;
         return Op;
     }
+    static Operand label(MachineBlock *block) {
+        Operand Op;
+        Op.kind = Label;
+        Op.value.addr = block;
+        return Op;
+    }
+    static Operand slot(unsigned index) {
+        Operand Op;
+        Op.kind = Slot;
+        Op.value.slot = index;
+        return Op;
+    }
 public:
     enum Kind {
         Nop,
         Reg,
         Imm,
+        Label,
+        Slot,
     };
+
+    ///< The kind of operand.
     Kind kind = Nop;
 
+    ///< Tagged union
     union Content {
         int64_t imm;
         float fimm;
         double dimm;
+        MachineBlock *addr;
+        unsigned slot;
     } value;
 
+    ///< Register
     Register regOp;
+
     Operand() {}
     Operand(Kind kind) : kind(kind) {}
     Operand(Kind kind, Register reg) : kind(kind), regOp(reg) {}
 
     Kind getKind() const {
         return kind;
+    }
+    bool isImm() const {
+        return kind == Imm;
+    }
+    bool isLabel() const {
+        return kind == Label;
+    }
+    bool isSlot() const {
+        return kind == Slot;
     }
     bool isReg() const {
         return kind == Reg;
@@ -54,8 +85,44 @@ public:
         return isReg() && regOp.isPhyReg();
     }
 
-    Register getReg() {
+    Register getReg() const {
+        assert(isReg());
         return regOp;
+    }
+
+    MachineBlock *getLabel() const {
+        assert(isLabel());
+        return value.addr;
+    }
+
+    bool operator==(const Operand &rhs) const {
+        if (kind != rhs.kind) {
+            return false;
+        }
+
+        switch (kind) {
+            case Nop:
+                return true;
+            case Reg:
+                return regOp == rhs.regOp;
+            case Imm:
+                return value.imm == rhs.value.imm;
+            case Label:
+                return value.addr == rhs.value.addr;
+            case Slot:
+                return value.slot == rhs.value.slot;
+        }
+    }
+    bool operator!=(const Operand &rhs) const {
+        return !(*this == rhs);
+    }
+
+    // override =
+    Operand &operator=(const Operand &rhs) {
+        kind = rhs.kind;
+        value = rhs.value;
+        regOp = rhs.regOp;
+        return *this;
     }
 };
 
@@ -101,7 +168,7 @@ public:
         return opcode;
     }
 
-    bool hasDef() {
+    bool hasDef() const {
         return def.kind != Operand::Nop;
     }
     void setDef(Operand d) {
@@ -118,7 +185,17 @@ public:
         return &def + hasDef();
     }
 
-    Operand &getOp(size_t i) {
+    auto defs() const {
+        return iter(defs_begin(), defs_end());
+    }
+    const Operand *defs_begin() const {
+        return &def;
+    }
+    const Operand *defs_end() const {
+        return &def + hasDef();
+    }
+
+    Operand &getOp(size_t i) const {
         return *(operands.begin() + i);
     }
 
@@ -126,7 +203,7 @@ public:
         operands.push_back(new Operand(op));
     }
 
-    auto op() {
+    auto ops() {
         return iter(op_begin(), op_end());
     }
     iterator op_begin() {
@@ -136,104 +213,19 @@ public:
         return operands.end();
     }
 
-    void dumpOp(std::ostream &os, Operand &op) {
-        switch (op.kind) {
-            case Operand::Nop:
-                os << "none";
-                break;
-            case Operand::Reg:
-                if (op.regOp.isVirReg()) {
-                    os << "(vreg #" << op.regOp.getRegNo() << ")";
-                } else {
-                    os << "(reg #" << op.regOp.getRegNo() << ")";
-                }
-                break;
-            case Operand::Imm:
-                os << op.value.imm;
-                break;
-        }
+    auto ops() const {
+        return iter(op_begin(), op_end());
+    }
+    iterator op_begin() const {
+        return operands.begin();
+    }
+    iterator op_end() const {
+        return operands.end();
     }
 
-    void dump(std::ostream &os) {
-        switch ((TargetOpcode) opcode) {
-            case TargetAdd:
-                os << "add";
-                break;
-            case TargetSub:
-                os << "sub";
-                break;
-            case TargetMul:
-                os << "mul";
-                break;
-            case TargetDiv:
-                os << "div";
-                break;
-            case TargetMod:
-                os << "mod";
-                break;
-            case TargetAnd:
-                os << "and";
-                break;
-            case TargetOr:
-                os << "or";
-                break;
-            case TargetXor:
-                os << "xor";
-                break;
-            case TargetShl:
-                os << "shl";
-                break;
-            case TargetShr:
-                os << "shr";
-                break;
-            case TargetEq:
-                os << "eq";
-                break;
-            case TargetNe:
-                os << "ne";
-                break;
-            case TargetLt:
-                os << "lt";
-                break;
-            case TargetGt:
-                os << "gt";
-                break;
-            case TargetLe:
-                os << "le";
-                break;
-            case TargetMove:
-                os << "move";
-                break;
-            case TargetCBr:
-                os << "cbr";
-                break;
-            case TargetBr:
-                os << "br";
-                break;
-            case TargetCmp:
-                os << "cmp";
-                break;
-            case TargetRet:
-                os << "ret";
-                break;
-            case TargetNone:
-                os << "none";
-                break;
-            default:
-                os << "unknown";
-                break;
-        }
-        os << " ";
-        if (hasDef()) {
-            dumpOp(os << "def:", def);
-        }
-        for (auto &op : op()) {
-            if (hasDef() || &op != op_begin().getPointer()) {
-                os << ", ";
-            }
-            dumpOp(os, op);
-        }
-    }
+    void dumpOp(std::ostream &os, Operand &op);
+
+    void dump(std::ostream &os);
 
 };
 

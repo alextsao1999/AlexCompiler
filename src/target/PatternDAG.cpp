@@ -46,7 +46,7 @@ std::string PatternDAG::dump() {
                 ss << node.index << "(addr)" << std::endl;
                 break;
             case Pattern::Root:
-                ss << node.index << "(block: ";
+                ss << node.index << "(label: ";
                 if (auto *Val = ((RootNode *) &node)->getBlock()) {
                     ss << Val->getName();
                 }

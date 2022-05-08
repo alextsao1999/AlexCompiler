@@ -18,8 +18,8 @@ public:
     BasicBlock *origin;
     std::vector<MachineBlock *> preds;
     std::vector<MachineBlock *> succs;
-    std::set<RegID> liveInSet;
-    std::set<RegID> liveOutSet;
+    std::set<Register> liveInSet;
+    std::set<Register> liveOutSet;
     PatternNode *rootNode = nullptr;
 public:
     MachineBlock(const std::string &name, BasicBlock *origin) : name(name), origin(origin) {}
@@ -27,7 +27,7 @@ public:
     const std::string &getName() const {
         return name;
     }
-    ///< Origin of the block
+    ///< Origin of the label
     BasicBlock *getOrigin() { return origin; }
     Function *getFunction();
 

@@ -23,16 +23,42 @@ public:
     }
 
     virtual bool isCall(const MachineInstr &instr) const {
+        return instr.getOpcode() == TargetOpcode::TargetCall;
+    }
+
+    virtual bool isEliminableMove(const MachineInstr &instr) const {
+        if (instr.getOpcode() == TargetBr) {
+            if (instr.getOp(0).getLabel() == instr.getParent()->getNext()) {
+                return true;
+            }
+        }
+        if (instr.getOpcode() == TargetOpcode::TargetMove && instr.hasDef()) {
+            for (auto &Def: instr.defs()) {
+                for (auto &Use: instr.ops()) {
+                    if (Def != Use) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
         return false;
     }
 
+    virtual const char *getRegName(unsigned reg) const {
+        const char *regNames[] = {
+                "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"
+        };
+        return regNames[reg];
+    }
+
     const std::vector<Register> &getTempRegList() const {
-        static std::vector<Register> tempRegList = {0, 1, 2, 3, 4, 5, 6, 7};
+        static std::vector<Register> tempRegList = {0, 1/*, 2, 3, 4, 5, 6, 7*/};
         return tempRegList;
     }
 
     const std::vector<Register> &getSaveRegList() const {
-        static std::vector<Register> saveRegList = {8, 9, 10, 11, 12, 13, 14, 15};
+        static std::vector<Register> saveRegList = {8, 9/*, 10, 11, 12, 13, 14, 15*/};
         return saveRegList;
     }
 

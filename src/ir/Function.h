@@ -167,7 +167,23 @@ public:
         });*/
         os << dump_str(list, ValueDumper(), "\n\n");
         os << std::endl << "}" << std::endl;
+
+        ///< Dump MachineBlock
+        std::cout << std::endl;
+        dumpMBB(os);
     }
+
+    void dumpMBB(std::ostream &os) {
+        for (auto &MBB: blocks) {
+            os << MBB.name << " level:" << MBB.level << std::endl;
+            for (auto &Inst: MBB.instrs()) {
+                Inst.dump(os);
+                os << std::endl;
+            }
+            os << std::endl;
+        }
+    }
+
     void dumpAsOperand(std::ostream &os) override {
         assert(getReturnType());
         getReturnType()->dump(os);
@@ -212,6 +228,9 @@ public:
     NodeList<MachineBlock> blocks;
     std::map<BasicBlock *, MachineBlock *> mapBlocks;
     std::map<RegID, std::set<Operand *>> mapOperands;
+    // spill slots
+    unsigned spillSlotCount = 0;
+    std::map<RegID, unsigned> spillSlots;
     PatternDAG dag;
 };
 

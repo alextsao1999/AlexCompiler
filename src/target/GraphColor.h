@@ -54,13 +54,13 @@ struct ColorHasher {
 
 class GraphColor : public MachinePass {
 public:
-    int k = 0;
+    int RegisterCount = 0;
     Function *func = nullptr;
     std::unordered_map<RegID, GraphNode> graph;
     std::vector<GraphNode *> stack;
     std::unordered_set<std::pair<GraphNode *, ColorTy>, ColorHasher> usedColor;
-    std::unordered_map<GraphNode *, ColorTy> nodeColor;
-    std::unordered_map<GraphNode *, double> spillCosts;
+    std::unordered_map<GraphNode *, ColorTy> nodeColor; //< Allocated register
+    std::unordered_map<GraphNode *, double> spillCosts; //< Spill costs
 
     void buildIGraph() {
         graph.clear();
@@ -69,9 +69,10 @@ public:
         for (auto &MBB: func->blocks) {
             auto &Live = MBB.liveOutSet;
             for (auto &Inst: MBB.instrs().reverse()) {
+                TargetOpcode opcode = (TargetOpcode)Inst.getOpcode();
                 for (auto &Def: Inst.defs()) {
                     if (TI->isMove(Inst)) {
-                        for (auto &Op: Inst.op()) {
+                        for (auto &Op: Inst.ops()) {
                             if (Op.isReg()) {
                                 // FIXME: I don't know whether it is correct.
                                 // But it works for one op move instruction.
@@ -91,7 +92,7 @@ public:
                     }
                 }
 
-                for (auto &Use: Inst.op()) {
+                for (auto &Use: Inst.ops()) {
                     if (Use.isReg()) {
                         Live.insert(Use.getReg());
                     }
@@ -105,27 +106,22 @@ public:
 
     void simplify() {
         stack.clear();
-        std::set<GraphNode *> Nodes;
+        std::vector<GraphNode *> Nodes;
         // 计算所有的度
         for (auto &[op, node]: graph) {
-            Register Reg = op;
-            if (Reg.isPhyReg()) {
-                nodeColor[&node] = Reg;
+            if (node.isSpilled) {
+                continue;
             }
-            /*if (op->isPhyReg()) {
-                // 已经分配了物理寄存器 直接进行着色
-                nodeColor[&node] = cast<TreeReg>(op)->Reg;
-                if (op->isArgument() && !node.isTemp) {
-                    // 函数的形参如果不是临时变量, 需要进行溢出
-                    node.isSpilled = true;
-                }
-            }*/
+            if (Register::isPhyReg(op)) {
+                nodeColor[&node] = op;
+                continue;
+            }
             node.Degree = 0;
             for (auto &Edge: node.Edges) {
                 if (!Edge->isSpilled)
                     node.Degree++;
             }
-            Nodes.insert(&node);
+            Nodes.push_back(&node);
         }
         // 构建栈
         while (!Nodes.empty()) {
@@ -136,7 +132,7 @@ public:
             Nodes.erase(Iter);
             Node->Degree = 0;
             for (auto *Edge: Node->Edges) {
-                if (Nodes.count(Edge)) {
+                if (std::find(Nodes.begin(), Nodes.end(), Edge) != Nodes.end()) {
                     Edge->Degree--;
                 }
             }
@@ -180,7 +176,7 @@ public:
             auto Scale = pow(10, MBB.level);
             OpCount.clear();
             for (auto &Inst: MBB.instrs()) {
-                for (auto &Op: Inst.op()) {
+                for (auto &Op: Inst.ops()) {
                     OpCount[Op.getReg()]++;
                 }
                 for (auto &Def: Inst.defs()) {
@@ -249,7 +245,6 @@ public:
         usedColor.clear();
         while (!stack.empty()) {
             auto *node = stack.back();
-            stack.pop_back();
             if (nodeColor.count(node)) {
                 // 节点已经着色, 不需要再进行着色了
                 continue;
@@ -266,6 +261,7 @@ public:
                 trySpill();
                 return true; // 继续分配过程
             }
+            stack.pop_back();
         }
         return false;
     }
@@ -275,26 +271,28 @@ public:
             Op->regOp = phyReg;
         }
     }
-    void spillReg(Register virReg) {
 
-    }
-
-    void dump(std::ostream &os) {
-        for (auto &MBB: func->blocks) {
-            os << MBB.name << " level:" << MBB.level << std::endl;
-            for (auto &Inst: MBB.instrs()) {
-                Inst.dump(os);
-                os << std::endl;
+    void spillReg(GraphNode *spillNode, Register virReg) {
+        int slot = 0;
+        for (auto &Edge: spillNode->Edges) {
+            if (Edge->isSpilled) {
+                slot++;
             }
-            os << std::endl;
+        }
+        func->spillSlotCount = func->spillSlotCount > slot ? func->spillSlotCount : slot;
+        func->spillSlots[virReg] = slot;
+        for (auto &Op: func->mapOperands[virReg]) {
+            *Op = Operand::slot(slot);
         }
     }
 
     void runOnFunction(Function &function) override {
         func = &function;
-        //k = getTargetInfo().getSaveRegList().size() + getTargetInfo().getTempRegList().size();
-        //dump(std::cout);
+        auto *TI = func->getTargetInfo();
+        RegisterCount = TI->getSaveRegList().size() + TI->getTempRegList().size();
 
+        func->dumpMBB(std::cout);
+        std::cout << "-------------------------------------------------------" << std::endl;
         buildIGraph();
 
         bool next;
@@ -309,7 +307,7 @@ public:
             Register Reg = op;
             if (node.isSpilled) {
                 //< 将虚拟寄存器溢出
-                spillReg(Reg);
+                spillReg(&node, Reg);
                 continue;
             }
             assert(nodeColor.count(&node));
@@ -319,8 +317,6 @@ public:
                 assignReg(Reg, Color);
             }
         }
-
-        dump(std::cout);
     }
 };
 

@@ -20,8 +20,7 @@ public:
         int I = 0;
         for (auto &Param: function.getParams()) {
             auto PhyReg = Register::phy(I++);
-
-            //auto *Node = TI->loweringArgument(function.dag, Param.get(), I++);
+            mapValueToReg[Param.get()] = PhyReg;
         }
 
         for (auto &BB: function) {
@@ -64,6 +63,12 @@ public:
         return mapValueToReg[V];
     }
 
+    Operand getBlockLabel(BasicBlock *bb) {
+        auto *F = bb->getParent();
+        assert(F && F->mapBlocks[bb]);
+        return Operand::label(F->mapBlocks[bb]);
+    }
+
     Operand getValueOp(Value *V) {
         if (V->isConstant()) {
             if (auto *Int = V->as<IntConstant>()) {
@@ -76,15 +81,21 @@ public:
     }
 
     MachineInstr *visitCondBr(CondBrInst *value, MachineBlock &mbb) override {
+        mbb.append(MIBuilder()
+                           .setOpcode(TargetCBr)
+                           .addOp(getValueOp(value->getCond()))
+                           .addOp(getBlockLabel(value->getTrueTarget()))
+                           .build());
         return MIBuilder()
-                .setOpcode(TargetCBr)
-                .addOp(getValueOp(value->getCond()))
+                .setOpcode(TargetBr)
+                .addOp(getBlockLabel(value->getFalseTarget()))
                 .build();
     }
 
     MachineInstr *visitBr(BranchInst *value, MachineBlock &mbb) override {
         return MIBuilder()
                 .setOpcode(TargetBr)
+                .addOp(getBlockLabel(value->getTarget()))
                 .build();
     }
 
@@ -122,11 +133,21 @@ public:
     MachineInstr *visitCall(CallInst *value, MachineBlock &mbb) override {
         MIBuilder builder;
         builder.setOpcode(TargetCall);
-        builder.addDef(getValueReg(value));
-        for (int i = 0; i < value->getOperandNum(); ++i) {
-
+        builder.addDef(Register::phy(0));
+        for (int i = 0; i < value->getArgNum(); ++i) {
+            MIBuilder Builder;
+            Builder.setOpcode(TargetMove)
+                    .addDef(Register::phy(i))
+                    .addOp(getValueOp(value->getArg(i)));
+            mbb.append(Builder.build());
         }
-        return builder.build();
+        builder.build();
+        auto Reg = getValueReg(value);
+        return MIBuilder()
+                .setOpcode(TargetMove)
+                .addDef(Reg)
+                .addUse(Register::phy(0))
+                .build();
     }
 
     MachineInstr *visitLoad(LoadInst *value, MachineBlock &mbb) override {

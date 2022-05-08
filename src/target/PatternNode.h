@@ -422,6 +422,12 @@ public:
         reg.regId = 0xffffffff;
         return reg;
     }
+    static bool isPhyReg(unsigned regId) {
+        return (regId & 0x10000) == 0;
+    }
+    static bool isVirReg(unsigned regId) {
+        return (regId & 0x10000) != 0;
+    }
 public:
     Register() {}
     Register(unsigned regId) : regId(regId) {}

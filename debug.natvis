@@ -111,6 +111,12 @@
 <!--            <Item Name="[value]">value</Item>-->
         </Expand>
     </Type>
+    <Type Name="Register">
+        <Expand>
+            <Item Name="[RegNo]">regId &amp; 0xffff</Item>
+            <Item Name="[IsVirReg]">((regId &amp; 0x10000) == 0x10000)</Item>
+        </Expand>
+    </Type>
 
 
 </AutoVisualizer>

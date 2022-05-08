@@ -435,6 +435,10 @@ public:
 
     void dump(std::ostream &os) override;
 
+    unsigned getArgNum() const {
+        return getOperandNum();
+    }
+
     Value *getArg(unsigned i) const {
         return getOperand(i);
     }

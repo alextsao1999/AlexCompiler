@@ -266,7 +266,7 @@ public:
         set(rhs.value);
     }
     ~Use() {
-        unset();
+        //unset();
     }
 
     /// We don't need the = operator for now.

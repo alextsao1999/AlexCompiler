@@ -23,6 +23,7 @@
 #include "MachineSelect.h"
 #include "Liveness.h"
 #include "GraphColor.h"
+#include "MachineElim.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -84,7 +85,7 @@ int main(int argc, char **argv) {
             if (x == 100) { b = 200; }
             int c = x + 2 * b;
             c = c + d;
-            return x + c;
+            return x + c / a;
         }
     )");
 /*
@@ -173,14 +174,16 @@ int main(int argc, char **argv) {
     Liveness LV;
     RISCVLowering RVL;
     GraphColor GC;
+    MachineElim ME;
     PD.runOnFunction(Fun);
     //AS.runOnFunction(Fun);
     RVL.runOnFunction(Fun);
     LV.runOnFunction(Fun);
 
-    Module->dump(std::cout);
     std::cout << "-------------------------------------------------------" << std::endl;
     GC.runOnFunction(Fun);
+    ME.runOnFunction(Fun);
 
+    Module->dump(std::cout);
     return 0;
 }

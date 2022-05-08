@@ -408,7 +408,7 @@ private:
 private:
     std::string name;
     unsigned level = 0;
-    std::set<BasicBlock *> domFrontier; ///< the dominance frontier of this block
+    std::set<BasicBlock *> domFrontier; ///< the dominance frontier of this label
     std::set<BasicBlock *> domChildren; ///< children of the dominator
     BasicBlock *dominator = nullptr; ///< immediate dominator
     Instruction *terminator = nullptr; ///< the terminator instruction
