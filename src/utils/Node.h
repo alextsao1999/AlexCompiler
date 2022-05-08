@@ -591,6 +591,7 @@ public:
     }
 
     void append(NodeTy *node) {
+        assert(node);
         if (auto *OldParent = node->getParent()) {
             // 之前有父节点, 先从父节点中移除
             OldParent->remove(node);

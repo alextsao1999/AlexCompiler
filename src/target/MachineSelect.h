@@ -21,7 +21,7 @@ public:
         constexpr auto ImmOrReg = Imm | IReg;
         constexpr auto RegAlloc = sel<PatternNode>([](PatternNode *node, SelectContext &ctx) {
             if (node->getType() == ctx.getContext()->getInt32Ty()) {
-                node->replaceWith(new VirRegNode(node));
+                node->replaceWith(new RegisterNode(node));
                 return true;
             }
             return false;

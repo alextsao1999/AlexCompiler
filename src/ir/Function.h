@@ -211,7 +211,7 @@ public:
     ///< machine blocks
     NodeList<MachineBlock> blocks;
     std::map<BasicBlock *, MachineBlock *> mapBlocks;
-    std::map<PatternNode *, std::set<Operand *>> mapOperands;
+    std::map<RegID, std::set<Operand *>> mapOperands;
     PatternDAG dag;
 };
 

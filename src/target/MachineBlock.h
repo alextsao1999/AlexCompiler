@@ -18,8 +18,8 @@ public:
     BasicBlock *origin;
     std::vector<MachineBlock *> preds;
     std::vector<MachineBlock *> succs;
-    std::set<PatternNode *> liveInSet;
-    std::set<PatternNode *> liveOutSet;
+    std::set<RegID> liveInSet;
+    std::set<RegID> liveOutSet;
     PatternNode *rootNode = nullptr;
 public:
     MachineBlock(const std::string &name, BasicBlock *origin) : name(name), origin(origin) {}
@@ -46,17 +46,27 @@ public:
 
 class MIBuilder {
 public:
-    MachineBlock &block;
+    MachineBlock *block;
     MachineInstr *instr;
-    MIBuilder(MachineBlock &block) : block(block) {
-        instr = new MachineInstr();
-    }
+    MIBuilder() : block(nullptr), instr(new MachineInstr()) {}
+    MIBuilder(MachineBlock &block) : block(&block), instr(new MachineInstr()) {}
     ~MIBuilder() {
-        block.append(instr);
+        if (block) {
+            block->append(instr);
+        }
     }
 
     MIBuilder &setOpcode(unsigned opcode) {
         instr->opcode = opcode;
+        return *this;
+    }
+
+    MIBuilder &addDef(RegID reg) {
+        instr->def = Operand::reg(reg);
+        return *this;
+    }
+    MIBuilder &addDef(Operand op) {
+        instr->def = op;
         return *this;
     }
 
@@ -65,14 +75,18 @@ public:
         return *this;
     }
 
-    MIBuilder &addOp(PatternNode *node) {
-        instr->addOp(Operand::from(node));
+    MIBuilder &addUse(RegID reg) {
+        addOp(Operand::reg(reg));
         return *this;
     }
 
     MIBuilder &addImm(int64_t imm) {
         instr->addOp(Operand::imm(imm));
         return *this;
+    }
+
+    MachineInstr *build() {
+        return instr;
     }
 
 };

@@ -157,8 +157,8 @@ namespace Matcher {
             nodes.push_back(node);
         }
 
-        VirRegNode *getReg(size_t index) {
-            return nodes[index]->as<VirRegNode>();
+        RegisterNode *getReg(size_t index) {
+            return nodes[index]->as<RegisterNode>();
         }
 
         ConstantNode *getConst(size_t index) {
@@ -386,7 +386,7 @@ namespace Matcher {
         });
     }
     constexpr auto reg(MachineType ty) {
-        return type<VirRegNode>(ty) | type<PhyRegNode>(ty) |
+        return type<RegisterNode>(ty) |
                sel<CopyFromReg>([=](PatternNode *node, SelectContext &context) {
                    if (node->getType()->getMachineType() == ty) {
                        context.push(node);

@@ -10,12 +10,11 @@
 class SSADestructor : public FunctionPass {
 public:
     void runOnFunction(Function &function) override {
-        //splitCriticalEdge(&function);
+        splitCriticalEdge(&function);
         //isolatePhiByCopy(&function);
         //splitCriticalEdge(&function);
         //addAssignForPhi(&function);
         addCopyAtEnd(&function);
-        std::cout << "SSADestructor" << std::endl;
     }
 
     void isolatePhiByCopy(Function *function) {

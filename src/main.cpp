@@ -19,8 +19,10 @@
 #include "Codegen.h"
 #include "SCCP.h"
 #include "Lowering.h"
+#include "RISCVLowering.h"
 #include "MachineSelect.h"
 #include "Liveness.h"
+#include "GraphColor.h"
 static Context Context;
 
 value_t ParseCode(const char *str) {
@@ -74,7 +76,6 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
-/*
     auto Module = compileModule(R"(
         int main(int a, int b){
             int d = 10;
@@ -86,10 +87,21 @@ int main(int argc, char **argv) {
             return x + c;
         }
     )");
+/*
+    auto Module = compileModule(R"(
+        int main(int a, int b){
+            int d = 10;
+            do {
+                d = d + 1;
+            } while (0);
+            return d;
+        }
+    )");
 */
 
 
     // swap
+/*
     auto Module = compileModule(R"(
         int main(int a, int b){
             int x = 10;
@@ -103,6 +115,7 @@ int main(int argc, char **argv) {
             return c;
         }
     )");
+*/
     // loss copy
 /*
     auto Module = compileModule(R"(
@@ -155,14 +168,19 @@ int main(int argc, char **argv) {
     Dom.runOnFunction(Fun);*/
     //SCCP.runOnFunction(Fun);
 
-    /*Lowering PD;
+    Lowering PD;
     MachineSelect AS;
     Liveness LV;
+    RISCVLowering RVL;
+    GraphColor GC;
     PD.runOnFunction(Fun);
-    AS.runOnFunction(Fun);
-    LV.runOnFunction(Fun);*/
+    //AS.runOnFunction(Fun);
+    RVL.runOnFunction(Fun);
+    LV.runOnFunction(Fun);
 
     Module->dump(std::cout);
+    std::cout << "-------------------------------------------------------" << std::endl;
+    GC.runOnFunction(Fun);
 
     return 0;
 }

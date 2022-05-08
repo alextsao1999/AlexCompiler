@@ -31,6 +31,7 @@ enum BinaryOp {
     Le,
     Gt,
     Ge,
+    LastBinaryOp
 };
 
 inline bool isCommutative(BinaryOp op) {
@@ -577,29 +578,29 @@ public:
 
 };
 
-template<typename SubTy, typename RetTy = void>
+template<typename SubTy, typename RetTy = void, typename...Args>
 class InstVisitor {
 public:
-    RetTy visit(Value *value) {
+    RetTy visit(Value *value, Args&&...args) {
         if (value->isInstruction()) {
-            return visit(value->cast<Instruction>());
+            return visit(value->cast<Instruction>(), std::forward<Args>(args)...);
         }
         return RetTy();
     }
-    inline RetTy visit(Instruction &inst) {
-        return visit(&inst);
+    inline RetTy visit(Instruction &inst, Args&&...args) {
+        return visit(&inst, std::forward<Args>(args)...);
     }
-    RetTy visit(Instruction *inst) {
+    RetTy visit(Instruction *inst, Args&&...args) {
         switch (inst->getOpcode()) {
 #define DEFINE_OPCODE(NAME, c, CLASS) case Opcode##NAME: \
-            return static_cast<SubTy *>(this)->visit##NAME(static_cast<CLASS *>(inst));
+            return static_cast<SubTy *>(this)->visit##NAME(static_cast<CLASS *>(inst), std::forward<Args>(args)...);
             OPCODE_LIST(DEFINE_OPCODE)
 #undef DEFINE_OPCODE
         default:
             assert(false);
         }
     }
-#define DEFINE_OPCODE(NAME, c, CLASS) virtual RetTy visit##NAME(CLASS *value) { return RetTy(); }
+#define DEFINE_OPCODE(NAME, c, CLASS) virtual RetTy visit##NAME(CLASS *value, Args&&...args) { return RetTy(); }
     OPCODE_LIST(DEFINE_OPCODE);
 #undef DEFINE_OPCODE
 };

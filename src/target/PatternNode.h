@@ -30,6 +30,7 @@ namespace Pattern {
         Le,
         Gt,
         Ge,
+        LastBinOp = Ge,
         Root,
         Stack,
         Constant,
@@ -37,8 +38,7 @@ namespace Pattern {
         Address,
         BlockAddress,
         Call,
-        PhyRegister,
-        VirRegister,
+        Register,
         CopyFromReg,
         CopyToReg,
         Jump,
@@ -76,8 +76,7 @@ namespace Pattern {
             case Address: return "Address";
             case BlockAddress: return "BlockAddress";
             case Call: return "Call";
-            case PhyRegister: return "PhyRegister";
-            case VirRegister: return "VirRegister";
+            case Register: return "Register";
             case CopyFromReg: return "CopyFromReg";
             case CopyToReg: return "CopyToReg";
             case Jump: return "Jump";
@@ -404,37 +403,67 @@ public:
     XorNode(PatternNode *lhs, PatternNode *rhs) : PatternNodeBase({lhs, rhs}) {}
 };
 
-class Register {
-    unsigned regId;
-    bool isPhy: 1 = false;
+using RegID = unsigned;
+struct Register {
+    unsigned regId = 0;
 public:
-    Register() {}
-    Register(unsigned int regId) : regId(regId) {}
-    Register(const Register &other) : regId(other.regId), isPhy(other.isPhy) {}
-    Register &operator=(const Register &other) {
-        regId = other.regId;
-        isPhy = other.isPhy;
-    }
-    bool operator==(const Register &other) const {
-        return regId == other.regId && isPhy == other.isPhy;
-    }
-
-    operator unsigned() const {
-        return regId & 0xffff + (isPhy ? 0x10000 : 0);
-    }
-};
-class PhyRegNode : public PatternNodeBase<Pattern::PhyRegister, 0> {
-    Register reg;
-public:
-    PhyRegNode(Register reg) : reg(reg) {}
-    inline Register getRegister() const {
+    static Register phy(unsigned regId) {
+        Register reg;
+        reg.regId = regId;
         return reg;
     }
-};
-class VirRegNode : public PatternNodeBase<Pattern::VirRegister, 1> {
+    static Register vir(unsigned regId) {
+        Register reg;
+        reg.regId = regId | 0x10000;
+        return reg;
+    }
+    static Register invalid() {
+        Register reg;
+        reg.regId = 0xffffffff;
+        return reg;
+    }
 public:
-    VirRegNode(PatternNode *child) : PatternNodeBase({child}) {}
+    Register() {}
+    Register(unsigned regId) : regId(regId) {}
+    Register(unsigned int regId, bool isPhy) : regId(regId | (isPhy ? 0 : 0x10000)) {}
+    Register(const Register &other) : regId(other.regId) {}
+    bool isInvalid() const { return regId == 0xffffffff; }
+    bool isVirReg() const { return regId & 0x10000; }
+    bool isPhyReg() const { return !isVirReg(); }
+    unsigned getRegId() {
+        return regId;
+    }
+    unsigned getRegNo() {
+        return regId & 0xffff;
+    }
+    Register &operator=(unsigned id) {
+        regId = id;
+        return *this;
+    }
+    Register &operator=(const Register &other) {
+        regId = other.regId;
+        return *this;
+    }
+    bool operator==(const Register &other) const {
+        return regId == other.regId;
+    }
+    bool operator<(const Register &other) {
+        return unsigned(*this) < unsigned(other);
+    }
+    operator unsigned() const {
+        return regId;
+    }
+};
+class RegisterNode : public PatternNodeBase<Pattern::Register, 1> {
+    Register reg;
+public:
+    RegisterNode(Register reg) : PatternNodeBase(), reg(reg) {}
+    RegisterNode(PatternNode *child) : PatternNodeBase({child}) {}
+    Register getReg() const { return reg; }
+    bool isPhyReg() const { return reg.isPhyReg(); }
+    bool isVirReg() const { return reg.isVirReg(); }
     PatternNode *getNode() { return getChild(0); }
+    void setNode(PatternNode *node) { setHungOffOperand(0, node); }
 };
 
 class CopyFromReg : public PatternNodeBase<Pattern::CopyFromReg, 0> {
@@ -515,7 +544,7 @@ public:
         return value;
     }
     void setValue(Value *v) {
-        this->value = v;
+        value = v;
     }
 };
 

@@ -15,12 +15,12 @@ void MachineBlock::append(MachineInstr *instr) {
     assert(Fun);
     for (auto &Op: instr->defs()) {
         if (Op.isReg()) {
-            Fun->mapOperands[Op.getOrigin()].insert(&Op);
+            Fun->mapOperands[Op.getReg()].insert(&Op);
         }
     }
     for (auto &Op: instr->op()) {
         if (Op.isReg()) {
-            Fun->mapOperands[Op.getOrigin()].insert(&Op);
+            Fun->mapOperands[Op.getReg()].insert(&Op);
         }
     }
 }
@@ -30,12 +30,12 @@ void MachineBlock::remove(MachineInstr *instr) {
     assert(Fun);
     for (auto &Op: instr->defs()) {
         if (Op.isReg()) {
-            Fun->mapOperands[Op.getOrigin()].erase(&Op);
+            Fun->mapOperands[Op.getReg()].erase(&Op);
         }
     }
     for (auto &Op: instr->op()) {
         if (Op.isReg()) {
-            Fun->mapOperands[Op.getOrigin()].erase(&Op);
+            Fun->mapOperands[Op.getReg()].erase(&Op);
         }
     }
     NodeParent::remove(instr);

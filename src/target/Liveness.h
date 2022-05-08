@@ -8,7 +8,7 @@
 #include "MachinePass.h"
 class Liveness : public MachinePass {
 public:
-    using BlockSet = std::unordered_map<MachineBlock *, std::set<PatternNode *>>;
+    using BlockSet = std::unordered_map<MachineBlock *, std::set<RegID>>;
     BlockSet liveKills;
     BlockSet liveGens;
 
@@ -16,9 +16,9 @@ public:
         computeLocalLiveness(&function);
         computeGlobalLiveness(&function);
 
-        std::cout << "Liveness: " << std::endl;
+        /*std::cout << "Liveness: " << std::endl;
         std::cout << function.dag.dump() << std::endl;
-        std::cout << std::endl;
+        std::cout << std::endl;*/
     }
 
     void computeLocalLiveness(Function *func) {
@@ -27,15 +27,15 @@ public:
             auto &LiveKill = liveKills[&MBB];
             for (auto &Inst: MBB.instrs()) {
                 for (auto &Use: Inst.op()) {
-                    if (Use.isVirReg()) {
-                        if (!LiveKill.count(Use.getOrigin())) {
-                            LiveGen.insert(Use.getOrigin());
+                    if (Use.isReg()) {
+                        if (!LiveKill.count(Use.getReg())) {
+                            LiveGen.insert(Use.getReg());
                         }
                     }
                 }
                 for (auto &Def : Inst.defs()){
-                    if (Def.isVirReg()) {
-                        LiveKill.insert(Def.getOrigin());
+                    if (Def.isReg()) {
+                        LiveKill.insert(Def.getReg());
                     }
                 }
             }
