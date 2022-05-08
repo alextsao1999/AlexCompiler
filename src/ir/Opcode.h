@@ -14,7 +14,8 @@ S(Copy,   1, CopyInst)       \
 S(Phi,    0, PhiInst)        \
 S(Br,     1, BranchInst)     \
 S(CondBr, 3, CondBrInst)     \
-S(Unary,  1, UnaryInst)      \
+S(Not  ,  1, NotInst)        \
+S(Neg  ,  1, NegInst)        \
 S(Binary, 2, BinaryInst)     \
 S(GetPtr, 2, GetPtrInst)     \
 S(Ret,    0, RetInst)        \

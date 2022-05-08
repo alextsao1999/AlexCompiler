@@ -92,8 +92,8 @@ Exp -> Exp '+' Exp @BinExp{@string_t& op: @2, left: $1, right: $3}
      | Exp '>=' Exp @BinExp{op: @2, left: $1, right: $3}
      | Exp '&&' Exp @BinExp{op: @2, left: $1, right: $3}
      | Exp '||' Exp @BinExp{op: @2, left: $1, right: $3}
-     | '-' Exp @UnaExp{@string_t& op: @2, val: $1}
-     | '!' Exp @UnaExp{op: @2, val: $1}
+     | '-' Exp @UnaExp{@string_t& op: @1, val: $2}
+     | '!' Exp @UnaExp{op: @1, val: $2}
      | '(' Exp ')' $1
      | Ident @RVal{@string_t& name: $1}
      | Ident '(' FuncCallArgs ')' @FuncCall{@string_t& name: $1, args: $3}

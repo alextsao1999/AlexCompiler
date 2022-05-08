@@ -215,7 +215,7 @@ public:
                 }
             }
         } else {
-            for (auto Reg: func->getTargetInfo()->getTempRegList()) {
+            for (auto Reg: func->getTargetInfo()->getSaveRegList()) {
                 if (!usedColor.count({node, Reg})) {
                     // 找到周围没有的颜色, 进行染色
                     nodeColor[node] = Reg;

@@ -5,7 +5,19 @@
 #ifndef DRAGON_TEST_COMMON_H
 #define DRAGON_TEST_COMMON_H
 
+#define ENABLE_DUMP 1
+
 #include "gtest/gtest.h"
+
+#include "parser.h"
+#include "Codegen.h"
+#include "SSAConstructor.h"
+#include "Dominance.h"
+#include "LoopAnalyse.h"
+#include "parser.h"
+#include "GVN.h"
+#include "BranchElim.h"
+#include "LoopSimplify.h"
 
 inline auto SplitAndTrim(const std::string &str) -> std::string {
     std::vector<std::string> Res;
@@ -32,7 +44,32 @@ inline auto SplitAndTrim(const std::string &str) -> std::string {
     return SSRes.str();
 };
 
+inline value_t ParseCode(const char *str) {
+    LRParser<> Parser(false);
+    Parser.reset(str, str + strlen(str));
+    Parser.parse();
+    if (!Parser.accept()) {
+        return value_t();
+    }
+    return Parser.value();
+}
+
+Context Context;
+
+std::unique_ptr<Module> compileModule(const char *str) {
+    auto Val = ParseCode(str);
+    Codegen CG(Context);
+    CG.visit(Val);
+    return std::move(CG.getModule());
+}
+
 #define EXPECT_EQ_VALUE(V, EXPECTED) \
     EXPECT_EQ(SplitAndTrim(V->dumpToString()), SplitAndTrim(EXPECTED))
+
+#if ENABLE_DUMP
+#define CHECK_OR_DUMP(V, C) V->dump(std::cout);
+#else
+#define CHECK_OR_DUMP(V, C) EXPECT_EQ_VALUE(V, C);
+#endif
 
 #endif //DRAGON_TEST_COMMON_H

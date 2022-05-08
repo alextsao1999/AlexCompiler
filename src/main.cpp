@@ -77,25 +77,26 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
+/*
     auto Module = compileModule(R"(
         int fib(int t){
             if(t < 2) return t;
             return fib(t-1) + fib(t-2);
         }
+
     )");
-/*
+*/
     auto Module = compileModule(R"(
         int main(int a, int b){
             int d = main(a+1, b+1);
             int x = a + b * 2;
             d = d * 2;
-            if (x == 100) { b = 200; }
+            if (x != 100) { b = 200; }
             int c = x + 2 * b;
             c = c + d;
             return x + c / a;
         }
     )");
-*/
 /*
     auto Module = compileModule(R"(
         int main(int a, int b){
@@ -154,7 +155,7 @@ int main(int argc, char **argv) {
         }
     )");
 */
-    auto &Fun = *Module->getFunction("fib");
+    auto &Fun = *Module->functions.begin()->second;
     // Module->dump(std::cout);
     Dominance Dom;
     SSAConstructor Cons;

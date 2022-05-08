@@ -14,7 +14,7 @@
 struct VNExpr {
     Value *lhs = nullptr;
     Value *rhs = nullptr;
-    BinaryOp op = BinaryOp::None;
+    BinaryOp op = BinNone;
     //VNExpr() {}
     //VNExpr(BinaryInst *bin) : lhs(bin->getLHS()), rhs(bin->getRHS()), op(bin->getOp()) {}
     bool operator==(const VNExpr &e) const {

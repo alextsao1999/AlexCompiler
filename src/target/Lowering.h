@@ -144,10 +144,6 @@ public:
         return newNode<CopyFromReg>(value, value);
     }
 
-    PatternNode *visitUnary(UnaryInst *value) override {
-        return InstVisitor::visitUnary(value);
-    }
-
     PatternNode *visitStore(StoreInst *value) override {
         return newNode<StoreNode>(value, visit(value->getPtr()), visit(value->getVal()));
     }

@@ -60,8 +60,11 @@ void Instruction::dump(std::ostream &os) {
             case BinaryOp::Ge:
                 os << "ge";
                 break;
+            case BinaryOp::Rem:
+                os << "rem";
+                break;
             default:
-                os << "???";
+                os << "unknown";
                 break;
         }
     } else {

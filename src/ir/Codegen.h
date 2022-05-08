@@ -286,9 +286,15 @@ public:
     }
 
     Value *visitUnaExp(UnaExp value) override {
-        unreachable();
-        // TODO: implement unary expression
-        return Visitor::visitUnaExp(value);
+        auto *V = visit(value.getVal());
+        assert(V);
+        if (value.getOp() == "!") {
+            return builder.createNot(V);
+        } else if (value.getOp() == "-") {
+            return builder.createNeg(V);
+        }
+        assert(false && "unsupported unary operator");
+        return nullptr;
     }
 
     Value *visitDecLiteral(DecLiteral value) override {
@@ -308,7 +314,9 @@ public:
 
         builder.setInsertPoint(Body);
         visit(value.getBody());
-        builder.createBr(Cond);
+        if (!builder.getInsertBlock()->getTerminator()) {
+            builder.createBr(Cond);
+        }
 
         builder.setInsertPoint(Leave);
         return nullptr;
@@ -322,7 +330,9 @@ public:
 
         builder.setInsertPoint(Body);
         visit(value.getBody());
-        builder.createBr(Cond);
+        if (!builder.getInsertBlock()->getTerminator()) {
+            builder.createBr(Cond);
+        }
 
         builder.setInsertPoint(Cond);
         auto *CondVal = visit(value.getCond());
@@ -344,11 +354,15 @@ public:
 
         builder.setInsertPoint(Then);
         visit(value.getThen());
-        builder.createBr(Leave);
+        if (!builder.getInsertBlock()->getTerminator()) {
+            builder.createBr(Leave);
+        }
 
         builder.setInsertPoint(Else);
         visit(value.getElse());
-        builder.createBr(Leave);
+        if (!builder.getInsertBlock()->getTerminator()) {
+            builder.createBr(Leave);
+        }
 
         builder.setInsertPoint(Leave);
         return nullptr;

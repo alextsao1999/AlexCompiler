@@ -17,7 +17,8 @@ public:
                 case OpcodeCast:
                 case OpcodeCopy:
                 case OpcodePhi:
-                case OpcodeUnary:
+                case OpcodeNeg:
+                case OpcodeNot:
                 case OpcodeBinary:
                 case OpcodeGetPtr:
                 case OpcodeLoad:

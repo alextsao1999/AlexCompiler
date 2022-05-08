@@ -56,6 +56,7 @@ private:
     std::string name;
 
     Context *context = nullptr;
+public:
     std::map<std::string, Function *> functions;
     std::map<std::string, Value *> globals;
 

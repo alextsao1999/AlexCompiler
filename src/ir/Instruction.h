@@ -13,7 +13,7 @@
 #include "SymbolTable.h"
 #include "PatternNode.h"
 enum BinaryOp {
-    None,
+    BinNone,
     Add = Pattern::Add,
     Sub,
     Mul,
@@ -33,7 +33,6 @@ enum BinaryOp {
     Ge,
     LastBinaryOp
 };
-
 inline bool isCommutative(BinaryOp op) {
     switch (op) {
         case Add:
@@ -318,11 +317,6 @@ public:
     CopyInst(Value *val) : OutputInst(val->getType(), OpcodeCopy, {val}) {}
     CopyInst(const CopyInst &other) : OutputInst(other) {}
 
-    Type *getType() override {
-        assert(getVal());
-        return nullptr;
-    }
-
     Value *getVal() const {
         return getOperand(0);
     }
@@ -453,9 +447,26 @@ public:
 
 };
 
-class UnaryInst : public OutputInst {
+class NotInst : public OutputInst {
 public:
+    NotInst() : OutputInst(OpcodeNot) {}
+    NotInst(Value *val) : OutputInst(val->getType(), OpcodeNot, {val}) {}
+    NotInst(const NotInst &other) : OutputInst(other) {}
 
+    Value *getVal() const {
+        return getOperand(0);
+    }
+};
+
+class NegInst : public OutputInst {
+public:
+    NegInst() : OutputInst(OpcodeNeg) {}
+    NegInst(Value *val) : OutputInst(val->getType(), OpcodeNeg, {val}) {}
+    NegInst(const NegInst &other) : OutputInst(other) {}
+
+    Value *getVal() const {
+        return getOperand(0);
+    }
 };
 
 class BinaryInst : public OutputInst {

@@ -17,8 +17,6 @@
 
 #include "PatternNode.h"
 
-Context Context;
-
 TEST(IR, BasicBlock) {
     Function F("test", Context.getVoidFunTy());
 

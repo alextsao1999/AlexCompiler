@@ -159,6 +159,14 @@ public:
         return insert(new RetInst());
     }
 
+    auto *createNeg(Value *val, StrView name = "neg") {
+        return insert(new NegInst(val), name);
+    }
+
+    auto *createNot(Value *val, StrView name = "not") {
+        return insert(new NotInst(val), name);
+    }
+
     // simple form of create instruction
     auto *call(Function *func, const std::vector<Value *> &args, StrView name = "call") {
         return insert(new CallInst(func, args), name);

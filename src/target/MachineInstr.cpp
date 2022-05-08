@@ -53,6 +53,15 @@ void MachineInstr::dump(std::ostream &os) {
         case TargetLe:
             os << "le";
             break;
+        case TargetGe:
+            os << "ge";
+            break;
+        case TargetNeg:
+            os << "neg";
+            break;
+        case TargetNot:
+            os << "not";
+            break;
         case TargetMove:
             os << "move";
             break;

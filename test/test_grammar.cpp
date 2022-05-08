@@ -2,14 +2,7 @@
 // Created by Alex on 2022/3/12.
 //
 #include "gtest/gtest.h"
-#include "parser.h"
-
-value_t ParseCode(const char *str) {
-    GLRParser<> Parser(false);
-    Parser.reset(str, str + strlen(str));
-    Parser.parse();
-    return Parser.value();
-}
+#include "test_common.h"
 
 TEST(Grammar, Expr) {
     const char *ExprTest = "import aaa.bbb.ccc;\n"

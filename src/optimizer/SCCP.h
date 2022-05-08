@@ -152,7 +152,8 @@ public:
             case OpcodeAlloca:
             case OpcodeCast:
             case OpcodeCopy:
-            case OpcodeUnary:
+            case OpcodeNeg:
+            case OpcodeNot:
             case OpcodeGetPtr:
             case OpcodeLoad:
             case OpcodeStore:
