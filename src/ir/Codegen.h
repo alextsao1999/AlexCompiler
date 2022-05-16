@@ -369,12 +369,8 @@ public:
     }
 
     Value *visitIfStmt(IfStmt value) override {
-        auto *Cond = BasicBlock::Create(curFunc, "if.cond");
         auto *Then = BasicBlock::Create(curFunc, "if.then");
         auto *Leave = BasicBlock::Create(curFunc, "if.leave");
-        builder.createBr(Cond);
-
-        builder.setInsertPoint(Cond);
         auto *CondVal = visit(value.getCond());
         builder.createCondBr(CondVal, Then, Leave);
 

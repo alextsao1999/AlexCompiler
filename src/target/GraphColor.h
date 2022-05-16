@@ -73,7 +73,7 @@ public:
                 TargetOpcode opcode = (TargetOpcode)Inst.getOpcode();
                 for (auto &Def: Inst.defs()) {
                     if (TI->isMove(Inst)) {
-                        for (auto &Op: Inst.ops()) {
+                        for (auto &Op: Inst.uses()) {
                             if (Op.isReg()) {
                                 // FIXME: I don't know whether it is correct.
                                 // But it works for one op move instruction.
@@ -93,7 +93,7 @@ public:
                     }
                 }
 
-                for (auto &Use: Inst.ops()) {
+                for (auto &Use: Inst.uses()) {
                     if (Use.isReg()) {
                         Live.insert(Use.getReg());
                     }
@@ -177,7 +177,7 @@ public:
             auto Scale = pow(10, MBB.level);
             OpCount.clear();
             for (auto &Inst: MBB.instrs()) {
-                for (auto &Op: Inst.ops()) {
+                for (auto &Op: Inst.uses()) {
                     OpCount[Op.getReg()]++;
                 }
                 for (auto &Def: Inst.defs()) {
@@ -271,6 +271,7 @@ public:
         for (auto &Op: func->mapOperands[virReg]) {
             Op->regOp = phyReg;
         }
+        func->allocatedRegs.insert(phyReg);
     }
 
     void spillReg(GraphNode *spillNode, Register virReg) {
@@ -287,6 +288,8 @@ public:
         for (auto &Op: func->mapOperands[virReg]) {
             *Op = Operand::slot(slot);
         }
+        func->spillSlotCount = func->spillSlotCount > slot ? func->spillSlotCount : slot;
+        func->spillSlots[virReg] = slot;
     }
 
     void runOnFunction(Function &function) override {

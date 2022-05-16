@@ -5,7 +5,7 @@
 #ifndef DRAGON_TEST_COMMON_H
 #define DRAGON_TEST_COMMON_H
 
-#define ENABLE_DUMP 1
+#define ENABLE_DUMP 0
 
 #include "gtest/gtest.h"
 
@@ -18,6 +18,14 @@
 #include "GVN.h"
 #include "BranchElim.h"
 #include "LoopSimplify.h"
+#include "SSADestructor.h"
+#include "GraphColor.h"
+#include "Lowering.h"
+#include "MachineSelect.h"
+#include "Liveness.h"
+#include "MachineElim.h"
+#include "RISCVLowering.h"
+#include "RISCVEmit.h"
 
 inline auto SplitAndTrim(const std::string &str) -> std::string {
     std::vector<std::string> Res;
@@ -56,20 +64,25 @@ inline value_t ParseCode(const char *str) {
 
 Context Context;
 
-std::unique_ptr<Module> compileModule(const char *str) {
+inline std::unique_ptr<Module> compileModule(const char *str) {
     auto Val = ParseCode(str);
     Codegen CG(Context);
     CG.visit(Val);
     return std::move(CG.getModule());
 }
 
+
 #define EXPECT_EQ_VALUE(V, EXPECTED) \
     EXPECT_EQ(SplitAndTrim(V->dumpToString()), SplitAndTrim(EXPECTED))
 
+inline bool isStrEmpty(const char *str) {
+    return str == nullptr || str[0] == '\0';
+}
+
 #if ENABLE_DUMP
-#define CHECK_OR_DUMP(V, C) V->dump(std::cout);
+#define CHECK_OR_DUMP(V, C) if (isStrEmpty(C)) V->dump(std::cout); else EXPECT_EQ_VALUE(V, C);
 #else
-#define CHECK_OR_DUMP(V, C) EXPECT_EQ_VALUE(V, C);
+#define CHECK_OR_DUMP(V, C) EXPECT_EQ_VALUE(V, C)
 #endif
 
 #endif //DRAGON_TEST_COMMON_H

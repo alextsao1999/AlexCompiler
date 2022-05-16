@@ -74,6 +74,12 @@ void MachineInstr::dump(std::ostream &os) {
         case TargetCall:
             os << "call";
             break;
+        case TargetLoad:
+            os << "load";
+            break;
+        case TargetStore:
+            os << "store";
+            break;
         case TargetCmp:
             os << "cmp";
             break;
@@ -89,10 +95,10 @@ void MachineInstr::dump(std::ostream &os) {
     }
     os << " ";
     if (hasDef()) {
-        dumpOp(os << "def:", defOp);
+        dumpOp(os << "def:", *defs_begin());
     }
-    for (auto &op : ops()) {
-        if (hasDef() || &op != op_begin().getPointer()) {
+    for (auto &op : uses()) {
+        if (hasDef() || &op != use_begin().getPointer()) {
             os << ", ";
         }
         dumpOp(os, op);

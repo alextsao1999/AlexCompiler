@@ -12,13 +12,17 @@
 
 #include "Node.h"
 #include "Function.h"
+#include "RISCVTarget.h"
+
 class Context;
 class Module : public NodeParent<Module, Function> {
+    RISCVTarget target;
 public:
     explicit Module(StrView name, Context &context) : name(name), context(&context) {}
 
     inline Function *createFunction(StrView fn, Type *type) {
         Function *F = new Function(this, fn, type);
+        F->setTargetInfo(&target);
         append(F);
         functions.emplace(fn, F);
         return F;
@@ -30,6 +34,15 @@ public:
 
     Function *getFunction(const std::string &fn) {
         return functions[fn];
+    }
+
+    Function *getFunction(size_t index = 0) {
+        for (auto Iter = functions.begin(); Iter != functions.end(); ++Iter) {
+            if (index-- == 0) {
+                return Iter->second;
+            }
+        }
+        return nullptr;
     }
 
     Context *getContext() const {

@@ -26,7 +26,7 @@ public:
             auto &LiveGen = liveGens[&MBB];
             auto &LiveKill = liveKills[&MBB];
             for (auto &Inst: MBB.instrs()) {
-                for (auto &Use: Inst.ops()) {
+                for (auto &Use: Inst.uses()) {
                     if (Use.isReg()) {
                         if (!LiveKill.count(Use.getReg())) {
                             LiveGen.insert(Use.getReg());

@@ -12,11 +12,12 @@
 
 ///< NodeBase is the base class of Node and Sentinel.
 class NodeBase {
-    template <typename Ty, typename Traits, typename SentinelTy> friend class INodeListImpl;
-    template <typename Ty, typename As, bool> friend class NodeIter;
+    template <typename Ty> friend class NodeAccessor;
 protected:
     NodeBase *prev = nullptr;
     NodeBase *next = nullptr;
+    constexpr NodeBase() = default;
+    constexpr NodeBase(NodeBase *prev, NodeBase *next) : prev(prev), next(next) {}
 
     inline void linkNext(NodeBase *N) {
         assert(N);
@@ -45,7 +46,6 @@ protected:
     inline constexpr void setPrevNode(NodeBase *P) {
         prev = P;
     }
-
 };
 
 template<typename T>
@@ -54,7 +54,6 @@ private:
     inline T *getValue() const {
         return static_cast<T *>(this);
     }
-
 public:
     inline T *getPrev() const {
         return static_cast<T *>(getPrevNode());
@@ -71,23 +70,44 @@ public:
     inline void setPrev(T *P) {
         prev = P;
     }
-
 };
 class NodeSentinel : public NodeBase {
 public:
-    constexpr NodeSentinel() {
-        reset();
-    }
+    constexpr NodeSentinel() : NodeBase(this, this) {}
 
+    ///< check if the linked list is empty
     inline constexpr bool empty() const {
         return getPrevNode() == this;
     }
 
+    ///< reset the sentinel to empty state.
     inline constexpr void reset() {
         setNextNode(this);
         setPrevNode(this);
     }
+};
 
+template<typename Ty>
+class NodeAccessor {
+public:
+    static inline Ty *getPrev(Ty *node) {
+        return node->getPrevNode();
+    }
+    static inline Ty *getNext(Ty *node) {
+        return node->getNextNode();
+    }
+    static inline void setNext(Ty *node, Ty *next) {
+        node->setNextNode(next);
+    }
+    static inline void setPrev(Ty *node, Ty *prev) {
+        node->setPrevNode(prev);
+    }
+    static inline void linkNext(Ty *node, Ty *next) {
+        node->linkNext(next);
+    }
+    static inline void linkPrev(Ty *node, Ty *prev) {
+        node->linkPrev(prev);
+    }
 };
 
 template<typename T, typename ParentT>
@@ -191,7 +211,7 @@ public:
     inline NodeIter<Ty, As, !Reverse> getReverse() const { return NodeIter<Ty, As, !Reverse>(cursor); }
 
     NodeIter &operator++() {
-        cursor = Reverse ? cursor->prev : cursor->next;
+        cursor = Reverse ? NodeAccessor<Ty>::getPrev(cursor) : NodeAccessor<Ty>::getNext(cursor);
         return *this;
     }
 
@@ -202,7 +222,7 @@ public:
     }
 
     NodeIter &operator--() {
-        cursor = Reverse ? cursor->next : cursor->prev;
+        cursor = Reverse ? NodeAccessor<Ty>::getNext(cursor) : NodeAccessor<Ty>::getPrev(cursor);
         return *this;
     }
 
@@ -218,6 +238,23 @@ public:
         return iter;
     }
 
+    NodeIter operator+(int c) const {
+        auto iter = *this;
+        for (; c--; ++iter) {}
+        return iter;
+    }
+
+    NodeIter next() const {
+        auto iter = *this;
+        ++iter;
+        return iter;
+    }
+
+    NodeIter prev() const {
+        auto iter = *this;
+        --iter;
+        return iter;
+    }
 };
 
 template<typename T, typename As, bool Reverse>
@@ -298,8 +335,8 @@ public:
 
     INodeListImpl &operator=(INodeListImpl &&RHS) {
         erase(begin(), end());
-        RHS.sentinel.getNextNode()->linkPrev(&sentinel);
-        RHS.sentinel.getPrevNode()->linkNext(&sentinel);
+        NodeAccessor<NodeTy>::linkPrev(RHS.sentinel.getNextNode(), &sentinel);
+        NodeAccessor<NodeTy>::linkNext(RHS.sentinel.getPrevNode(), &sentinel);
         RHS.sentinel.reset();
         return *this;
     }
@@ -376,68 +413,24 @@ public:
     }
 
     inline void remove(iterator where) {
-        auto Next = where->getNext();
-        auto Prev = where->getPrev();
-
-        Next->setPrev(Prev);
-        Prev->setNext(Next);
-
-        //where->linkNext(where.getPointer());
+        auto Next = NodeAccessor<NodeTy>::getNext(where.getPointer());
+        auto Prev = NodeAccessor<NodeTy>::getPrev(where.getPointer());
+        NodeAccessor<NodeTy>::setPrev(Next, Prev);
+        NodeAccessor<NodeTy>::setNext(Prev, Next);
     }
 
     inline void remove(iterator first, iterator last) {
-        //auto End = last->getPrev();
-        auto Prev = first->getPrev();
-        Prev->linkNext(last.getPointer());
-        //first->linkPrev(End);
-    }
-
-    inline void extract(iterator where) {
-        remove(where);
-        where->linkNext(where.getPointer());
-    }
-
-    inline void extract(iterator first, iterator last) {
-        auto End = last->getPrev();
-        remove(first, last);
-        first->linkPrev(End);
-    }
-
-    inline void inject_before(iterator where, pointer node) {
-        auto Prev = where->getPrev();
-        auto End = node->getPrev();
-
-        Prev->linkNext(node);
-        End->linkNext(where.getPointer());
-    }
-
-    inline void inject_after(iterator where, pointer node) {
-        auto Next = where->getNext();
-        auto End = node->getPrev();
-
-        where->linkNext(node);
-        End->linkNext(Next);
-    }
-
-    inline void inject_before(iterator where, pointer first, pointer last) {
-        auto Prev = where->getPrev();
-        last->linkNext(where.getPointer());
-        first->linkPrev(Prev);
-    }
-
-    inline void inject_after(iterator where, pointer first, pointer last) {
-        auto Next = where->getNext();
-        first->linkPrev(where.getPointer());
-        last->linkNext(Next);
+        auto Prev = NodeAccessor<NodeTy>::getPrev(first.getPointer());
+        NodeAccessor<NodeTy>::linkNext(Prev, last.getPointer());
     }
 
     inline iterator erase(iterator where) {
         if (where == end())
             return where;
-        auto *Next = where->getNext();
+        auto Next = NodeAccessor<NodeTy>::getNext(where.getPointer());
         remove(where);
         Traits::derefNode(where.getPointer());
-        return Next;
+        return iterator(Next);
     }
 
     inline void erase(iterator first, iterator last) {
@@ -448,23 +441,22 @@ public:
     inline iterator insert_after_without_ref(iterator where, pointer node) {
         assert(node);
         // no unlink
-        auto Next = where->getNext();
-        Next->setPrev(node);
-        node->setPrev(where.getPointer());
-        node->setNext(Next);
-        where->setNext(node);
-
+        auto Next = NodeAccessor<NodeTy>::getNext(where.getPointer());
+        NodeAccessor<NodeTy>::setPrev(Next, node);
+        NodeAccessor<NodeTy>::setPrev(node, where.getPointer());
+        NodeAccessor<NodeTy>::setNext(node, Next);
+        NodeAccessor<NodeTy>::setNext(where.getPointer(), node);
         return node;
     }
 
     inline iterator insert_before_without_ref(iterator where, pointer node) {
         assert(node);
         // no unlink
-        auto Prev = where->getPrev();
-        Prev->setNext(node);
-        node->setPrev(Prev);
-        node->setNext(where.getPointer());
-        where->setPrev(node);
+        auto Prev = NodeAccessor<NodeTy>::getPrev(where.getPointer());
+        NodeAccessor<NodeTy>::setNext(Prev, node);
+        NodeAccessor<NodeTy>::setPrev(node, Prev);
+        NodeAccessor<NodeTy>::setNext(node, where.getPointer());
+        NodeAccessor<NodeTy>::setPrev(where.getPointer(), node);
         return node;
     }
 
@@ -492,13 +484,13 @@ public:
 
     inline iterator replace_without_ref(iterator where, pointer node) {
         assert(node);
-        auto *Ptr = where.getPointer();
-        auto *Prev = Ptr->getPrev();
-        auto *Next = Ptr->getNext();
-        Prev->setNext(node);
-        Next->setPrev(node);
-        node->setPrev(Prev);
-        node->setNext(Next);
+        auto Ptr = where.getPointer();
+        auto Prev = NodeAccessor<NodeTy>::getPrev(Ptr);
+        auto Next = NodeAccessor<NodeTy>::getNext(Ptr);
+        NodeAccessor<NodeTy>::setNext(Prev, Next);
+        NodeAccessor<NodeTy>::setPrev(Next, Prev);
+        NodeAccessor<NodeTy>::setPrev(node, Prev);
+        NodeAccessor<NodeTy>::setNext(node, Next);
         Traits::derefNode(Ptr);
         return node;
     }

@@ -77,84 +77,12 @@ Function *createFunc1() {
 }
 
 int main(int argc, char **argv) {
-/*
     auto Module = compileModule(R"(
         int fib(int t){
             if(t < 2) return t;
             return fib(t-1) + fib(t-2);
         }
-
     )");
-*/
-    auto Module = compileModule(R"(
-        int main(int a, int b){
-            int d = main(a+1, b+1);
-            int x = a + b * 2;
-            d = d * 2;
-            if (x != 100) { b = 200; }
-            int c = x + 2 * b;
-            c = c + d;
-            return x + c / a;
-        }
-    )");
-/*
-    auto Module = compileModule(R"(
-        int main(int a, int b){
-            int d = 10;
-            do {
-                d = d + 1;
-            } while (0);
-            return d;
-        }
-    )");
-*/
-
-
-    // swap
-/*
-    auto Module = compileModule(R"(
-        int main(int a, int b){
-            int x = 10;
-            int y = 20;
-            do {
-                int t = x;
-                x = y;
-                y = t;
-            } while (x == 20);
-            int c = x * 2 + y;
-            return c;
-        }
-    )");
-*/
-    // loss copy
-/*
-    auto Module = compileModule(R"(
-        int main(int a, int b){
-            int i = 1;
-            int y = 0;
-            do {
-                y = i;
-                i = i + 1;
-            } while (i == 2);
-            return y + 2;
-        }
-    )");
-*/
-/*
-    auto Module = compileModule(R"(
-        int main(){
-            int a = 0;
-            while (a < 20) {
-              int i = 10;
-              while (i<20) i = i + 1;
-              while (a < 50) a = a + 1;
-              a = a + 1;
-            }
-            while (a > 500) a = a - 1;
-            return a;
-        }
-    )");
-*/
     auto &Fun = *Module->functions.begin()->second;
     // Module->dump(std::cout);
     Dominance Dom;

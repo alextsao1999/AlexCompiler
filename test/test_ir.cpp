@@ -28,14 +28,13 @@ TEST(IR, BasicBlock) {
     BB->insertAfter(Alloca, Builder.createStore(Alloca, Context.getInt(22)));
     Builder.createRet(Builder.createLoad(Alloca));
 
-    BB->dump(std::cout);
-    EXPECT_EQ_VALUE(BB, R"(
-        BB:			 --- preds=() succs=()
-            %V = alloca i32, 1
-            store i32* %V, i32 22
-            %load = load i32* %V
-            ret i32 %load
-    )");
+    CHECK_OR_DUMP(BB, R"(
+BB.0:    preds=() succs=()
+%V.0 = alloca i32
+store i32* %V.0, i32 22
+%load.0 = load i32* %V.0
+ret i32 %load.0
+)");
 
     auto *DomPass = new Dominance();
     auto *SSAPass = new SSAConstructor();
@@ -43,10 +42,11 @@ TEST(IR, BasicBlock) {
     DomPass->runOnFunction(F);
     SSAPass->runOnFunction(F);
 
-    EXPECT_EQ_VALUE(BB, R"(
-        BB:			 --- preds=() succs=()
-            ret i32 22
-    )");
+    CHECK_OR_DUMP(BB, R"(
+BB.0:    preds=() succs=()
+ret i32 22
+)");
+
 }
 
 TEST(IR, BBSplit) {
@@ -60,7 +60,14 @@ TEST(IR, BBSplit) {
 
     Entry->split(Add, "NewBB");
 
-    F.dump(std::cout);
+    CHECK_OR_DUMP(Entry, R"(
+entry.0:    preds=(%NewBB.0) succs=()
+%add.0 = add i32 1, i32 2
+store i32* %V.0, i32 %add.0
+%load.0 = load i32* %V.0
+ret i32 %load.0
+)");
+
 }
 
 TEST(IR, DeadBlock) {
@@ -84,7 +91,18 @@ TEST(IR, DeadBlock) {
     DomPass->runOnFunction(*F);
     SSAPass->runOnFunction(*F);
 
-    F->dump(std::cout);
+    CHECK_OR_DUMP(F, R"(
+def test() -> void {
+entry.0:    preds=() succs=(%leave.0) doms=(%leave.0)
+br %leave.0
+
+outer.0:    preds=() succs=(%leave.0) df=(%leave.0)
+br %leave.0
+
+leave.0:    preds=(%outer.0, %entry.0) succs=() idom=%entry.0
+ret
+}
+)");
 
     delete F;
 }
@@ -125,23 +143,23 @@ TEST(IR, Module) {
     PM.addPass(new SSAConstructor());
     PM.run(M.get());
 
-    EXPECT_EQ_VALUE(F, R"(
-        def func1(i32 %x) -> void {
-            entry:			 --- preds=() succs=(%if.true, %if.false) doms=(%if.true, %if.false, %leave)
-            %cmp = ne i32 %x, i32 66
-            condbr i32 %cmp, %if.true, %if.false
+    CHECK_OR_DUMP(F, R"(
+def func1(i32 %x) -> void {
+entry.0:    preds=() succs=(%if.true.0, %if.false.0) doms=(%if.true.0, %if.false.0, %leave.0)
+%cmp.0 = ne i32 %x, i32 66
+condbr i32 %cmp.0, %if.true.0, %if.false.0
 
-            if.true:			 --- preds=(%entry) succs=(%leave) df=(%leave) idom=%entry
-            br %leave
+if.true.0:    preds=(%entry.0) succs=(%leave.0) df=(%leave.0) idom=%entry.0
+br %leave.0
 
-            if.false:			 --- preds=(%entry) succs=(%leave) df=(%leave) idom=%entry
-            br %leave
+if.false.0:    preds=(%entry.0) succs=(%leave.0) df=(%leave.0) idom=%entry.0
+br %leave.0
 
-            leave:			 --- preds=(%if.false, %if.true) succs=() idom=%entry
-            %test = phi %if.true -> i32 33, %if.false -> i32 44
-            ret i32 %test
-        }
-    )");
+leave.0:    preds=(%if.false.0, %if.true.0) succs=() idom=%entry.0
+%test.0 = phi [%if.true.0: i32 33], [%if.false.0: i32 44]
+ret i32 %test.0
+}
+)");
 
 }
 
@@ -201,54 +219,51 @@ TEST(IR, IDF) {
     auto *DomPass = new Dominance();
     DomPass->runOnFunction(*F);
 
-    EXPECT_EQ_VALUE(F, R"(def test() -> void {
-        entry:    preds=() succs=(%1) doms=(%1)
-        br %1
+    CHECK_OR_DUMP(F, R"(
+def test() -> void {
+entry.0:    preds=() succs=(%1.0) doms=(%1.0)
+br %1.0
 
-        1:    preds=(%entry) succs=(%2) doms=(%2) idom=%entry
-        br %2
+1.0:    preds=(%entry.0) succs=(%2.0) doms=(%2.0) idom=%entry.0
+br %2.0
 
-        2:    preds=(%7, %1) succs=(%3, %11) doms=(%3, %11) df=(%2) idom=%1
-        condbr i32 1, %3, %11
+2.0:    preds=(%7.0, %1.0) succs=(%3.0, %11.0) doms=(%3.0, %11.0) df=(%2.0) idom=%1.0
+condbr i32 1, %3.0, %11.0
 
-        3:    preds=(%2) succs=(%4, %8) doms=(%4, %5, %6, %8) df=(%2) idom=%2
-        condbr i32 1, %4, %8
+3.0:    preds=(%2.0) succs=(%4.0, %8.0) doms=(%4.0, %5.0, %6.0, %8.0) df=(%2.0) idom=%2.0
+condbr i32 1, %4.0, %8.0
 
-        4:    preds=(%3) succs=(%5) df=(%5) idom=%3
-        br %5
+4.0:    preds=(%3.0) succs=(%5.0) df=(%5.0) idom=%3.0
+br %5.0
 
-        5:    preds=(%6, %4) succs=(%6) df=(%6) idom=%3
-        br %6
+5.0:    preds=(%6.0, %4.0) succs=(%6.0) df=(%6.0) idom=%3.0
+br %6.0
 
-        6:    preds=(%9, %5) succs=(%5, %7) doms=(%7) df=(%2, %5) idom=%3
-        condbr i32 1, %5, %7
+6.0:    preds=(%9.0, %5.0) succs=(%5.0, %7.0) doms=(%7.0) df=(%2.0, %5.0) idom=%3.0
+condbr i32 1, %5.0, %7.0
 
-        7:    preds=(%6) succs=(%2) df=(%2) idom=%6
-        br %2
+7.0:    preds=(%6.0) succs=(%2.0) df=(%2.0) idom=%6.0
+br %2.0
 
-        8:    preds=(%10, %3) succs=(%9) doms=(%9) df=(%6, %8) idom=%3
-        br %9
+8.0:    preds=(%10.0, %3.0) succs=(%9.0) doms=(%9.0) df=(%6.0, %8.0) idom=%3.0
+br %9.0
 
-        9:    preds=(%8) succs=(%6, %10) doms=(%10) df=(%6, %8) idom=%8
-        condbr i32 1, %6, %10
+9.0:    preds=(%8.0) succs=(%6.0, %10.0) doms=(%10.0) df=(%6.0, %8.0) idom=%8.0
+condbr i32 1, %6.0, %10.0
 
-        10:    preds=(%9) succs=(%8) df=(%8) idom=%9
-        br %8
+10.0:    preds=(%9.0) succs=(%8.0) df=(%8.0) idom=%9.0
+br %8.0
 
-        11:    preds=(%2) succs=() idom=%2
-        ret
-    })");
+11.0:    preds=(%2.0) succs=() idom=%2.0
+ret
+}
 
-    F->getEntryBlock()->calculateLevel();
+)");
 
-    IDFCalculator Calc;
-    Calc.calulate({BB[1], BB[3], BB[4], BB[7]});
-    EXPECT_EQ(dump_str(Calc.IDF), "%2, %5, %6");
-    EXPECT_EQ(dump_str(Calc.calc({BB[1], BB[3], BB[4], BB[7]})), "%2, %5, %6");
-
-    Calc.calulate({BB[6]});
-    EXPECT_EQ(dump_str(Calc.IDF), "%2, %5, %6");
-    EXPECT_EQ(dump_str(Calc.calc({BB[6]})), "%2, %5, %6");
+    //F->getEntryBlock()->calculateLevel();
+    //IDFCalculator Calc;
+    //EXPECT_EQ(dump_str(Calc.calc({BB[1], BB[3], BB[4], BB[7]})), "%2, %5, %6");
+    //EXPECT_EQ(dump_str(Calc.calc({BB[6]})), "%2, %5, %6");
 
     F->getSubList().clear();
     BasicBlock *BBNews[] = {
@@ -271,24 +286,21 @@ TEST(IR, IDF) {
 
     DomPass->runOnFunction(*F);
 
-    EXPECT_EQ_VALUE(F, R"(def test() -> void {
-        entry:    preds=() succs=(%if.true, %if.false) doms=(%if.true, %if.false, %leave)
-        condbr i32 0, %if.true, %if.false
+    CHECK_OR_DUMP(F, R"(
+def test() -> void {
+entry.1:    preds=() succs=(%if.true.0, %if.false.0) doms=(%leave.0, %if.false.0, %if.true.0)
+condbr i32 0, %if.true.0, %if.false.0
 
-        if.true:    preds=(%entry) succs=(%leave) df=(%leave) idom=%entry
-        br %leave
+if.true.0:    preds=(%entry.1) succs=(%leave.0) df=(%leave.0) idom=%entry.1
+br %leave.0
 
-        if.false:    preds=(%entry) succs=(%leave) df=(%leave) idom=%entry
-        br %leave
+if.false.0:    preds=(%entry.1) succs=(%leave.0) df=(%leave.0) idom=%entry.1
+br %leave.0
 
-        leave:    preds=(%if.false, %if.true) succs=() idom=%entry
-        ret
-})");
-
-    F->getEntryBlock()->calculateLevel();
-    Calc.calulate({BBNews[1], BBNews[2]});
-    EXPECT_EQ(dump_str(Calc.IDF), "%leave");
-    EXPECT_EQ(dump_str(Calc.calc({BBNews[1], BBNews[2]})), "%leave");
+leave.0:    preds=(%if.false.0, %if.true.0) succs=() idom=%entry.1
+ret
+}
+)");
 
     delete F;
 }
@@ -346,15 +358,39 @@ TEST(IR, SSA) {
     PM.addPass(new Dominance());
     PM.addPass(new SSAConstructor());
     PM.addPass(new GVN());
-    PM.addPass(new BranchElim());
-    PM.addPass(new Dominance());
-    PM.addPass(new ADCE());
-    //PM.addPass(new SSADestructor());
+    CHECK_OR_DUMP(Main, "def main() -> i32 {\n"
+                        "entry.0:    preds=() succs=() \n"
+                        "%value.0 = alloca i32\n"
+                        "%call.0 = call i32 @func1(i32 666)\n"
+                        "store i32* %value.0, i32 %call.0\n"
+                        "%load.0 = load i32* %value.0\n"
+                        "ret i32 %load.0\n"
+                        "}");
 
     // run passes
     PM.run(M.get());
 
-    M->dump(std::cout);
+    //M->dump(std::cout);
+    CHECK_OR_DUMP(Main, "def main() -> i32 {\n"
+                        "entry.split.0:    preds=() succs=(%entry.inlined.0) doms=(%entry.inlined.0) \n"
+                        "br %entry.inlined.0\n"
+                        "\n"
+                        "entry.inlined.0:    preds=(%entry.split.0) succs=(%if.true.inlined.0, %if.false.inlined.0) doms=(%if.true.inlined.0, %if.false.inlined.0, %leave.inlined.0) idom=%entry.split.0\n"
+                        "condbr i32 1, %if.true.inlined.0, %if.false.inlined.0\n"
+                        "\n"
+                        "if.true.inlined.0:    preds=(%entry.inlined.0) succs=(%leave.inlined.0) df=(%leave.inlined.0) idom=%entry.inlined.0\n"
+                        "br %leave.inlined.0\n"
+                        "\n"
+                        "if.false.inlined.0:    preds=(%entry.inlined.0) succs=(%leave.inlined.0) df=(%leave.inlined.0) idom=%entry.inlined.0\n"
+                        "br %leave.inlined.0\n"
+                        "\n"
+                        "leave.inlined.0:    preds=(%if.false.inlined.0, %if.true.inlined.0) succs=(%entry.0) doms=(%entry.0) idom=%entry.inlined.0\n"
+                        "%0 = phi [%if.true.inlined.0: i32 666], [%if.false.inlined.0: i32 667]\n"
+                        "br %entry.0\n"
+                        "\n"
+                        "entry.0:    preds=(%leave.inlined.0) succs=() idom=%leave.inlined.0\n"
+                        "ret i32 %0\n"
+                        "}");
 
 }
 
@@ -446,16 +482,4 @@ TEST(IR, LoopSimplify) {
     LoopSimplifyPass->runOnFunction(F);
 
     F.dump(std::cout);
-}
-
-TEST(PN, 0) {
-    auto *add = PatternNode::New(Pattern::Add, 3);
-    std::cout << add->getNumOperands();
-
-    auto *Node = add->as<SubNode>();
-
-    auto *test = PatternNode::createNode<CallNode>({add, Node, add});
-    std::cout << test->getNumOperands();
-
-
 }

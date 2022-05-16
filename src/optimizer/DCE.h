@@ -11,6 +11,7 @@
 class DCE : public FunctionPass {
 public:
     void runOnFunction(Function &function) override {
+        std::vector<Instruction *> Worklist;
         function.forEach([&](Instruction *instruction) {
             switch (instruction->getOpcode()) {
                 case OpcodeAlloca:
@@ -22,14 +23,25 @@ public:
                 case OpcodeBinary:
                 case OpcodeGetPtr:
                 case OpcodeLoad:
-                    if (instruction->isNotUsed()) {
-                        instruction->eraseFromParent();
-                    }
+                    Worklist.push_back(instruction);
                     break;
                 default:
                     break;
             }
         });
+
+        while (!Worklist.empty()) {
+            auto *Inst = Worklist.back();
+            Worklist.pop_back();
+            if (Inst->isNotUsed()) {
+                for (auto *Op: Inst->ops()) {
+                    if (auto *User = Op->as<Instruction>()) {
+                        Worklist.push_back(User);
+                    }
+                }
+                Inst->eraseFromParent();
+            }
+        }
     }
 };
 

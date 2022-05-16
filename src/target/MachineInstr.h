@@ -90,6 +90,16 @@ public:
         return regOp;
     }
 
+    int64_t getImm() const {
+        assert(isImm());
+        return value.imm;
+    }
+
+    unsigned getSlot() const {
+        assert(isSlot());
+        return value.slot;
+    }
+
     MachineBlock *getLabel() const {
         assert(isLabel());
         return value.addr;
@@ -153,6 +163,8 @@ enum TargetOpcode {
     TargetCBr,
     TargetBr,
     TargetCall,
+    TargetLoad,
+    TargetStore,
     TargetCmp,
     TargetRet,
     TargetLastOpcode,
@@ -161,8 +173,8 @@ class MachineInstr : public NodeWithParent<MachineInstr, MachineBlock> {
 public:
     using iterator = NodeList<Operand>::iterator;
     unsigned opcode = 0;
-    Operand defOp;
     NodeList<Operand> operands;
+    iterator lastDef = operands.end();
     MachineInstr() {}
     MachineInstr(unsigned opcode) : opcode(opcode) {}
 
@@ -170,62 +182,42 @@ public:
         return opcode;
     }
 
-    bool hasDef() const {
-        return defOp.kind != Operand::Nop;
-    }
-    void setDef(Operand d) {
-        defOp = d;
+    TargetOpcode getTargetOpcode() const {
+        return static_cast<TargetOpcode>(opcode);
     }
 
-    Operand def() const {
-        return defOp;
-    }
-    auto defs() {
-        return iter(defs_begin(), defs_end());
-    }
-    Operand *defs_begin() {
-        return &defOp;
-    }
-    Operand *defs_end() {
-        return &defOp + hasDef();
-    }
-
-    auto defs() const {
-        return iter(defs_begin(), defs_end());
-    }
-    const Operand *defs_begin() const {
-        return &defOp;
-    }
-    const Operand *defs_end() const {
-        return &defOp + hasDef();
-    }
-
-    Operand &getOp(size_t i) const {
-        return *(operands.begin() + i);
+    void addDef(Operand d) {
+        lastDef = operands.insert_after(lastDef, new Operand(d));
     }
 
     void addOp(Operand op) {
         operands.push_back(new Operand(op));
     }
 
-    auto ops() {
-        return iter(op_begin(), op_end());
-    }
-    iterator op_begin() {
-        return operands.begin();
-    }
-    iterator op_end() {
-        return operands.end();
+    bool hasDef() const {
+        return lastDef != operands.end();
     }
 
-    auto ops() const {
-        return iter(op_begin(), op_end());
+    Operand &getOp(size_t i) const {
+        return *(operands.begin() + i);
     }
-    iterator op_begin() const {
-        return operands.begin();
-    }
-    iterator op_end() const {
-        return operands.end();
+
+    auto defs() { return iter(defs_begin(), defs_end()); }
+    auto defs() const { return iter(defs_begin(), defs_end()); }
+    iterator defs_begin() { return lastDef == operands.end() ? lastDef : operands.begin(); }
+    iterator defs_end() { return lastDef == operands.end() ? lastDef : lastDef.next(); }
+    iterator defs_begin() const { return lastDef == operands.end() ? lastDef : operands.begin(); }
+    iterator defs_end() const { return lastDef == operands.end() ? lastDef : lastDef.next(); }
+
+    auto uses() { return iter(use_begin(), use_end()); }
+    auto uses() const { return iter(use_begin(), use_end()); }
+    iterator use_begin() { return lastDef.next(); }
+    iterator use_end() { return operands.end(); }
+    iterator use_begin() const { return lastDef.next(); }
+    iterator use_end() const { return operands.end(); }
+
+    auto ops() {
+        return iter(operands.begin(), operands.end());
     }
 
     void dumpOp(std::ostream &os, Operand &op);

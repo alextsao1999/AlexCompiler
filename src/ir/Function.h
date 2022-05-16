@@ -199,9 +199,13 @@ public:
         return nullptr;
     }
 
-    TargetInfo info;
+    void setTargetInfo(TargetInfo *T) {
+        target = T;
+    }
+
     TargetInfo *getTargetInfo() {
-        return &info;
+        assert(target);
+        return target;
     }
 
     ///< function loops
@@ -224,13 +228,16 @@ private:
     std::set<Function *> callers;
     std::set<Function *> callees;
 public:
+    ///< target info
+    TargetInfo *target;
     ///< machine blocks
     NodeList<MachineBlock> blocks;
     std::map<BasicBlock *, MachineBlock *> mapBlocks;
     std::map<RegID, std::set<Operand *>> mapOperands;
+    std::set<Register> allocatedRegs;
     // spill slots
-    unsigned spillSlotCount = 0;
-    std::map<RegID, unsigned> spillSlots;
+    unsigned spillSlotCount = 0; //< max slot count
+    std::map<RegID, unsigned> spillSlots; //< map virtual register to spill slot
     PatternDAG dag;
 };
 

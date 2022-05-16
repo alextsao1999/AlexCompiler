@@ -1,100 +1,15 @@
 ﻿//
 // Created by Alex on 2022/3/12.
 //
-#include "gtest/gtest.h"
 #include "test_common.h"
 
-TEST(Grammar, Expr) {
-    const char *ExprTest = "import aaa.bbb.ccc;\n"
-                           "int<int, value> main() {\n"
-                           "  a = 1 + 2 * 5;\n"
-                           "}";
-    GLRParser<> Parser(false);
-    Parser.reset(ExprTest, ExprTest + strlen(ExprTest));
-    Parser.parse();
-    ASSERT_TRUE(Parser.accept());
-    auto &Value = Parser.value();
-    EXPECT_EQ(Value, R"json(
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "id": 2,
-            "items": [
-                "aaa",
-                "bbb",
-                "ccc"
-            ],
-            "kind": "Import"
-        },
-        {
-            "block": [
-                {
-                    "id": 13,
-                    "kind": "ExprStmt",
-                    "value": {
-                        "id": 27,
-                        "kind": "AssignExpr",
-                        "left": {
-                            "id": 31,
-                            "kind": "VariableExpr",
-                            "name": "a"
-                        },
-                        "right": {
-                            "id": 25,
-                            "kind": "BinaryExpr",
-                            "left": {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "1"
-                            },
-                            "op": "+",
-                            "right": {
-                                "id": 25,
-                                "kind": "BinaryExpr",
-                                "left": {
-                                    "id": 36,
-                                    "kind": "Number",
-                                    "string": "2"
-                                },
-                                "op": "*",
-                                "right": {
-                                    "id": 36,
-                                    "kind": "Number",
-                                    "string": "5"
-                                }
-                            }
-                        }
-                    }
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "args": [
-                    {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    },
-                    {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "value"
-                    }
-                ],
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
+#define CHECK_OR_DUMP_JSON(V, JSON) if (isStrEmpty(JSON)) { \
+    std::cout << ParseCode(V).dump(4) << std::endl; \
+} else { \
+    EXPECT_EQ(ParseCode(V), JSON##_json); \
 }
-)json"_json);
 
+TEST(Grammar, Expr) {
     const char *VarDeclare = "int main() {\n"
                              "  int a = 1;\n"
                              "  int b = 2;\n"
@@ -102,220 +17,91 @@ TEST(Grammar, Expr) {
                              "  int d_44 = 4;\n"
                              "}";
 
-    EXPECT_EQ(ParseCode(VarDeclare), R"json(
+    CHECK_OR_DUMP_JSON(VarDeclare, R"(
 {
     "id": 1,
-    "kind": "Program",
+    "kind": "CompUnit",
     "value": [
         {
-            "block": [
+            "body": [
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "1"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "a",
+                            "value": {
+                                "id": 27,
+                                "kind": "DecLiteral",
+                                "value": "1"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "2"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "b",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "b",
+                            "value": {
+                                "id": 27,
+                                "kind": "DecLiteral",
+                                "value": "2"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "3"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "c",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "c",
+                            "value": {
+                                "id": 27,
+                                "kind": "DecLiteral",
+                                "value": "3"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "4"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "d_44",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "d_44",
+                            "value": {
+                                "id": 27,
+                                "kind": "DecLiteral",
+                                "value": "4"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 }
             ],
-            "id": 11,
-            "kind": "FunctionDeclare",
+            "id": 8,
+            "kind": "FuncDef",
             "name": "main",
             "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
+            "type": "int"
         }
     ]
 }
-
-)json"_json);
-
-    const char *NewTest = "int main() {\n"
-                          "  int a = new int(1);\n"
-                          "  int b = new int(2);\n"
-                          "  int c = new int(3);\n"
-                          "  int d_44 = new int(4);\n"
-                          "}";
-    EXPECT_EQ(ParseCode(NewTest), R"json(
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "block": [
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "1"
-                            }
-                        ],
-                        "id": 30,
-                        "kind": "NewExpr",
-                        "type": {
-                            "id": 24,
-                            "kind": "TypeSpecifier",
-                            "type": "int"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "2"
-                            }
-                        ],
-                        "id": 30,
-                        "kind": "NewExpr",
-                        "type": {
-                            "id": 24,
-                            "kind": "TypeSpecifier",
-                            "type": "int"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "b",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "3"
-                            }
-                        ],
-                        "id": 30,
-                        "kind": "NewExpr",
-                        "type": {
-                            "id": 24,
-                            "kind": "TypeSpecifier",
-                            "type": "int"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "c",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "4"
-                            }
-                        ],
-                        "id": 30,
-                        "kind": "NewExpr",
-                        "type": {
-                            "id": 24,
-                            "kind": "TypeSpecifier",
-                            "type": "int"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "d_44",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                }
-            ],
-            "id": 11,
-            "kind": "FunctionDeclare",
-            "name": "main",
-            "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
-        }
-    ]
-}
-)json"_json);
+)");
 
     const char *InvokeTest = "int main() {\n"
                              "    int a;\n"
@@ -328,579 +114,396 @@ TEST(Grammar, Expr) {
                              "    return 0;\n"
                              "}";
 
-    EXPECT_EQ(ParseCode(InvokeTest), R"json(
+    CHECK_OR_DUMP_JSON(InvokeTest, R"(
 {
     "id": 1,
-    "kind": "Program",
+    "kind": "CompUnit",
     "value": [
         {
-            "block": [
+            "body": [
                 {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 13,
-                    "kind": "ExprStmt",
-                    "value": {
-                        "id": 27,
-                        "kind": "AssignExpr",
-                        "left": {
-                            "id": 31,
-                            "kind": "VariableExpr",
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
                             "name": "a"
-                        },
-                        "right": {
-                            "args": null,
-                            "id": 34,
-                            "kind": "InvokeExpr",
-                            "name": "test"
                         }
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "1"
-                            }
-                        ],
-                        "id": 34,
-                        "kind": "InvokeExpr",
-                        "name": "test"
+                    "id": 10,
+                    "kind": "AssignStmt",
+                    "lval": {
+                        "id": 21,
+                        "kind": "LVal",
+                        "name": "a"
                     },
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "4"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "5"
-                            }
-                        ],
-                        "id": 34,
-                        "kind": "InvokeExpr",
+                    "value": {
+                        "args": null,
+                        "id": 26,
+                        "kind": "FuncCall",
                         "name": "test"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "b",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
                     }
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "7"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "8"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "9"
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "a",
+                            "value": {
+                                "args": [
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "1"
+                                    }
+                                ],
+                                "id": 26,
+                                "kind": "FuncCall",
+                                "name": "test"
                             }
-                        ],
-                        "id": 34,
-                        "kind": "InvokeExpr",
-                        "name": "test"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "c",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "args": [
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "10"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "11"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "12"
-                            },
-                            {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "13"
-                            }
-                        ],
-                        "id": 34,
-                        "kind": "InvokeExpr",
-                        "name": "test"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "d",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 25,
-                            "kind": "BinaryExpr",
-                            "left": {
-                                "id": 31,
-                                "kind": "VariableExpr",
-                                "name": "a"
-                            },
-                            "op": "+",
-                            "right": {
-                                "id": 31,
-                                "kind": "VariableExpr",
-                                "name": "b"
-                            }
-                        },
-                        "op": "+",
-                        "right": {
-                            "id": 31,
-                            "kind": "VariableExpr",
-                            "name": "c"
                         }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "value",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 15,
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "b",
+                            "value": {
+                                "args": [
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "4"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "5"
+                                    }
+                                ],
+                                "id": 26,
+                                "kind": "FuncCall",
+                                "name": "test"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
+                },
+                {
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "c",
+                            "value": {
+                                "args": [
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "7"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "8"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "9"
+                                    }
+                                ],
+                                "id": 26,
+                                "kind": "FuncCall",
+                                "name": "test"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
+                },
+                {
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "d",
+                            "value": {
+                                "args": [
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "10"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "11"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "12"
+                                    },
+                                    {
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "13"
+                                    }
+                                ],
+                                "id": 26,
+                                "kind": "FuncCall",
+                                "name": "test"
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
+                },
+                {
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "value",
+                            "value": {
+                                "id": 23,
+                                "kind": "BinExp",
+                                "left": {
+                                    "id": 23,
+                                    "kind": "BinExp",
+                                    "left": {
+                                        "id": 25,
+                                        "kind": "RVal",
+                                        "name": "a"
+                                    },
+                                    "op": "+",
+                                    "right": {
+                                        "id": 25,
+                                        "kind": "RVal",
+                                        "name": "b"
+                                    }
+                                },
+                                "op": "+",
+                                "right": {
+                                    "id": 25,
+                                    "kind": "RVal",
+                                    "name": "c"
+                                }
+                            }
+                        }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
+                },
+                {
+                    "id": 19,
                     "kind": "ReturnStmt",
                     "value": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "0"
+                        "id": 27,
+                        "kind": "DecLiteral",
+                        "value": "0"
                     }
                 }
             ],
-            "id": 11,
-            "kind": "FunctionDeclare",
+            "id": 8,
+            "kind": "FuncDef",
             "name": "main",
             "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
+            "type": "int"
         }
     ]
 }
-)json"_json);
+)");
 
     const char *MoreExprTest = "int main() {\n"
-                               "    int int_value = 0;\n"
                                "    int value = 1 + 2 * 3 / 4 - 5;\n"
-                               "    bool eq = 1 == 2;\n"
-                               "    bool lt = 1 < 2;\n"
-                               "    bool gt = 1 > 2;\n"
-                               "    bool and = 1 && 2;\n"
-                               "    bool or = 1 || 2;\n"
+                               "    int eq = 1 == 2;\n"
+                               "    int lt = 1 < 2;\n"
+                               "    int gt = 1 > 2;\n"
                                "    return 0;\n"
                                "}";
 
-    EXPECT_EQ(ParseCode(MoreExprTest), R"json(
+    CHECK_OR_DUMP_JSON(MoreExprTest, R"(
 {
     "id": 1,
-    "kind": "Program",
+    "kind": "CompUnit",
     "value": [
         {
-            "block": [
+            "body": [
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "0"
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "int_value",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": "+",
-                        "right": {
-                            "id": 25,
-                            "kind": "BinaryExpr",
-                            "left": {
-                                "id": 25,
-                                "kind": "BinaryExpr",
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "value",
+                            "value": {
+                                "id": 23,
+                                "kind": "BinExp",
                                 "left": {
-                                    "id": 36,
-                                    "kind": "Number",
-                                    "string": "2"
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "1"
                                 },
-                                "op": "*",
+                                "op": "+",
                                 "right": {
-                                    "id": 25,
-                                    "kind": "BinaryExpr",
+                                    "id": 23,
+                                    "kind": "BinExp",
                                     "left": {
-                                        "id": 36,
-                                        "kind": "Number",
-                                        "string": "3"
+                                        "id": 23,
+                                        "kind": "BinExp",
+                                        "left": {
+                                            "id": 27,
+                                            "kind": "DecLiteral",
+                                            "value": "2"
+                                        },
+                                        "op": "*",
+                                        "right": {
+                                            "id": 23,
+                                            "kind": "BinExp",
+                                            "left": {
+                                                "id": 27,
+                                                "kind": "DecLiteral",
+                                                "value": "3"
+                                            },
+                                            "op": "/",
+                                            "right": {
+                                                "id": 27,
+                                                "kind": "DecLiteral",
+                                                "value": "4"
+                                            }
+                                        }
                                     },
-                                    "op": "/",
+                                    "op": "-",
                                     "right": {
-                                        "id": 36,
-                                        "kind": "Number",
-                                        "string": "4"
+                                        "id": 27,
+                                        "kind": "DecLiteral",
+                                        "value": "5"
                                     }
                                 }
-                            },
-                            "op": "-",
-                            "right": {
-                                "id": 36,
-                                "kind": "Number",
-                                "string": "5"
                             }
                         }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "value",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": "==",
-                        "right": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "2"
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "eq",
+                            "value": {
+                                "id": 23,
+                                "kind": "BinExp",
+                                "left": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "1"
+                                },
+                                "op": "==",
+                                "right": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "2"
+                                }
+                            }
                         }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "eq",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "bool"
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": "<",
-                        "right": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "2"
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "lt",
+                            "value": {
+                                "id": 23,
+                                "kind": "BinExp",
+                                "left": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "1"
+                                },
+                                "op": "<",
+                                "right": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "2"
+                                }
+                            }
                         }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "lt",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "bool"
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": ">",
-                        "right": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "2"
+                    "defs": [
+                        {
+                            "id": 6,
+                            "kind": "VarDef",
+                            "name": "gt",
+                            "value": {
+                                "id": 23,
+                                "kind": "BinExp",
+                                "left": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "1"
+                                },
+                                "op": ">",
+                                "right": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "2"
+                                }
+                            }
                         }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "gt",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "bool"
-                    }
+                    ],
+                    "id": 5,
+                    "kind": "VarDecl",
+                    "type": "int"
                 },
                 {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": "&&",
-                        "right": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "2"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "and",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "bool"
-                    }
-                },
-                {
-                    "id": 23,
-                    "init": {
-                        "id": 25,
-                        "kind": "BinaryExpr",
-                        "left": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "1"
-                        },
-                        "op": "||",
-                        "right": {
-                            "id": 36,
-                            "kind": "Number",
-                            "string": "2"
-                        }
-                    },
-                    "kind": "VariableDeclare",
-                    "name": "or",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "bool"
-                    }
-                },
-                {
-                    "id": 15,
+                    "id": 19,
                     "kind": "ReturnStmt",
                     "value": {
-                        "id": 36,
-                        "kind": "Number",
-                        "string": "0"
+                        "id": 27,
+                        "kind": "DecLiteral",
+                        "value": "0"
                     }
                 }
             ],
-            "id": 11,
-            "kind": "FunctionDeclare",
+            "id": 8,
+            "kind": "FuncDef",
             "name": "main",
             "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
+            "type": "int"
         }
     ]
 }
-)json"_json);
+)");
 
-}
-
-TEST(Grammar, Class) {
-    const char *ClassMemberTest = "class A {"
-                              "  int a;"
-                              "  int b;"
-                              "  int cc;"
-                              "  int dd;"
-                              "  List<int> list;"
-                              "}";
-    EXPECT_EQ(ParseCode(ClassMemberTest), R"(
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "body": [
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "b",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "cc",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "dd",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                },
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "list",
-                    "type": {
-                        "args": [
-                            {
-                                "id": 24,
-                                "kind": "TypeSpecifier",
-                                "type": "int"
-                            }
-                        ],
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "List"
-                    }
-                }
-            ],
-            "id": 4,
-            "kind": "ClassDeclare",
-            "name": "A",
-            "super": null,
-            "template": null
-        }
-    ]
-}
-)"_json);
-}
-
-TEST(Grammar, Base) {
-    const char *ClassDefineTest = "class A<A,B,C> : B {\n"
-                                  "  int a;"
-                                  "}";
-
-    EXPECT_EQ(ParseCode(ClassDefineTest), R"json(
-{
-    "id": 1,
-    "kind": "Program",
-    "value": [
-        {
-            "body": [
-                {
-                    "id": 23,
-                    "kind": "VariableDeclare",
-                    "name": "a",
-                    "type": {
-                        "id": 24,
-                        "kind": "TypeSpecifier",
-                        "type": "int"
-                    }
-                }
-            ],
-            "id": 4,
-            "kind": "ClassDeclare",
-            "name": "A",
-            "super": "B",
-            "template": [
-                "A",
-                "B",
-                "C"
-            ]
-        }
-    ]
-}
-
-)json"_json);
 }
 
 TEST(Grammar, While) {
@@ -909,119 +512,111 @@ TEST(Grammar, While) {
                        "    int a = 10;"
                        "  }"
                        "}";
-    EXPECT_EQ(ParseCode(Test), R"json(
+
+    CHECK_OR_DUMP_JSON(Test, R"(
 {
     "id": 1,
-    "kind": "Program",
+    "kind": "CompUnit",
     "value": [
         {
-            "block": [
+            "body": [
                 {
                     "body": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": [
+                        "id": 12,
+                        "kind": "Block",
+                        "stmts": [
                             {
-                                "id": 23,
-                                "init": {
-                                    "id": 36,
-                                    "kind": "Number",
-                                    "string": "10"
-                                },
-                                "kind": "VariableDeclare",
-                                "name": "a",
-                                "type": {
-                                    "id": 24,
-                                    "kind": "TypeSpecifier",
-                                    "type": "int"
-                                }
+                                "defs": [
+                                    {
+                                        "id": 6,
+                                        "kind": "VarDef",
+                                        "name": "a",
+                                        "value": {
+                                            "id": 27,
+                                            "kind": "DecLiteral",
+                                            "value": "10"
+                                        }
+                                    }
+                                ],
+                                "id": 5,
+                                "kind": "VarDecl",
+                                "type": "int"
                             }
                         ]
                     },
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
+                    "cond": {
+                        "id": 25,
+                        "kind": "RVal",
                         "name": "true"
                     },
-                    "id": 19,
+                    "id": 15,
                     "kind": "WhileStmt"
                 }
             ],
-            "id": 11,
-            "kind": "FunctionDeclare",
+            "id": 8,
+            "kind": "FuncDef",
             "name": "main",
             "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
+            "type": "int"
         }
     ]
 }
-
-
-)json"_json);
+)");
 }
 
 TEST(Grammar, DoWhile) {
     const char *Test = "int main() {"
-                       "  while (true) {"
-                       "    break;"
-                       "    continue;"
-                       "  }"
+                       "  do {"
+                       "    int a = 10;"
+                       "  } while (1);"
                        "}";
-    EXPECT_EQ(ParseCode(Test), R"json(
+    CHECK_OR_DUMP_JSON(Test, R"(
 {
     "id": 1,
-    "kind": "Program",
+    "kind": "CompUnit",
     "value": [
         {
-            "block": [
+            "body": [
                 {
                     "body": {
-                        "id": 14,
-                        "kind": "BlockStmt",
-                        "value": [
+                        "id": 12,
+                        "kind": "Block",
+                        "stmts": [
                             {
-                                "id": 23,
-                                "init": {
-                                    "id": 36,
-                                    "kind": "Number",
-                                    "string": "10"
-                                },
-                                "kind": "VariableDeclare",
-                                "name": "a",
-                                "type": {
-                                    "id": 24,
-                                    "kind": "TypeSpecifier",
-                                    "type": "int"
-                                }
+                                "defs": [
+                                    {
+                                        "id": 6,
+                                        "kind": "VarDef",
+                                        "name": "a",
+                                        "value": {
+                                            "id": 27,
+                                            "kind": "DecLiteral",
+                                            "value": "10"
+                                        }
+                                    }
+                                ],
+                                "id": 5,
+                                "kind": "VarDecl",
+                                "type": "int"
                             }
                         ]
                     },
-                    "condition": {
-                        "id": 31,
-                        "kind": "VariableExpr",
-                        "name": "true"
+                    "cond": {
+                        "id": 27,
+                        "kind": "DecLiteral",
+                        "value": "1"
                     },
-                    "id": 19,
-                    "kind": "WhileStmt"
+                    "id": 16,
+                    "kind": "DoWhileStmt"
                 }
             ],
-            "id": 11,
-            "kind": "FunctionDeclare",
+            "id": 8,
+            "kind": "FuncDef",
             "name": "main",
             "params": null,
-            "type": {
-                "id": 24,
-                "kind": "TypeSpecifier",
-                "type": "int"
-            }
+            "type": "int"
         }
     ]
 }
-
-
-)json"_json);
+)");
 }
