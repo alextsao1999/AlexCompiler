@@ -19,10 +19,10 @@ inline std::string compileAsm(Module *M) {
 
 TEST(ASM, Simple) {
     auto Mod = compileModule(R"(
-int fib(int t){
-    if(t < 2) return t;
-    return fib(t-1) + fib(t-2);
-}
+        int fib(int t){
+            if(t < 2) return t;
+            return fib(t-1) + fib(t-2);
+        }
 )");
     std::cout << compileAsm(Mod.get());
 }
@@ -44,9 +44,9 @@ TEST(ASM, Expr1) {
 
 TEST(ASM, Add) {
     auto Mod = compileModule(R"(
-int add(int val1, int val2, int val3, int val4){
-    return val1 + val2 + val3 + val4;
-}
+        int add(int val1, int val2, int val3, int val4){
+            return val1 + val2 + val3 + val4;
+        }
 )");
     std::cout << compileAsm(Mod.get());
 }
@@ -108,6 +108,20 @@ TEST(ASM, LoopTest2) {
             }
             while (a > 500) a = a - 1;
             return a;
+        }
+)");
+    std::cout << compileAsm(Mod.get());
+}
+
+
+TEST(ASM, Call) {
+    auto Mod = compileModule(R"(
+        int add(int x, int y) {
+            return x + y;
+        }
+
+        int main(){
+            return add(1, 2);
         }
 )");
     std::cout << compileAsm(Mod.get());

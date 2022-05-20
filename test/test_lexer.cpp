@@ -11,6 +11,20 @@ TEST(Lexer, Regex) {
     Lexer.dump();
 }
 
+TEST(Lexer, FloatLiteral) {
+    const char *Tokens = "1.2f .2f 0.2f 1.2e2f 1.2e-2f 1.2e+2f";
+    ParserLexer<> Lexer(&LexerStates[0], LexerWhitespaceSymbol);
+    Lexer.reset(Tokens, Tokens + strlen(Tokens));
+    Lexer.dump();
+}
+
+TEST(Lexer, Keywords) {
+    const char *Tokens = "int bool return if else while do";
+    ParserLexer<> Lexer(&LexerStates[0], LexerWhitespaceSymbol);
+    Lexer.reset(Tokens, Tokens + strlen(Tokens));
+    Lexer.dump();
+}
+
 TEST(Lexer, Complex) {
     const char *News = "int main() {\n"
                        "  int a = 1 + 2 * 5;\n"

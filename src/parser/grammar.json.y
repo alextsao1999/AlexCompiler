@@ -7,7 +7,7 @@
 %whitespace "([ \r\t\n]+)|(/\*.*\*/)|(//.*\n)";
 %start CompUnit;
 
-CompUnit -> CompUnit CompUnitItem  @CompUnit $1{value: [#2]}
+CompUnit -> CompUnit CompUnitItem @CompUnit $1{value: #2}
 	  | CompUnitItem @CompUnit{value: [$1]}
 CompUnitItem -> Decl $1 | FuncDef $1;
 

@@ -11,7 +11,7 @@
 #include <cassert>
 #include <functional>
 #include <numeric>
-#include <iomanip>
+
 #define LR_ASSERT(x) assert(x)
 #define LR_UNREACHED() assert(!"unreached here")
 #define LR_TYPESPEC(TYPE) virtual TYPE
@@ -199,12 +199,11 @@ public:
     void dump() {
         do {
             advance();
+            std::cout << lexeme_ << "  " << token_symbol
+                      << "[" << line_start() << ", " << column_start() << "]" << std::endl;
             if (token_symbol == 0) {
-                std::cout << "EOF" << std::endl;
                 break;
             }
-            std::cout << std::setw(10) << lexeme_ << "\t" << std::setw(3) << token_symbol
-                      << "[" << (line_start() + 1) << ", " << (column_start() + 1) << "]" << std::endl;
         } while (symbol() != 0);
         exit(0);
     }

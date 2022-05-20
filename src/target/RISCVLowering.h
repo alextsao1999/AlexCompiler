@@ -127,8 +127,9 @@ public:
         }
         builder.build();
         auto *Callee = value->getCallee();
+        assert(Callee);
         auto *Entry = Callee->getEntryBlock();
-        mbb.append(MIBuilder().setOpcode(TargetCall).addOp(getBlockLabel(Entry)).build());
+        mbb.append(MIBuilder().setOpcode(RISCV::CALL).addOp(getBlockLabel(Entry)).build());
         auto Reg = getValueReg(value); // get a virtual register for the return value
         return MIBuilder()
                 .setOpcode(TargetMove)

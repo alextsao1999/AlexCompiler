@@ -163,7 +163,9 @@ public:
         std::string name = block.name;
         std::replace(name.begin(), name.end(), '.', '_');
         std::replace(name.begin(), name.end(), '%', '_');
-        return F->getName() + name;
+        auto P = block.getFunction();
+        assert(P);
+        return P->getName() + name;
     }
 
     std::ostream &indent(int size = 4) {

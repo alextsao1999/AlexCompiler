@@ -328,81 +328,81 @@ public:
     value_t &getBody() { return value_["body"]; }
     value_t &getTarget() { return value_["target"]; }
 };
-template<typename SubTy, typename RetTy = void>
+template<typename SubTy, typename RetTy = void, typename...Args>
 struct Visitor {
-    RetTy visit(value_t &value) {
+    RetTy visit(value_t &value, Args &&...args) {
         if (value.is_null()) {
             return RetTy();
         }
         if (value.is_array()) {
             for (auto &val : value) {
-                visit(val);
+                visit(val, std::forward<Args>(args)...);
             }
             return RetTy();
         }
         switch (value["id"].get<int>()) {
             case TYPE_ARGRULE:
-                return static_cast<SubTy *>(this)->visitArgRule(value);
+                return static_cast<SubTy *>(this)->visitArgRule(value, std::forward<Args>(args)...);
             case TYPE_ARGVAR:
-                return static_cast<SubTy *>(this)->visitArgVar(value);
+                return static_cast<SubTy *>(this)->visitArgVar(value, std::forward<Args>(args)...);
             case TYPE_INSTRUCTION:
-                return static_cast<SubTy *>(this)->visitInstruction(value);
+                return static_cast<SubTy *>(this)->visitInstruction(value, std::forward<Args>(args)...);
             case TYPE_INSTRUCTIONS:
-                return static_cast<SubTy *>(this)->visitInstructions(value);
+                return static_cast<SubTy *>(this)->visitInstructions(value, std::forward<Args>(args)...);
             case TYPE_NUMPROPERTY:
-                return static_cast<SubTy *>(this)->visitNumProperty(value);
+                return static_cast<SubTy *>(this)->visitNumProperty(value, std::forward<Args>(args)...);
             case TYPE_PATTERN:
-                return static_cast<SubTy *>(this)->visitPattern(value);
+                return static_cast<SubTy *>(this)->visitPattern(value, std::forward<Args>(args)...);
             case TYPE_PATTERNS:
-                return static_cast<SubTy *>(this)->visitPatterns(value);
+                return static_cast<SubTy *>(this)->visitPatterns(value, std::forward<Args>(args)...);
             case TYPE_PROPERTY:
-                return static_cast<SubTy *>(this)->visitProperty(value);
+                return static_cast<SubTy *>(this)->visitProperty(value, std::forward<Args>(args)...);
             case TYPE_REGISTERCLASS:
-                return static_cast<SubTy *>(this)->visitRegisterClass(value);
+                return static_cast<SubTy *>(this)->visitRegisterClass(value, std::forward<Args>(args)...);
             case TYPE_RULE:
-                return static_cast<SubTy *>(this)->visitRule(value);
+                return static_cast<SubTy *>(this)->visitRule(value, std::forward<Args>(args)...);
             case TYPE_STRPROPERTY:
-                return static_cast<SubTy *>(this)->visitStrProperty(value);
+                return static_cast<SubTy *>(this)->visitStrProperty(value, std::forward<Args>(args)...);
             case TYPE_TARGET:
-                return static_cast<SubTy *>(this)->visitTarget(value);
+                return static_cast<SubTy *>(this)->visitTarget(value, std::forward<Args>(args)...);
             default:
                 LR_UNREACHED();
         }
     }
-    LR_TYPESPEC(RetTy) visitArgRule(ArgRule value) {
+    LR_TYPESPEC(RetTy) visitArgRule(ArgRule value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitArgVar(ArgVar value) {
+    LR_TYPESPEC(RetTy) visitArgVar(ArgVar value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitInstruction(Instruction value) {
+    LR_TYPESPEC(RetTy) visitInstruction(Instruction value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitInstructions(Instructions value) {
+    LR_TYPESPEC(RetTy) visitInstructions(Instructions value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitNumProperty(NumProperty value) {
+    LR_TYPESPEC(RetTy) visitNumProperty(NumProperty value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitPattern(Pattern value) {
+    LR_TYPESPEC(RetTy) visitPattern(Pattern value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitPatterns(Patterns value) {
+    LR_TYPESPEC(RetTy) visitPatterns(Patterns value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitProperty(Property value) {
+    LR_TYPESPEC(RetTy) visitProperty(Property value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitRegisterClass(RegisterClass value) {
+    LR_TYPESPEC(RetTy) visitRegisterClass(RegisterClass value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitRule(Rule value) {
+    LR_TYPESPEC(RetTy) visitRule(Rule value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitStrProperty(StrProperty value) {
+    LR_TYPESPEC(RetTy) visitStrProperty(StrProperty value, Args &&...args) {
         return RetTy();
     }
-    LR_TYPESPEC(RetTy) visitTarget(Target value) {
+    LR_TYPESPEC(RetTy) visitTarget(Target value, Args &&...args) {
         return RetTy();
     }
 };
