@@ -188,6 +188,17 @@ public:
         return saveRegList;
     }
 
+    bool isMove(const MachineInstr &instr) const override {
+        auto Opcode = instr.getOpcode();
+        if (Opcode == RISCV::MV || Opcode == TargetMove) {
+            return true;
+        }
+        if (Opcode == RISCV::ADDI) {
+            return instr.getOp(1).getReg() == RISCV::Zero;
+        }
+        return false;
+    }
+
     PatternNode *loweringArgument(PatternDAG &DAG, Param *param, int i) const override {
         return TargetInfo::loweringArgument(DAG, param, i);
     }

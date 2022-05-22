@@ -11,7 +11,7 @@ Value::Value() {
 }
 
 Value::~Value() {
-    // replaceAllUsesWith(nullptr);
+    replaceAllUsesWith(nullptr);
 }
 
 bool Value::isOnlyUsedOnce() const {

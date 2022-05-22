@@ -450,9 +450,9 @@ public:
         regId = other.regId;
         return *this;
     }
-    bool operator==(const Register &other) const {
+    /*bool operator==(const Register &other) const {
         return regId == other.regId;
-    }
+    }*/
     bool operator<(const Register &other) {
         return unsigned(*this) < unsigned(other);
     }

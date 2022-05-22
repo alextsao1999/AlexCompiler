@@ -198,8 +198,15 @@ public:
         return lastDef != operands.end();
     }
 
+    Operand &getDef(size_t i) const {
+        auto It = defs_begin() + i;
+        assert(It != defs_end());
+        return *It;
+    }
     Operand &getOp(size_t i) const {
-        return *(operands.begin() + i);
+        auto It = use_begin() + i;
+        assert(It != use_end());
+        return *It;
     }
 
     auto defs() { return iter(defs_begin(), defs_end()); }

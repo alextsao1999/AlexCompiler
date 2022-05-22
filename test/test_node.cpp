@@ -9,7 +9,7 @@ public:
     int value = 0;
     Element(int value) : value(value) {}
     ~Element() {
-        //std::cout << "~Element() " << value << std::endl;
+        std::cout << "~Element() " << value << std::endl;
     }
 };
 

@@ -76,7 +76,7 @@ public:
                 mapSCCInfo[Cur].header = Inst;
                 mapSCCInfo[Cur].instack = false;
             } while (Cur != Inst);
-            //classify();
+            classify();
             group.clear();
         }
     }

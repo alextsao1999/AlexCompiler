@@ -138,7 +138,7 @@ public:
 
     // FIXME: It's for debug now.
     unsigned count = 0;
-    const std::string &getName() {
+    const std::string &getName() const {
         return name;
     }
     void setName(std::string &newName) {
@@ -155,7 +155,6 @@ public:
     }
 
     void erase(Instruction *node) {
-        node->replaceAllUsesWith(nullptr);
         assert(!node->getLastUse()); // check if there is a instruction that use this node.
         removeInstr(node);
         NodeParent::erase(node);
@@ -358,7 +357,7 @@ public:
         os << "%";
         dumpName(os);
     }
-    inline std::ostream &dumpName(std::ostream &os) {
+    inline std::ostream &dumpName(std::ostream &os) const {
         os << name;
         if (auto *ST = getSymbolTable()) {
             os << "." << ST->getCount(this, name);

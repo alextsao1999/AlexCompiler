@@ -65,6 +65,12 @@ public:
         }
     }
 
+    std::string dumpToString() {
+        std::stringstream ss;
+        dump(ss);
+        return ss.str();
+    }
+
 private:
     std::string name;
 

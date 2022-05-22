@@ -17,6 +17,7 @@ public:
     void runOnFunction(Function &function) override {
         F = &function;
         TI = function.getTargetInfo();
+        ss << "# " << F->getName() << "\n";
         for (auto &block: function.blocks) {
             ss << getBlockLable(block) << ":\n";
             if (block.getOrigin() == function.getEntryBlock()) {
@@ -26,6 +27,7 @@ public:
                 emit(inst);
             }
         }
+        ss << std::endl;
     }
 
     void emit(MachineInstr &instr) {

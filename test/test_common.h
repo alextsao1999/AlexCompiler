@@ -5,7 +5,9 @@
 #ifndef DRAGON_TEST_COMMON_H
 #define DRAGON_TEST_COMMON_H
 
-#define ENABLE_DUMP 0
+#ifndef ENABLE_DUMP
+#define ENABLE_DUMP 1
+#endif
 
 #include "gtest/gtest.h"
 

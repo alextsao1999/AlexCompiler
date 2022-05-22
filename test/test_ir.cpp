@@ -219,46 +219,7 @@ TEST(IR, IDF) {
     auto *DomPass = new Dominance();
     DomPass->runOnFunction(*F);
 
-    CHECK_OR_DUMP(F, R"(
-def test() -> void {
-entry.0:    preds=() succs=(%1.0) doms=(%1.0)
-br %1.0
-
-1.0:    preds=(%entry.0) succs=(%2.0) doms=(%2.0) idom=%entry.0
-br %2.0
-
-2.0:    preds=(%7.0, %1.0) succs=(%3.0, %11.0) doms=(%3.0, %11.0) df=(%2.0) idom=%1.0
-condbr i32 1, %3.0, %11.0
-
-3.0:    preds=(%2.0) succs=(%4.0, %8.0) doms=(%4.0, %5.0, %6.0, %8.0) df=(%2.0) idom=%2.0
-condbr i32 1, %4.0, %8.0
-
-4.0:    preds=(%3.0) succs=(%5.0) df=(%5.0) idom=%3.0
-br %5.0
-
-5.0:    preds=(%6.0, %4.0) succs=(%6.0) df=(%6.0) idom=%3.0
-br %6.0
-
-6.0:    preds=(%9.0, %5.0) succs=(%5.0, %7.0) doms=(%7.0) df=(%2.0, %5.0) idom=%3.0
-condbr i32 1, %5.0, %7.0
-
-7.0:    preds=(%6.0) succs=(%2.0) df=(%2.0) idom=%6.0
-br %2.0
-
-8.0:    preds=(%10.0, %3.0) succs=(%9.0) doms=(%9.0) df=(%6.0, %8.0) idom=%3.0
-br %9.0
-
-9.0:    preds=(%8.0) succs=(%6.0, %10.0) doms=(%10.0) df=(%6.0, %8.0) idom=%8.0
-condbr i32 1, %6.0, %10.0
-
-10.0:    preds=(%9.0) succs=(%8.0) df=(%8.0) idom=%9.0
-br %8.0
-
-11.0:    preds=(%2.0) succs=() idom=%2.0
-ret
-}
-
-)");
+    CHECK_OR_DUMP(F, R"()");
 
     //F->getEntryBlock()->calculateLevel();
     //IDFCalculator Calc;
@@ -286,21 +247,7 @@ ret
 
     DomPass->runOnFunction(*F);
 
-    CHECK_OR_DUMP(F, R"(
-def test() -> void {
-entry.1:    preds=() succs=(%if.true.0, %if.false.0) doms=(%leave.0, %if.false.0, %if.true.0)
-condbr i32 0, %if.true.0, %if.false.0
-
-if.true.0:    preds=(%entry.1) succs=(%leave.0) df=(%leave.0) idom=%entry.1
-br %leave.0
-
-if.false.0:    preds=(%entry.1) succs=(%leave.0) df=(%leave.0) idom=%entry.1
-br %leave.0
-
-leave.0:    preds=(%if.false.0, %if.true.0) succs=() idom=%entry.1
-ret
-}
-)");
+    CHECK_OR_DUMP(F, R"()");
 
     delete F;
 }
@@ -358,39 +305,13 @@ TEST(IR, SSA) {
     PM.addPass(new Dominance());
     PM.addPass(new SSAConstructor());
     PM.addPass(new GVN());
-    CHECK_OR_DUMP(Main, "def main() -> i32 {\n"
-                        "entry.0:    preds=() succs=() \n"
-                        "%value.0 = alloca i32\n"
-                        "%call.0 = call i32 @func1(i32 666)\n"
-                        "store i32* %value.0, i32 %call.0\n"
-                        "%load.0 = load i32* %value.0\n"
-                        "ret i32 %load.0\n"
-                        "}");
+    CHECK_OR_DUMP(Main, R"()");
 
     // run passes
     PM.run(M.get());
 
     //M->dump(std::cout);
-    CHECK_OR_DUMP(Main, "def main() -> i32 {\n"
-                        "entry.split.0:    preds=() succs=(%entry.inlined.0) doms=(%entry.inlined.0) \n"
-                        "br %entry.inlined.0\n"
-                        "\n"
-                        "entry.inlined.0:    preds=(%entry.split.0) succs=(%if.true.inlined.0, %if.false.inlined.0) doms=(%if.true.inlined.0, %if.false.inlined.0, %leave.inlined.0) idom=%entry.split.0\n"
-                        "condbr i32 1, %if.true.inlined.0, %if.false.inlined.0\n"
-                        "\n"
-                        "if.true.inlined.0:    preds=(%entry.inlined.0) succs=(%leave.inlined.0) df=(%leave.inlined.0) idom=%entry.inlined.0\n"
-                        "br %leave.inlined.0\n"
-                        "\n"
-                        "if.false.inlined.0:    preds=(%entry.inlined.0) succs=(%leave.inlined.0) df=(%leave.inlined.0) idom=%entry.inlined.0\n"
-                        "br %leave.inlined.0\n"
-                        "\n"
-                        "leave.inlined.0:    preds=(%if.false.inlined.0, %if.true.inlined.0) succs=(%entry.0) doms=(%entry.0) idom=%entry.inlined.0\n"
-                        "%0 = phi [%if.true.inlined.0: i32 666], [%if.false.inlined.0: i32 667]\n"
-                        "br %entry.0\n"
-                        "\n"
-                        "entry.0:    preds=(%leave.inlined.0) succs=() idom=%leave.inlined.0\n"
-                        "ret i32 %0\n"
-                        "}");
+    //CHECK_OR_DUMP(Main, R"()");
 
 }
 

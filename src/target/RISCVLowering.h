@@ -114,16 +114,26 @@ public:
                 .build();
     }
 
+    MachineInstr *buildMove(Register LHS, Operand RHS) {
+        return MIBuilder()
+                .setOpcode(RISCV::MV)
+                .addDef(LHS)
+                .addOp(RHS)
+                .build();
+        /*MIBuilder AB;
+        AB.setOpcode(RISCV::ADDI)
+                .addDef(LHS)
+                .addOp(RHS)
+                .addUse(Register::phy(RISCV::Zero));
+        return AB.build();*/
+    }
+
     MachineInstr *visitCall(CallInst *value, MachineBlock &mbb) override {
         MIBuilder builder;
         builder.setOpcode(TargetCall);
         builder.addDef(Register::phy(RISCV::A0));
         for (int i = 0; i < value->getArgNum(); ++i) {
-            MIBuilder AB;
-            AB.setOpcode(TargetMove)
-                    .addDef(Register::phy(RISCV::A0 + i))
-                    .addOp(getValueOp(value->getArg(i)));
-            mbb.append(AB.build());
+            mbb.append(buildMove(Register::phy(RISCV::A0 + i), getValueOp(value->getArg(i))));
         }
         builder.build();
         auto *Callee = value->getCallee();
@@ -131,11 +141,7 @@ public:
         auto *Entry = Callee->getEntryBlock();
         mbb.append(MIBuilder().setOpcode(RISCV::CALL).addOp(getBlockLabel(Entry)).build());
         auto Reg = getValueReg(value); // get a virtual register for the return value
-        return MIBuilder()
-                .setOpcode(TargetMove)
-                .addDef(Reg)
-                .addUse(Register::phy(RISCV::A0))
-                .build();
+        return buildMove(Reg, Operand::reg(Register::phy(RISCV::A0)));
     }
 
     MachineInstr *visitBr(BranchInst *value, MachineBlock &mbb) override {
@@ -146,18 +152,11 @@ public:
     }
 
     MachineInstr *visitCopy(CopyInst *value, MachineBlock &mbb) override {
-        return MIBuilder().setOpcode(TargetMove)
-                .addDef(getValueReg(value))
-                .addOp(getValueOp(value->getVal()))
-                .build();
+        return buildMove(getValueReg(value), getValueOp(value->getVal()));
     }
 
     MachineInstr *visitAssign(AssignInst *value, MachineBlock &mbb) override {
-        return MIBuilder()
-                .setOpcode(TargetMove)
-                .addDef(getValueReg(value->getLHS()))
-                .addOp(getValueOp(value->getRHS()))
-                .build();
+        return buildMove(getValueReg(value), getValueOp(value->getRHS()));
     }
 
     MachineInstr *visitBinary(BinaryInst *value, MachineBlock &mbb) override {
@@ -170,10 +169,7 @@ public:
 
     MachineInstr *visitRet(RetInst *value, MachineBlock &mbb) override {
         if (auto *RetVal = value->getRetVal()) {
-            mbb.append(MIBuilder().setOpcode(TargetMove)
-                               .addDef(Register::phy(RISCV::A0))
-                               .addOp(getValueOp(RetVal))
-                               .build());
+            mbb.append(buildMove(Register::phy(RISCV::A0), getValueOp(RetVal)));
         }
         return MIBuilder().setOpcode(TargetRet).build();
     }

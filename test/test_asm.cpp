@@ -39,6 +39,7 @@ TEST(ASM, Expr1) {
             return x + c / a;
         }
 )");
+    std::cout << Mod->dumpToString() << std::endl;
     std::cout << compileAsm(Mod.get());
 }
 

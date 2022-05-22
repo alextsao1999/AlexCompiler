@@ -54,7 +54,7 @@ public:
     unsigned getCount(Value *item) {
         return getCount(item, getName(item));
     }
-    unsigned getCount(Value *item, const std::string &name) {
+    unsigned getCount(const Value *item, const std::string &name) const {
         auto &List = countTable[name];
         auto Iter = std::find(List.begin(), List.end(), item);
         if (Iter == List.end()) {
@@ -70,8 +70,8 @@ public:
         return It->second.size();
     }
 private:
-    std::unordered_map<Value *, std::string> nameTable;
-    std::unordered_map<std::string, std::vector<Value *>> countTable;
+    mutable std::unordered_map<const Value *, std::string> nameTable;
+    mutable std::unordered_map<std::string, std::vector<const Value *>> countTable;
 };
 
 #endif //DRAGONIR_SYMBOLTABLE_H
