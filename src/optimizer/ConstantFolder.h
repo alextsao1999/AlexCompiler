@@ -65,6 +65,7 @@ public:
         return nullptr;
     }
     ConstantFolder(BinaryInst *inst) : lhs(inst->getLHS()), rhs(inst->getRHS()), op(inst->getOp()) {}
+    ConstantFolder(BinaryOp op, Value *lhs, Value *rhs) : op(op), lhs(lhs), rhs(rhs) {}
     bool canFold() const {
         return canFoldBin(lhs, rhs);
     }

@@ -296,6 +296,7 @@ struct ListNonAllocTrait {
     static void refNode(T *V) {}
     static void derefNode(T *V) {}
 };
+/*
 template <typename T>
 struct ListRefTrait : public ListNonAllocTrait<T> {
     static void refNode(T *V) {
@@ -305,8 +306,10 @@ struct ListRefTrait : public ListNonAllocTrait<T> {
         V->decRef();
     }
 };
+*/
 template <typename T>
-struct StrongRefTrait : public ListRefTrait<T> {
+struct StrongRefTrait : public ListAllocTrait<T> {
+    static void refNode(T *V) {}
     static void derefNode(T *V) { delete V; }
 };
 

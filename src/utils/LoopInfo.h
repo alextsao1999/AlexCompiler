@@ -46,7 +46,19 @@ public:
     inline bool contains(BasicBlock *bb) { return blocks.count(bb) > 0; }
     inline bool isLoopInvariant(Value *val) {
         if (auto *Inst = val->as<Instruction>()) {
-            return !contains(Inst->getParent());
+            if (!contains(Inst->getParent())) {
+                return true;
+            }
+            if (hasLoopInvariantOperands(Inst)) {
+                switch (Inst->getOpcode()) {
+                    case OpcodeBinary:
+                    case OpcodeLoad:
+                        return true;
+                    default:
+                        break;
+                }
+            }
+            return false;
         }
         return true;
     }

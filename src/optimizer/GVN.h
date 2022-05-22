@@ -79,7 +79,7 @@ public:
 
     void doGVN(BasicBlock *bb, VNScope *outer = nullptr) {
         VNScope Scope(outer);
-        for (auto &Phi : bb->getPhis()) {
+        for (auto &Phi: bb->phis()) {
             if (isMeaningless(&Phi) || isRedundant(bb, &Phi)) {
                 assert(Phi.getOperandNum() > 0);
                 mapVN[&Phi] = getVN(Phi.getOperand(0));
@@ -116,9 +116,9 @@ public:
         }
 
         for (auto *Succ : bb->succs()) {
-            for (auto &Phi: Succ->getPhis()) {
+            for (auto &Phi: Succ->phis()) {
                 assert(Phi.getOpcode() == OpcodePhi);
-                adjustPhiNode(Succ, Phi.cast<PhiInst>());
+                adjustPhiNode(bb, &Phi);
             }
         }
 

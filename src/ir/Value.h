@@ -136,24 +136,10 @@ public:
     using UserIterator = UseIteratorImpl<Use, UserGetter<Use, Value>>;
 protected:
     Use *users = nullptr;
-    size_t refCount = 0;
 public:
     Value();
     virtual ~Value();
     virtual Type *getType() { return nullptr; }
-
-    /// memory management
-    void incRef() {
-        refCount++;
-    }
-    void decRef() {
-        if (--refCount == 0) {
-            delete this;
-        }
-    }
-    inline size_t getRefCount() {
-        return refCount;
-    }
 
     /// Get opcode of instruction
     Opcode getOpcode();
@@ -266,7 +252,7 @@ public:
         set(rhs.value);
     }
     ~Use() {
-        //unset();
+        unset();
     }
 
     /// We don't need the = operator for now.
@@ -290,7 +276,6 @@ public:
             }
             prev = &v->users;
             v->users = this;
-            v->incRef();
         }
     }
 
@@ -301,7 +286,6 @@ public:
         if (next)
             next->prev = prev;
         *prev = next;
-        value->decRef();
         value = nullptr;
     }
 
@@ -347,78 +331,6 @@ public:
     inline const Value *operator->() const {
         return value;
     }
-};
-
-// Strong reference to Value
-class ValueRef {
-    Value *value = nullptr;
-public:
-    ValueRef() {}
-    ValueRef(Value *v) : value(v) {
-        if (value)
-            value->incRef();
-    }
-    ValueRef(const ValueRef &rhs) : value(rhs.value) {
-        if (value)
-            value->incRef();
-    }
-    ValueRef(ValueRef &&rhs) : value(rhs.value) {
-        rhs.value = nullptr;
-    }
-    ~ValueRef() {
-        delete value;
-    }
-    ValueRef &operator=(const ValueRef &rhs) {
-        delete value;
-        value = rhs.value;
-        if (value)
-            value->incRef();
-        return *this;
-    }
-    ValueRef &operator=(Value *v) {
-        delete value;
-        value = v;
-        if (value)
-            value->incRef();
-        return *this;
-    }
-    ValueRef &operator=(ValueRef &&rhs) {
-        delete value;
-        value = rhs.value;
-        rhs.value = nullptr;
-        return *this;
-    }
-    operator Value *() {
-        return value;
-    }
-    operator const Value *() const {
-        return value;
-    }
-    Value *operator->() {
-        return value;
-    }
-    const Value *operator->() const {
-        return value;
-    }
-    Value &operator*() {
-        return *value;
-    }
-    const Value &operator*() const {
-        return *value;
-    }
-    bool operator==(const ValueRef &rhs) const {
-        return value == rhs.value;
-    }
-    bool operator!=(const ValueRef &rhs) const {
-        return value != rhs.value;
-    }
-    bool operator==(const Value *rhs) const {
-        return value == rhs;
-    }
-    bool operator!=(const Value *rhs) const {
-        return value != rhs;
-    }
-
 };
 
 template<typename ForwIt, typename F, typename S = std::string>

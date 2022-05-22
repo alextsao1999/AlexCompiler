@@ -13,9 +13,6 @@
  */
 class Undef : public Value {
 public:
-    Undef() {
-        incRef();
-    }
     void dumpAsOperand(std::ostream &os) override {
         os << "undef";
     }
@@ -29,9 +26,7 @@ class Param : public Value {
     Type *type;
 public:
     Param() : type(nullptr) {}
-    Param(StrView name, Type *type) : name(name), type(type) {
-        incRef();
-    }
+    Param(StrView name, Type *type) : name(name), type(type) {}
 
     std::string &getName() {
         return name;
@@ -75,9 +70,7 @@ class Constant : public Value {
 protected:
     Type *type;
 public:
-    Constant(Type *type) : type(type) {
-        incRef();
-    }
+    Constant(Type *type) : type(type) {}
 
     Type *getType() override {
         return type;
@@ -88,8 +81,7 @@ public:
 template<typename Ty>
 class ConstantVal : public Constant {
 public:
-    ConstantVal(Type *type, const Ty &val) : Constant(type), val(val) {
-    }
+    ConstantVal(Type *type, const Ty &val) : Constant(type), val(val) {}
 
     Ty &getVal() {
         return val;

@@ -506,6 +506,271 @@ TEST(Grammar, Expr) {
 
 }
 
+TEST(Grammar, IfStmt) {
+    const char *VarDeclare = "int main() {\n"
+                             "  if (1 < 2) {\n"
+                             "    return 0;\n"
+                             "  }\n"
+                             "  return 1;\n"
+                             "}";
+    CHECK_OR_DUMP_JSON(VarDeclare, R"(
+{
+    "id": 1,
+    "kind": "CompUnit",
+    "value": [
+        {
+            "body": [
+                {
+                    "cond": {
+                        "id": 23,
+                        "kind": "BinExp",
+                        "left": {
+                            "id": 27,
+                            "kind": "DecLiteral",
+                            "value": "1"
+                        },
+                        "op": "<",
+                        "right": {
+                            "id": 27,
+                            "kind": "DecLiteral",
+                            "value": "2"
+                        }
+                    },
+                    "id": 13,
+                    "kind": "IfStmt",
+                    "then": {
+                        "id": 12,
+                        "kind": "Block",
+                        "stmts": [
+                            {
+                                "id": 19,
+                                "kind": "ReturnStmt",
+                                "value": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "0"
+                                }
+                            }
+                        ]
+                    }
+                },
+                {
+                    "id": 19,
+                    "kind": "ReturnStmt",
+                    "value": {
+                        "id": 27,
+                        "kind": "DecLiteral",
+                        "value": "1"
+                    }
+                }
+            ],
+            "id": 8,
+            "kind": "FuncDef",
+            "name": "main",
+            "params": null,
+            "type": "int"
+        }
+    ]
+}
+)");
+
+}
+
+TEST(Grammar, IfElseStmt) {
+    const char *VarDeclare = "int main() {\n"
+                             "  if (1 < 2) {\n"
+                             "    return 0;\n"
+                             "  }\n"
+                             "  else {\n"
+                             "    return 1;\n"
+                             "  }\n"
+                             "}";
+    CHECK_OR_DUMP_JSON(VarDeclare, R"(
+{
+    "id": 1,
+    "kind": "CompUnit",
+    "value": [
+        {
+            "body": [
+                {
+                    "cond": {
+                        "id": 23,
+                        "kind": "BinExp",
+                        "left": {
+                            "id": 27,
+                            "kind": "DecLiteral",
+                            "value": "1"
+                        },
+                        "op": "<",
+                        "right": {
+                            "id": 27,
+                            "kind": "DecLiteral",
+                            "value": "2"
+                        }
+                    },
+                    "else": {
+                        "id": 12,
+                        "kind": "Block",
+                        "stmts": [
+                            {
+                                "id": 19,
+                                "kind": "ReturnStmt",
+                                "value": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "1"
+                                }
+                            }
+                        ]
+                    },
+                    "id": 14,
+                    "kind": "IfElseStmt",
+                    "then": {
+                        "id": 12,
+                        "kind": "Block",
+                        "stmts": [
+                            {
+                                "id": 19,
+                                "kind": "ReturnStmt",
+                                "value": {
+                                    "id": 27,
+                                    "kind": "DecLiteral",
+                                    "value": "0"
+                                }
+                            }
+                        ]
+                    }
+                }
+            ],
+            "id": 8,
+            "kind": "FuncDef",
+            "name": "main",
+            "params": null,
+            "type": "int"
+        }
+    ]
+}
+)");
+
+}
+
+TEST(Grammar, Params) {
+    const char *VarDeclare = "int main(int a, int b, int c) {\n"
+                             "  return a + b;\n"
+                             "}";
+    CHECK_OR_DUMP_JSON(VarDeclare, R"(
+{
+    "id": 1,
+    "kind": "CompUnit",
+    "value": [
+        {
+            "body": [
+                {
+                    "id": 19,
+                    "kind": "ReturnStmt",
+                    "value": {
+                        "id": 23,
+                        "kind": "BinExp",
+                        "left": {
+                            "id": 25,
+                            "kind": "RVal",
+                            "name": "a"
+                        },
+                        "op": "+",
+                        "right": {
+                            "id": 25,
+                            "kind": "RVal",
+                            "name": "b"
+                        }
+                    }
+                }
+            ],
+            "id": 8,
+            "kind": "FuncDef",
+            "name": "main",
+            "params": [
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "a",
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "b",
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "c",
+                    "type": "int"
+                }
+            ],
+            "type": "int"
+        }
+    ]
+}
+)");
+
+    const char *VarDeclare1 = "int main(int a, int b, int c, int d) {\n"
+                              "  return 0;"
+                             "}";
+    CHECK_OR_DUMP_JSON(VarDeclare1, R"(
+{
+    "id": 1,
+    "kind": "CompUnit",
+    "value": [
+        {
+            "body": [
+                {
+                    "id": 19,
+                    "kind": "ReturnStmt",
+                    "value": {
+                        "id": 27,
+                        "kind": "DecLiteral",
+                        "value": "0"
+                    }
+                }
+            ],
+            "id": 8,
+            "kind": "FuncDef",
+            "name": "main",
+            "params": [
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "a",
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "b",
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "c",
+                    "type": "int"
+                },
+                {
+                    "id": 9,
+                    "kind": "FuncParam",
+                    "name": "d",
+                    "type": "int"
+                }
+            ],
+            "type": "int"
+        }
+    ]
+}
+)");
+
+}
+
 TEST(Grammar, While) {
     const char *Test = "int main() {"
                        "  while (true) {"

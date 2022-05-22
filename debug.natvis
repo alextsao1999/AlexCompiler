@@ -51,19 +51,12 @@
             <Item Name="[value]">($T2*)(cursor)</Item>
         </Expand>
     </Type>
-    <Type Name="Value" Inheritable="false">
-        <Expand>
-            <LinkedListItems>
-                <HeadPointer>users</HeadPointer>
-                <NextPointer>next</NextPointer>
-                <ValueNode>parent</ValueNode>
-            </LinkedListItems>
-        </Expand>
-    </Type>
     <Type Name="Use">
         <Expand>
-            <Item Name="[user]">parent</Item>
-            <Item Name="[value]">value</Item>
+            <ExpandedItem>parent</ExpandedItem>
+<!--            <Item Name="[user]">parent</Item>-->
+<!--            <Item Name="[value]">value</Item>-->
+            <Item Name="[next]">next</Item>
         </Expand>
     </Type>
     <Type Name="NodeParent&lt;*,*,*&gt;" Inheritable="false">
@@ -71,21 +64,32 @@
             <ExpandedItem>list</ExpandedItem>
         </Expand>
     </Type>
-    <Type Name="Instruction" Inheritable="true">
+    <Type Name="Instruction">
         <DisplayString>{nameForDebug} = {opcode}({numOperands}) </DisplayString>
         <Expand>
             <Item Name="[opcode]">opcode</Item>
             <Item Name="[parent]">parent</Item>
+            <Item Name="[users]">users</Item>
             <IndexListItems>
                 <Size>numOperands</Size>
                 <ValueNode>*(trailingOperands._Mypair._Myval2[$i].value)</ValueNode>
             </IndexListItems>
-<!--
-            <ArrayItems>
+        </Expand>
+    </Type>
+    <Type Name="PhiInst">
+        <DisplayString>{nameForDebug} = {opcode}({numOperands}) </DisplayString>
+        <Expand>
+            <Item Name="[opcode]">opcode</Item>
+            <Item Name="[parent]">parent</Item>
+            <Item Name="[users]">users</Item>
+            <IndexListItems>
                 <Size>numOperands</Size>
-                <ValuePointer>trailingOperands._Mypair._Myval2</ValuePointer>
-            </ArrayItems>
--->
+                <ValueNode>*(trailingOperands._Mypair._Myval2[$i].value)</ValueNode>
+            </IndexListItems>
+            <IndexListItems>
+                <Size>numOperands</Size>
+                <ValueNode>*(incomingBlocks._Mypair._Myval2[$i].value)</ValueNode>
+            </IndexListItems>
         </Expand>
     </Type>
     <Type Name="PatternNode" Inheritable="true">

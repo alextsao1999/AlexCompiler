@@ -292,7 +292,7 @@ public:
 
 class LoadInst : public OutputInst {
 public:
-    LoadInst() : OutputInst(OpcodeLoad) {}
+    LoadInst(Type *ty) : OutputInst(ty, OpcodeLoad) {}
     LoadInst(Value *ptr) : OutputInst(ptr->getType(), OpcodeLoad, {ptr}) {}
     LoadInst(const LoadInst &other) : OutputInst(other) {}
 
@@ -313,7 +313,7 @@ public:
 
 class CopyInst : public OutputInst {
 public:
-    CopyInst() : OutputInst(OpcodeCopy) {}
+    CopyInst(Type *ty) : OutputInst(ty, OpcodeCopy) {}
     CopyInst(Value *val) : OutputInst(val->getType(), OpcodeCopy, {val}) {}
     CopyInst(const CopyInst &other) : OutputInst(other) {}
 
@@ -324,9 +324,8 @@ public:
 
 class CastInst : public OutputInst {
 public:
-    CastInst() : OutputInst(OpcodeCast) {}
-    CastInst(const CastInst &other) : OutputInst(other) {}
     CastInst(Type *type) : OutputInst(type, OpcodeCast) {}
+    CastInst(const CastInst &other) : OutputInst(other) {}
 
     Value *getVal() const {
         return getOperand(0);
@@ -337,9 +336,8 @@ class PhiInst : public OutputInst {
 public:
     static PhiInst *Create(Type *ty, BasicBlock *bb, StrView name = "");
 public:
-    PhiInst() : OutputInst(OpcodePhi) {}
     PhiInst(Type *ty) : OutputInst(ty, OpcodePhi) {}
-    PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
+    //PhiInst(size_t numOperands) : OutputInst(OpcodePhi, numOperands) {}
     PhiInst(const PhiInst &other);
     ~PhiInst() override = default;
 
@@ -449,7 +447,7 @@ public:
 
 class NotInst : public OutputInst {
 public:
-    NotInst() : OutputInst(OpcodeNot) {}
+    NotInst(Type *ty) : OutputInst(ty, OpcodeNot) {}
     NotInst(Value *val) : OutputInst(val->getType(), OpcodeNot, {val}) {}
     NotInst(const NotInst &other) : OutputInst(other) {}
 
@@ -460,7 +458,7 @@ public:
 
 class NegInst : public OutputInst {
 public:
-    NegInst() : OutputInst(OpcodeNeg) {}
+    NegInst(Type *ty) : OutputInst(ty, OpcodeNeg) {}
     NegInst(Value *val) : OutputInst(val->getType(), OpcodeNeg, {val}) {}
     NegInst(const NegInst &other) : OutputInst(other) {}
 
@@ -472,8 +470,12 @@ public:
 class BinaryInst : public OutputInst {
     BinaryOp op;
 public:
-    BinaryInst() : OutputInst(OpcodeBinary) {}
-    BinaryInst(BinaryOp op, Value *lhs, Value *rhs) : OutputInst(OpcodeBinary, {lhs, rhs}), op(op) {}
+    inline static BinaryInst *Create(BinaryOp op, Value *lhs, Value *rhs) {
+        auto *type = Type::getMaxType(lhs->getType(), rhs->getType());
+        return new BinaryInst(type, op, lhs, rhs);
+    }
+public:
+    BinaryInst(Type *ty) : OutputInst(ty, OpcodeBinary) {}
     BinaryInst(Type *ty, BinaryOp op, Value *lhs, Value *rhs) : OutputInst(ty, OpcodeBinary, {lhs, rhs}), op(op) {}
     BinaryInst(const BinaryInst &other) : OutputInst(other), op(other.op) {}
 
@@ -497,8 +499,8 @@ public:
 
 class GetPtrInst : public OutputInst {
 public:
-    GetPtrInst() : OutputInst(OpcodeGetPtr) {}
-    GetPtrInst(Value *base, Value *offset) : OutputInst(OpcodeGetPtr, {base, offset}) {}
+    GetPtrInst(Type *ty) : OutputInst(ty, OpcodeGetPtr) {}
+    GetPtrInst(Value *base, Value *offset) : OutputInst(base->getType(), OpcodeGetPtr, {base, offset}) {}
     GetPtrInst(const GetPtrInst &other) : OutputInst(other) {}
 
     Type *getType() override {

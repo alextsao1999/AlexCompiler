@@ -203,10 +203,12 @@ void PhiInst::dump(std::ostream &os) {
     // FIXME: maybe we should dump the type here?
     os << dump_str(operands(), [this](Use &use) {
         auto *BB = getIncomingBlock(use);
-        if (BB == nullptr) {
-            return use.getValue() ? "[null: " + use->dumpOperandToString() + "]" : "[null: null]";
-        }
-        return "[" + BB->dumpOperandToString() +": " + use->dumpOperandToString() + "]";
+        std::string Str = "[";
+        Str += BB ? BB->dumpOperandToString() : "null";
+        Str += ": ";
+        Str += use.getValue() ? use->dumpOperandToString() : "null";
+        Str += "]";
+        return Str;
     });
 }
 

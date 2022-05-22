@@ -155,6 +155,8 @@ public:
     }
 
     void erase(Instruction *node) {
+        node->replaceAllUsesWith(nullptr);
+        assert(!node->getLastUse()); // check if there is a instruction that use this node.
         removeInstr(node);
         NodeParent::erase(node);
     }
