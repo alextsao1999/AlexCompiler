@@ -15,7 +15,7 @@ struct VarStatus {
     unsigned counter = 0;
 
     void push(Value *var) {
-        assert(var);
+        ASSERT(var);
         stack.push_back(var);
         if (auto *Instr = var->as<Instruction>()) {
             counter++;
@@ -29,7 +29,7 @@ struct VarStatus {
     }
 
     Value *top() {
-        assert(!stack.empty());
+        ASSERT(!stack.empty());
         return stack.back();
     }
 
@@ -43,7 +43,7 @@ struct PhiStatus {
     std::map<BasicBlock *, Value *> incomings; // 标记来边和对应的SSA值
 
     void setAlloca(Value *a) {
-        assert(allocaFor == nullptr);
+        ASSERT(allocaFor == nullptr);
         allocaFor = a;
     }
 
@@ -149,7 +149,7 @@ public:
                 continue;
             }
             auto *Alloca = phiStatus[Phi].getAlloca();
-            assert(Alloca);
+            ASSERT(Alloca);
             varStatus[Alloca].push(Phi);
         }
 
@@ -197,7 +197,7 @@ public:
                 continue;
             }
             auto *Alloca = phiStatus[Phi].getAlloca();
-            assert(Alloca);
+            ASSERT(Alloca);
             varStatus[Alloca].pop();
         }
 

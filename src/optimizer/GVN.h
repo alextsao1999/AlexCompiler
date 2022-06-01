@@ -81,7 +81,7 @@ public:
         VNScope Scope(outer);
         for (auto &Phi: bb->phis()) {
             if (isMeaningless(&Phi) || isRedundant(bb, &Phi)) {
-                assert(Phi.getOperandNum() > 0);
+                ASSERT(Phi.getOperandNum() > 0);
                 mapVN[&Phi] = getVN(Phi.getOperand(0));
                 needToDelete.push_back(&Phi);
             } else {
@@ -117,7 +117,7 @@ public:
 
         for (auto *Succ : bb->succs()) {
             for (auto &Phi: Succ->phis()) {
-                assert(Phi.getOpcode() == OpcodePhi);
+                ASSERT(Phi.getOpcode() == OpcodePhi);
                 adjustPhiNode(bb, &Phi);
             }
         }
@@ -140,7 +140,7 @@ public:
     }
 
     bool isMeaningless(Instruction *phi) {
-        assert(phi->getOpcode() == OpcodePhi);
+        ASSERT(phi->getOpcode() == OpcodePhi);
         if (phi->getOperandNum() < 2) {
             return true;
         }
@@ -155,7 +155,7 @@ public:
     }
 
     bool isRedundant(BasicBlock *bb, Instruction *phi) {
-        assert(phi->getOpcode() == OpcodePhi);
+        ASSERT(phi->getOpcode() == OpcodePhi);
         auto *PhiVN = getVN(phi);
         for (auto &Phi: bb->getPhis()) {
             if (phi == &Phi) {

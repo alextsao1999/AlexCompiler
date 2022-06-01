@@ -86,22 +86,22 @@ public:
     }
 
     Register getReg() const {
-        assert(isReg());
+        ASSERT(isReg());
         return regOp;
     }
 
     int64_t getImm() const {
-        assert(isImm());
+        ASSERT(isImm());
         return value.imm;
     }
 
     unsigned getSlot() const {
-        assert(isSlot());
+        ASSERT(isSlot());
         return value.slot;
     }
 
     MachineBlock *getLabel() const {
-        assert(isLabel());
+        ASSERT(isLabel());
         return value.addr;
     }
 
@@ -200,12 +200,12 @@ public:
 
     Operand &getDef(size_t i) const {
         auto It = defs_begin() + i;
-        assert(It != defs_end());
+        ASSERT(It != defs_end());
         return *It;
     }
     Operand &getOp(size_t i) const {
         auto It = use_begin() + i;
-        assert(It != use_end());
+        ASSERT(It != use_end());
         return *It;
     }
 

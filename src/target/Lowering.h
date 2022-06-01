@@ -18,7 +18,7 @@ public:
         mapValueToNode.clear();
 
         auto *TI = function.getTargetInfo();
-        assert(TI);
+        ASSERT(TI);
         int I = 0;
         for (auto &Param: function.getParams()) {
             auto *Node = TI->loweringArgument(function.dag, Param.get(), I++);
@@ -35,11 +35,11 @@ public:
         ///< Update successor and predecessor
         for (auto &MBB: function.blocks) {
             for (auto *Succ: MBB.getOrigin()->succs()) {
-                assert(function.mapBlocks[Succ]);
+                ASSERT(function.mapBlocks[Succ]);
                 MBB.succs.push_back(function.mapBlocks[Succ]);
             }
             for (auto *Pred: MBB.getOrigin()->preds()) {
-                assert(function.mapBlocks[Pred]);
+                ASSERT(function.mapBlocks[Pred]);
                 MBB.preds.push_back(function.mapBlocks[Pred]);
             }
         }

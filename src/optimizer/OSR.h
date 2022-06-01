@@ -117,7 +117,7 @@ public:
                         goto leave;
                     }
                 case OpcodeBinary:
-                    assert(item->getOperandNum() > 1);
+                    ASSERT(item->getOperandNum() > 1);
                     if (getOperandHeader(item->getOperand(1)) == Cur.header) {
                         // i = c - i 这种不属于归纳变量
                         isInd = false;
@@ -164,7 +164,7 @@ public:
         if (auto *Var = Op->as<Instruction>()) {
             auto *Def = Var->getParent();
             auto *Cur = Inst->getParent();
-            assert(Def && Cur);
+            ASSERT(Def && Cur);
             // FIXME: problem?
             return Def->dominates(Cur);
         } else if (Op->as<Constant>()) {
@@ -287,7 +287,7 @@ public:
         auto *Res = BinaryInst::Create(opcode, Left, RC);
         ReduceTable[entry] = Res;
         auto *Dom = Inst->getParent()->getDominator();
-        assert(Dom);
+        ASSERT(Dom);
         Dom->append(Res);
         return Res;
     }

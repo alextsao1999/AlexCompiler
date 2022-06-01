@@ -337,7 +337,7 @@ public:
 
     void visitArgRule(ArgRule value) override {
         visit(value.getRule());
-        assert(!argStack.empty());
+        ASSERT(!argStack.empty());
         argStack.back()->setType(value.getType());
         argStack.back()->setArgName(value.getName());
         argStack.back()->loc = value.getLocation();

@@ -111,12 +111,12 @@ public:
     SymbolTable *getSymbolTable() const;
     const std::string &getName() {
         auto *ST = getSymbolTable();
-        assert(ST);
+        ASSERT(ST);
         return ST->getName(this);
     }
     void setName(StrView name) {
         auto *ST = getSymbolTable();
-        assert(ST);
+        ASSERT(ST);
         ST->setName(this, name);
         nameForDebug = name;
     }
@@ -150,7 +150,7 @@ public:
     Opcode getOpcode() const { return opcode; }
     inline size_t getOperandNum() const { return numOperands; }
     inline Value *getOperand(size_t i) const {
-        assert(i < numOperands);
+        ASSERT(i < numOperands);
         return getTrailingOperand()[i].getValue();
     }
 
@@ -190,7 +190,7 @@ public:
     }
     inline std::ostream &dumpName(std::ostream &os) {
         auto *ST = getSymbolTable();
-        assert(ST);
+        ASSERT(ST);
         auto &Name = getName();
         if (Name.empty()) {
             os << "%" << ST->getCount(this);
@@ -362,7 +362,7 @@ public:
     }
     void removeIncoming(Use *use) {
         auto Idx = use - trailingOperands.get();
-        assert(Idx < getOperandNum());
+        ASSERT(Idx < getOperandNum());
         removeIncoming(Idx);
     }
     void removeIncoming(BasicBlock *bb) {
@@ -415,7 +415,7 @@ public:
     }
 
     Type *getReturnType() const {
-        assert(getCalleeType());
+        ASSERT(getCalleeType());
         return getCalleeType()->getReturnType();
     }
 
@@ -508,12 +508,12 @@ public:
     }
 
     Value *getBase() {
-        assert(getOperandNum() > 0);
+        ASSERT(getOperandNum() > 0);
         return getOperand(0);
     }
 
     Value *getOffset() {
-        assert(getOperandNum() > 1);
+        ASSERT(getOperandNum() > 1);
         return getOperand(1);
     }
 
@@ -593,7 +593,7 @@ public:
     }
 
     Value *getRetVal() const {
-        assert(getOperandNum() == 1);
+        ASSERT(getOperandNum() == 1);
         return getOperand(0);
     }
 
@@ -618,7 +618,7 @@ public:
             OPCODE_LIST(DEFINE_OPCODE)
 #undef DEFINE_OPCODE
         default:
-            assert(false);
+            ASSERT(false);
         }
     }
 #define DEFINE_OPCODE(NAME, c, CLASS) virtual RetTy visit##NAME(CLASS *value, Args&&...args) { return RetTy(); }

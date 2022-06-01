@@ -107,7 +107,7 @@ void MachineInstr::dump(std::ostream &os) {
 
 void MachineInstr::dumpOp(std::ostream &os, Operand &op) {
     auto *F = getParent()->getFunction();
-    assert(F);
+    ASSERT(F);
     auto *TI = F->getTargetInfo();
     switch (op.kind) {
         case Operand::Nop:

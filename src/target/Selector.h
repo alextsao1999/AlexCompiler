@@ -254,7 +254,7 @@ namespace Matcher {
                     }
                     return MatchNodeHelper<Index + 1, Es...>::match(children, node, context);
                 }
-                assert("The node is null" && false);
+                ASSERT("The node is null" && false);
                 return false;
             }
         };

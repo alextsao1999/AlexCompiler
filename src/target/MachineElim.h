@@ -11,7 +11,7 @@ public:
     void runOnMachineBlock(MachineBlock &block) override {
         auto *F = block.getFunction();
         auto *TI = F->getTargetInfo();
-        assert(F && TI);
+        ASSERT(F && TI);
         for (auto Iter = block.begin(); Iter != block.end();) {
             auto &Inst = *Iter;
             if (TI->isEliminableMove(Inst)) {

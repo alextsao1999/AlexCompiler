@@ -16,11 +16,11 @@ public:
     IRBuilder() {}
     IRBuilder(BasicBlock *bb) : bb(bb) {}
     IRBuilder(Function *f) : bb(&f->getSubList().back()) {
-        assert(!f->getSubList().empty());
+        ASSERT(!f->getSubList().empty());
     }
 
     void setInsertPoint(Function *f) {
-        assert(!f->getSubList().empty());
+        ASSERT(!f->getSubList().empty());
         bb = &f->getSubList().back();
     }
 
@@ -32,7 +32,7 @@ public:
 
     template<typename Ty>
     Ty *insert(Ty *instr, StrView name) {
-        assert(bb && instr);
+        ASSERT(bb && instr);
         bb->append(instr);
         instr->setName(name);
         return instr;
@@ -40,7 +40,7 @@ public:
 
     template<typename Ty>
     Ty *insert(Ty *instr) {
-        assert(bb && instr);
+        ASSERT(bb && instr);
         bb->append(instr);
         return instr;
     }

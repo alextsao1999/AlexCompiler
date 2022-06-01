@@ -14,8 +14,8 @@ inline std::string strlower(std::string str) {
     return str;
 }
 
-#define assert(x) if (!(x)) { std::cout << "Assertion failed: " << (x) << " " << __FILE__ << ":" << __LINE__ << std::endl;abort(); }
-#define unreachable() assert(!"Unreachable here!");
+#define ASSERT(x) if (!(x)) { std::cout << "Assertion failed: " << (x) << " " << __FILE__ << ":" << __LINE__ << std::endl;abort(); }
+#define UNREACHEABLE() ASSERT(!"Unreachable here!");
 #define debug(...) fprintf(stderr, __VA_ARGS__)
 
 #endif //DRAGONCOMPILER_COMMON_H

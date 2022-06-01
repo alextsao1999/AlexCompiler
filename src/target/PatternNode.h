@@ -238,7 +238,7 @@ public:
     bool empty() const { return !value; }
 
     void set(PatternNode *v) {
-        assert(parent);
+        ASSERT(parent);
         unset();
         value = v;
         if (v) {
@@ -252,7 +252,7 @@ public:
     }
 
     void unset() {
-        assert(parent);
+        ASSERT(parent);
         if (!value)
             return;
         if (next)
@@ -319,12 +319,12 @@ PatternNode *PatternNode::getChild(unsigned int index) {
 }
 
 void PatternNode::setHungOffOperand(unsigned int index, PatternNode *operand) {
-    assert(index < numOperands);
+    ASSERT(index < numOperands);
     getHungoffOperands()[index].set(operand);
 }
 
 void PatternNode::setChild(unsigned int index, PatternNode *child) {
-    assert(index < numOperands);
+    ASSERT(index < numOperands);
     getHungoffOperands()[index].set(child);
 }
 
@@ -333,7 +333,7 @@ PatternUse *PatternNode::operand_end() {
 }
 
 void PatternNode::replaceWith(PatternNode *node) {
-    assert(node != nullptr);
+    ASSERT(node != nullptr);
     for (auto It = node->use_begin(); It != node->use_end();) {
         auto &Use = *It++;
         Use.set(node);
@@ -354,7 +354,7 @@ public:
     PatternNodeBase() : PatternNode(Opcode, OpNum) {}
 
     PatternNodeBase(std::initializer_list<PatternNode *> nodes) : PatternNode(Opcode, OpNum) {
-        assert(nodes.size() == OpNum);
+        ASSERT(nodes.size() == OpNum);
         unsigned I = 0;
         for (auto *Node : nodes) {
             setHungOffOperand(I++, Node);

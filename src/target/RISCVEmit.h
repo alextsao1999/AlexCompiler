@@ -166,7 +166,7 @@ public:
         std::replace(name.begin(), name.end(), '.', '_');
         std::replace(name.begin(), name.end(), '%', '_');
         auto P = block.getFunction();
-        assert(P);
+        ASSERT(P);
         return P->getName() + name;
     }
 

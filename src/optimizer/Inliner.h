@@ -118,7 +118,7 @@ public:
 
     void doInline(CallInst *inst) {
         Function *Callee = inst->getCallee();
-        assert(!Callee->isDeclaration());
+        ASSERT(!Callee->isDeclaration());
 
         // Map the parameters
         int I = 0;
@@ -148,7 +148,7 @@ public:
                 if (I.getOpcode() == OpcodeRet) {
                     auto *Ret = I.cast<RetInst>();
                     if (!Ret->isVoidRet()) {
-                        assert(RetVal);
+                        ASSERT(RetVal);
                         NewBB->append(new StoreInst(RetVal, Ret->getRetVal()));
                     }
                     NewBB->append(new BranchInst(RetBlock));
@@ -167,12 +167,12 @@ public:
             valueMap[&BB] = NewBB;
         }
 
-        assert(valueMap.count(Callee->getEntryBlock()));
+        ASSERT(valueMap.count(Callee->getEntryBlock()));
         auto *InlinedEntry = valueMap[Callee->getEntryBlock()]->cast<BasicBlock>();
 
         // jump to the entry block of inlined function
         auto *Br = CallSiteBlock->getTerminator();
-        assert(Br && Br->getOpcode() == OpcodeBr);
+        ASSERT(Br && Br->getOpcode() == OpcodeBr);
         // TODO: can optimize this?
         Br->setSuccessor(0, InlinedEntry);
 

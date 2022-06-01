@@ -70,7 +70,7 @@ void Instruction::dump(std::ostream &os) {
     } else {
         std::string opcodeStr;
         switch (opcode) {
-            default: unreachable();
+            default: UNREACHEABLE();
 #define OPCODE(NAME, COUNT, CLASS) \
         case Opcode##NAME: \
             opcodeStr = #NAME; \
@@ -111,7 +111,7 @@ BranchInst::BranchInst(BasicBlock *target) : TerminatorInst(OpcodeBr, {target}) 
 }
 
 BasicBlock *BranchInst::getTarget() const {
-    assert(getOperand(0)->isa<BasicBlock>());
+    ASSERT(getOperand(0)->isa<BasicBlock>());
     return getOperand(0)->cast<BasicBlock>();
 }
 
@@ -124,12 +124,12 @@ CondBrInst::CondBrInst(Value *cond, BasicBlock *trueTarget, BasicBlock *falseTar
                                                                                                        falseTarget}) {}
 
 BasicBlock *CondBrInst::getTrueTarget() const {
-    assert(getOperand(1)->isa<BasicBlock>());
+    ASSERT(getOperand(1)->isa<BasicBlock>());
     return getOperand(1)->cast<BasicBlock>();
 }
 
 BasicBlock *CondBrInst::getFalseTarget() const {
-    assert(getOperand(2)->isa<BasicBlock>());
+    ASSERT(getOperand(2)->isa<BasicBlock>());
     return getOperand(2)->cast<BasicBlock>();
 }
 
@@ -168,7 +168,7 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
     }
 
     // make sure all the types of incoming values are the same
-    assert(numOperands >= 1);
+    ASSERT(numOperands >= 1);
 
     /**
      * FIXME: make sure all the types of incoming values are the same
@@ -184,17 +184,17 @@ void PhiInst::fill(std::map<BasicBlock *, Value *> &values) {
 
 BasicBlock *PhiInst::getIncomingBlock(Use &use) const {
     auto Index = &use - getTrailingOperand();
-    assert(Index >= 0 && Index < numOperands);
+    ASSERT(Index >= 0 && Index < numOperands);
     return incomingBlocks[Index]->cast<BasicBlock>();
 }
 
 BasicBlock *PhiInst::getIncomingBlock(size_t i) const {
-    assert(i < numOperands);
+    ASSERT(i < numOperands);
     return incomingBlocks[i]->cast<BasicBlock>();
 }
 
 void PhiInst::setIncomingBlock(size_t i, BasicBlock *bb) {
-    assert(i < numOperands);
+    ASSERT(i < numOperands);
     incomingBlocks[i].set(bb);
 }
 
@@ -214,7 +214,7 @@ void PhiInst::dump(std::ostream &os) {
 
 Instruction *Instruction::clone() const {
     switch (getOpcode()) {
-        default: unreachable();
+        default: UNREACHEABLE();
 #define OPCODE(NAME, COUNT, CLASS) \
         case Opcode##NAME: \
             return new CLASS(*cast<CLASS>());
@@ -224,7 +224,7 @@ Instruction *Instruction::clone() const {
 }
 
 Context *Instruction::getContext() const {
-    assert(getParent());
+    ASSERT(getParent());
     return getParent()->getContext();
 }
 

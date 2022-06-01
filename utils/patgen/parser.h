@@ -12,8 +12,8 @@
 #include <functional>
 #include <numeric>
 
-#define LR_ASSERT(x) assert(x)
-#define LR_UNREACHED() assert(!"unreached here")
+#define LR_ASSERT(x) ASSERT(x)
+#define LR_UNREACHED() ASSERT(!"unreached here")
 #define LR_TYPESPEC(TYPE) virtual TYPE
 
 #define CONFLICT_NONE 0

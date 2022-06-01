@@ -6,6 +6,6 @@
 #include "Context.h"
 
 Type *Type::getPointerType() {
-    assert(getContext());
+    ASSERT(getContext());
     return getContext()->getPointerTy(this);
 }

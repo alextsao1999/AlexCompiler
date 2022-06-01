@@ -266,7 +266,7 @@ public:
     bool empty() const { return !value; }
 
     void set(Value *v) {
-        assert(parent);
+        ASSERT(parent);
         unset();
         value = v;
         if (v) {
@@ -280,7 +280,7 @@ public:
     }
 
     void unset() {
-        assert(parent);
+        ASSERT(parent);
         if (!value)
             return;
         if (next)

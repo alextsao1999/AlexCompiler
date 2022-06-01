@@ -24,7 +24,7 @@ class Loop {
     std::set<BasicBlock *> exits;
 public:
     Loop(BasicBlock *header, BasicBlock *backege) : header(header), backege(backege) {
-        assert(header && backege);
+        ASSERT(header && backege);
         blocks.insert(header);
     }
     // iterator

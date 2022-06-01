@@ -66,7 +66,7 @@ public:
     void buildIGraph() {
         graph.clear();
         auto *TI = func->getTargetInfo();
-        assert(TI);
+        ASSERT(TI);
         for (auto &MBB: func->blocks) {
             auto &Live = MBB.liveOutSet;
             for (auto &Inst: MBB.instrs().reverse()) {
@@ -316,7 +316,7 @@ public:
                 spillReg(&node, Reg);
                 continue;
             }
-            assert(nodeColor.count(&node));
+            ASSERT(nodeColor.count(&node));
             auto Color = nodeColor[&node];
             if (Reg.isVirReg()) {
                 //< 寄存器指派

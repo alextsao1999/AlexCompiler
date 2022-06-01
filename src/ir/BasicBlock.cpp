@@ -6,12 +6,12 @@
 #include "Function.h"
 
 BasicBlock *BasicBlock::Create(Function *parent, StrView name) {
-    assert(parent);
+    ASSERT(parent);
     return new BasicBlock(parent, name);
 }
 
 Context *BasicBlock::getContext() const {
-    assert(getParent());
+    ASSERT(getParent());
     return getParent()->getContext();
 }
 
@@ -79,6 +79,6 @@ bool BasicBlock::isUnreachable() const {
 
         return false;
     }
-    assert(!"No parent");
+    ASSERT(!"No parent");
     return false;
 }

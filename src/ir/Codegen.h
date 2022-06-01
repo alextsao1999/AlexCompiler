@@ -163,7 +163,7 @@ public:
     }
 
     Value *visitFuncParam(FuncParam value) override {
-        assert(curFunc);
+        ASSERT(curFunc);
         auto *Param = curFunc->addParam(value.getName(), table.getType(value.getType()));
         //table.addVar(value.getName(), Param);
         auto *Alloca = builder.createAlloca(Param->getType(), value.getName());
@@ -184,7 +184,7 @@ public:
             diags.addError("redefine variable name: " + value.getName(), value);
             return nullptr;
         }
-        assert(curDefType);
+        ASSERT(curDefType);
         if (curDefType->isVoidType()) {
             diags.addError("void type can't be used as variable", value);
             return nullptr;
@@ -198,12 +198,12 @@ public:
     }
 
     Value *visitBinExp(BinExp value) override {
-        assert(!value.getOp().empty());
+        ASSERT(!value.getOp().empty());
         auto *LHS = visit(value.getLeft());
         auto *RHS = visit(value.getRight());
         auto &Op = value.getOp();
         switch (Op[0]) {
-            default: unreachable();
+            default: UNREACHEABLE();
             case '+':
                 return builder.createAdd(LHS, RHS);
             case '-':
@@ -279,7 +279,7 @@ public:
             return nullptr;
         }
         if (auto *P = Alloca->as<Param>()) {
-            assert(false && "parameter cannot be used as a value");
+            ASSERT(false && "parameter cannot be used as a value");
             return P;
         }
         return builder.createLoad(Alloca);
@@ -287,13 +287,13 @@ public:
 
     Value *visitUnaExp(UnaExp value) override {
         auto *V = visit(value.getVal());
-        assert(V);
+        ASSERT(V);
         if (value.getOp() == "!") {
             return builder.createNot(V);
         } else if (value.getOp() == "-") {
             return builder.createNeg(V);
         }
-        assert(false && "unsupported unary operator");
+        ASSERT(false && "unsupported unary operator");
         return nullptr;
     }
 
@@ -403,7 +403,7 @@ public:
         std::vector<Value *> args;
         for (auto &arg : value.getArgs()) {
             auto *V = visit(arg);
-            assert(V);
+            ASSERT(V);
             args.push_back(V);
         }
         auto *F = funcs[value.getName()];

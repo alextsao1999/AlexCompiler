@@ -20,13 +20,13 @@ protected:
     constexpr NodeBase(NodeBase *prev, NodeBase *next) : prev(prev), next(next) {}
 
     inline void linkNext(NodeBase *N) {
-        assert(N);
+        ASSERT(N);
         next = N;
         N->prev = this;
     }
 
     inline void linkPrev(NodeBase *P) {
-        assert(P);
+        ASSERT(P);
         prev = P;
         P->next = this;
     }
@@ -117,7 +117,7 @@ private:
 public:
     NodeWithParent() = default;
     NodeWithParent(ParentT *parent) {
-        assert(parent);
+        ASSERT(parent);
         parent->append(static_cast<T *>(this));
     }
 
@@ -134,32 +134,32 @@ public:
     }
 
     void replaceBy(T *node) {
-        assert(parent);
+        ASSERT(parent);
         parent->replace(static_cast<T *>(this), node);
     }
 
     void eraseFromParent() {
-        assert(parent);
+        ASSERT(parent);
         parent->erase(static_cast<T *>(this));
     }
 
     void insertAfterThis(T *node) {
-        assert(node && parent);
+        ASSERT(node && parent);
         parent->insertAfter(static_cast<T *>(this), node);
     }
 
     void insertBeforeThis(T *node) {
-        assert(node && parent);
+        ASSERT(node && parent);
         parent->insertBefore(static_cast<T *>(this), node);
     }
 
     void moveAfter(T *node) {
-        assert(node && parent);
+        ASSERT(node && parent);
         parent->insertAfter(node, static_cast<T *>(this));
     }
 
     void moveBefore(T *node) {
-        assert(node && parent);
+        ASSERT(node && parent);
         parent->insertBefore(node, static_cast<T *>(this));
     }
 
@@ -382,17 +382,17 @@ public:
     }
 
     inline void pop_back() {
-        assert(!empty());
+        ASSERT(!empty());
         erase(--end());
     }
 
     inline reference front() {
-        assert(!empty());
+        ASSERT(!empty());
         return *begin();
     }
 
     inline reference back() {
-        assert(!empty());
+        ASSERT(!empty());
         return *(--end());
     }
 
@@ -442,7 +442,7 @@ public:
     }
 
     inline iterator insert_after_without_ref(iterator where, pointer node) {
-        assert(node);
+        ASSERT(node);
         // no unlink
         auto Next = NodeAccessor<NodeTy>::getNext(where.getPointer());
         NodeAccessor<NodeTy>::setPrev(Next, node);
@@ -453,7 +453,7 @@ public:
     }
 
     inline iterator insert_before_without_ref(iterator where, pointer node) {
-        assert(node);
+        ASSERT(node);
         // no unlink
         auto Prev = NodeAccessor<NodeTy>::getPrev(where.getPointer());
         NodeAccessor<NodeTy>::setNext(Prev, node);
@@ -464,7 +464,7 @@ public:
     }
 
     inline iterator insert_after(iterator where, pointer node) {
-        assert(node);
+        ASSERT(node);
         // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
@@ -475,7 +475,7 @@ public:
     }
 
     inline iterator insert_before(iterator where, pointer node) {
-        assert(node);
+        ASSERT(node);
         // before insert, node must be unlinked
         if (node->getPrev() && node->getNext()) {
             remove(node);
@@ -486,12 +486,12 @@ public:
     }
 
     inline iterator replace_without_ref(iterator where, pointer node) {
-        assert(node);
+        ASSERT(node);
         auto Ptr = where.getPointer();
         auto Prev = NodeAccessor<NodeTy>::getPrev(Ptr);
         auto Next = NodeAccessor<NodeTy>::getNext(Ptr);
-        NodeAccessor<NodeTy>::setNext(Prev, Next);
-        NodeAccessor<NodeTy>::setPrev(Next, Prev);
+        NodeAccessor<NodeTy>::setNext(Prev, node);
+        NodeAccessor<NodeTy>::setPrev(Next, node);
         NodeAccessor<NodeTy>::setPrev(node, Prev);
         NodeAccessor<NodeTy>::setNext(node, Next);
         Traits::derefNode(Ptr);
@@ -499,7 +499,7 @@ public:
     }
 
     inline iterator replace(iterator where, pointer node) {
-        if (node->getPrev() && node->getNext()) {
+        if (NodeAccessor<NodeTy>::getPrev(node) && NodeAccessor<NodeTy>::getNext(node)) {
             remove(node);
         }
         replace_without_ref(where, node);
@@ -591,7 +591,7 @@ public:
     }
 
     void append(NodeTy *node) {
-        assert(node);
+        ASSERT(node);
         if (auto *OldParent = node->getParent()) {
             // 之前有父节点, 先从父节点中移除
             OldParent->remove(node);

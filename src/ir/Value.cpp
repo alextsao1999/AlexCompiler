@@ -32,7 +32,7 @@ void Value::replaceAllUsesWith(Value *newVal) {
 }
 
 Opcode Value::getOpcode() {
-    assert(isa<Instruction>());
+    ASSERT(isa<Instruction>());
     return cast<Instruction>()->getOpcode();
 }
 

@@ -17,6 +17,7 @@
 #include "PatternNode.h"
 #include "DCE.h"
 #include "LICM.h"
+#include "SCCP.h"
 
 template<typename ...Passes>
 inline std::unique_ptr<Module> compileWithPasses(const char *Code) {
@@ -131,7 +132,6 @@ ret
 )");
 }
 
-
 TEST(Pass, DCE) {
     auto Mod = compileWithPasses<DCE>("int main() {"
                                       "  int a = 1 + 2;"
@@ -185,6 +185,53 @@ def add(i32 %a, i32 %b) -> i32 {
 entry.0:    preds=() succs=()
 %add.0 = add i32 %a, i32 %b
 ret i32 %add.0
+}
+)");
+}
+
+TEST(Pass, SCCP) {
+    auto Mod = compileWithPasses<SCCP, Dominance, BranchElim, Dominance>(
+            "int test_add(int a, int b) {"
+            "  if (a == 10) {"
+            "    return a + b + 20;"
+            "  } else {"
+            "    return a * b + 10;"
+            "  }"
+            "}"
+            ""
+            "int main() {"
+            "  int a = 1 + 9;"
+            "  int c = 20;"
+            "  if (a == 10) {"
+            "    c = c + 15;"
+            "  } else {"
+            "    c = c + 13;"
+            "  }"
+            "  c = test_add(c, a);"
+            "  return c;"
+            "}");
+
+    CHECK_OR_DUMP(Mod, R"(
+Module: Module
+def test_add(i32 %a, i32 %b) -> i32 {
+entry.0:    preds=() succs=(%if.body.0, %if.else.0) doms=(%if.body.0, %if.else.0)
+%eq.0 = eq i32 %a, i32 10
+condbr i32 %eq.0, %if.body.0, %if.else.0
+
+if.body.0:    preds=(%entry.0) succs=() idom=%entry.0
+%add.0 = add i32 %a, i32 %b
+%add.1 = add i32 %add.0, i32 20
+ret i32 %add.1
+
+if.else.0:    preds=(%entry.0) succs=() idom=%entry.0
+%mul.0 = mul i32 %a, i32 %b
+%add.2 = add i32 %mul.0, i32 10
+ret i32 %add.2
+}
+
+def main() -> i32 {
+entry.0:    preds=() succs=()
+ret i32 360
 }
 )");
 }

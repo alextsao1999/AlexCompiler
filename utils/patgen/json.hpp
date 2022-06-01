@@ -2097,7 +2097,7 @@ JSON_HEDLEY_DIAGNOSTIC_POP
 // allow to override assert
 #if !defined(JSON_ASSERT)
     #include <cassert> // assert
-    #define JSON_ASSERT(x) assert(x)
+    #define JSON_ASSERT(x) ASSERT(x)
 #endif
 
 // allow to access some private functions (needed by the test suite)

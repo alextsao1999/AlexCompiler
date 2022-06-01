@@ -12,7 +12,7 @@ Function *MachineBlock::getFunction() {
 void MachineBlock::append(MachineInstr *instr) {
     NodeParent::append(instr);
     auto *Fun = getFunction();
-    assert(Fun);
+    ASSERT(Fun);
     for (auto &Op: instr->defs()) {
         if (Op.isReg()) {
             Fun->mapOperands[Op.getReg()].insert(&Op);
@@ -27,7 +27,7 @@ void MachineBlock::append(MachineInstr *instr) {
 
 void MachineBlock::remove(MachineInstr *instr) {
     auto *Fun = getFunction();
-    assert(Fun);
+    ASSERT(Fun);
     for (auto &Op: instr->defs()) {
         if (Op.isReg()) {
             Fun->mapOperands[Op.getReg()].erase(&Op);

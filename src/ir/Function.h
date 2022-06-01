@@ -44,12 +44,12 @@ public:
     }
 
     Context *getContext() const {
-        assert(getType());
+        ASSERT(getType());
         return getType()->getContext();
     }
 
     BasicBlock *getEntryBlock() const {
-        assert(!list.empty());
+        ASSERT(!list.empty());
         return list.begin().getPointer();
     }
 
@@ -86,12 +86,12 @@ public:
     }
 
     Param *getParam(unsigned index) {
-        assert(index < params.size());
+        ASSERT(index < params.size());
         return params[index].get();
     }
 
     void eraseParam(unsigned index) {
-        assert(index < params.size());
+        ASSERT(index < params.size());
         params.erase(params.begin() + index);
     }
 
@@ -185,7 +185,7 @@ public:
     }
 
     void dumpAsOperand(std::ostream &os) override {
-        assert(getReturnType());
+        ASSERT(getReturnType());
         getReturnType()->dump(os);
         os << " @" << getName();
     }
@@ -204,7 +204,7 @@ public:
     }
 
     TargetInfo *getTargetInfo() {
-        assert(target);
+        ASSERT(target);
         return target;
     }
 

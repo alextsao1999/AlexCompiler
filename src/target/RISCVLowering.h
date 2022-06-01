@@ -16,7 +16,7 @@ public:
         curFunc = &function;
 
         auto *TI = function.getTargetInfo();
-        assert(TI);
+        ASSERT(TI);
         int I = 0;
         for (auto &Param: function.getParams()) {
             auto PhyReg = Register::phy(RISCV::A0 + I++);
@@ -35,11 +35,11 @@ public:
         ///< Update successor and predecessor
         for (auto &MBB: function.blocks) {
             for (auto *Succ: MBB.getOrigin()->succs()) {
-                assert(function.mapBlocks[Succ]);
+                ASSERT(function.mapBlocks[Succ]);
                 MBB.succs.push_back(function.mapBlocks[Succ]);
             }
             for (auto *Pred: MBB.getOrigin()->preds()) {
-                assert(function.mapBlocks[Pred]);
+                ASSERT(function.mapBlocks[Pred]);
                 MBB.preds.push_back(function.mapBlocks[Pred]);
             }
         }
@@ -65,7 +65,7 @@ public:
 
     Operand getBlockLabel(BasicBlock *bb) {
         auto *F = bb->getParent();
-        assert(F && F->mapBlocks[bb]);
+        ASSERT(F && F->mapBlocks[bb]);
         return Operand::label(F->mapBlocks[bb]);
     }
 
@@ -137,7 +137,7 @@ public:
         }
         builder.build();
         auto *Callee = value->getCallee();
-        assert(Callee);
+        ASSERT(Callee);
         auto *Entry = Callee->getEntryBlock();
         mbb.append(MIBuilder().setOpcode(RISCV::CALL).addOp(getBlockLabel(Entry)).build());
         auto Reg = getValueReg(value); // get a virtual register for the return value

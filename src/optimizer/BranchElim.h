@@ -26,7 +26,7 @@ public:
                     auto *CondBr = Inst->cast<CondBrInst>();
                     auto *TrueBB = CondBr->getTrueTarget();
                     auto *FalseBB = CondBr->getFalseTarget();
-                    assert(TrueBB && FalseBB);
+                    ASSERT(TrueBB && FalseBB);
                     if (auto *Val = CondBr->getCond()->as<IntConstant>()) {
                         auto *NewInst = new BranchInst(
                                 Val->getVal() == 0 ? CondBr->getFalseTarget() : CondBr->getTrueTarget());
@@ -106,11 +106,11 @@ public:
                     // exist phi node means the BB has two more different predecessors
                     if (BBTarget->hasPhi())
                         break;
-                    assert(BBTarget != BBSource);
+                    ASSERT(BBTarget != BBSource);
                     // first erase old terminator
                     Inst->eraseFromParent();
                     // fuse the following blocks
-                    assert(BBTarget->getTerminator());
+                    ASSERT(BBTarget->getTerminator());
                     auto First = BBTarget->begin();
                     auto Last = BBTarget->end();
                     while (First != Last) {

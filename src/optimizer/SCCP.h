@@ -47,7 +47,7 @@ struct LatticeValue {
         if (type == NaC || rhs.type == NaC) {
             return getNaC();
         }
-        assert(type == Const && rhs.type == Const);
+        ASSERT(type == Const && rhs.type == Const);
         if (value == rhs.value) {
             return *this;
         }
@@ -68,7 +68,7 @@ struct LatticeValue {
     }
 
     inline Value *getValue() const {
-        assert(type == Const);
+        ASSERT(type == Const);
         return value;
     }
 
@@ -93,10 +93,14 @@ public:
         return mapValToLatVal[val];
     }
     void setLatticeVal(Instruction *val, LatticeValue latVal) {
-        auto &Slot = mapValToLatVal[val];
-        if (Slot != latVal) {
-            Slot = latVal;
-            ssaWorklist.push_back(val);
+        if (mapValToLatVal[val] != latVal) {
+            mapValToLatVal[val] = latVal;
+            for (auto &User: val->getUsers()) {
+                if (auto *Inst = User.as<Instruction>()) {
+                    ssaWorklist.push_back(Inst);
+                }
+            }
+            //ssaWorklist.push_back(val);
         }
     }
     bool isExecutable(BasicBlock *bb) {
@@ -107,7 +111,7 @@ public:
         return Iter->second;
     }
     bool isLatValTrue(LatticeValue val) {
-        assert(val.isConstant());
+        ASSERT(val.isConstant());
         if (auto *Val = val.value->as<IntConstant>()) {
             return Val->getVal();
         }
@@ -116,7 +120,7 @@ public:
 
     void evalOnInstruction(Instruction *instr) {
         switch (instr->getOpcode()) {
-            default: unreachable();
+            default: UNREACHEABLE();
             case OpcodeBr: {
                 auto *Br = instr->cast<BranchInst>();
                 cfgWorklist.push_back(Br->getTarget());
@@ -184,8 +188,8 @@ public:
         if (LHS.isNaC() && RHS.isConstant()) {
             if (auto *Int = RHS.getValue()->as<IntConstant>()) {
                 if (Int->getVal() == 0 && bin->getOp() == BinaryOp::Mul) {
-                    auto *Context = bin->getType()->getContext();
-                    Val = LatticeValue::getConstant(Context->getInt(0));
+                    auto *Ctx = bin->getType()->getContext();
+                    Val = LatticeValue::getConstant(Ctx->getInt(0));
                 }
             }
         }
@@ -193,13 +197,13 @@ public:
         if (LHS.isConstant() && RHS.isNaC()) {
             if (auto *Int = LHS.getValue()->as<IntConstant>()) {
                 if (Int->getVal() == 0 && bin->getOp() == BinaryOp::Mul) {
-                    auto *Context = bin->getType()->getContext();
-                    Val = LatticeValue::getConstant(Context->getInt(0));
+                    auto *Ctx = bin->getType()->getContext();
+                    Val = LatticeValue::getConstant(Ctx->getInt(0));
                 }
             }
         }
 
-        assert(!LHS.isUndef() && !RHS.isUndef());
+        ASSERT(!LHS.isUndef() && !RHS.isUndef());
 
         setLatticeVal(bin, Val);
 
@@ -207,17 +211,29 @@ public:
     void evalOnCall(CallInst *call) {
         SCCPFunction Func(call->getCallee());
         for (auto I = 0; I < call->getOperandNum(); ++I) {
-            auto *Val = call->getOperand(I);
-            Func.mapLatticeVal(Val, getLatticeVal(Val));
+            Func.mapParam(I, getLatticeVal(call->getOperand(I)));
         }
         Func.runOnEntry();
-
+        setLatticeVal(call, Func.getReturnValue());
     }
     void evalOnRet(RetInst *ret) {
-        returnVal = getLatticeVal(ret->getOperand(0));
+        returnVal ^= getLatticeVal(ret->getOperand(0));
+    }
+    LatticeValue getReturnValue() {
+        return returnVal;
     }
     void mapLatticeVal(Value *val, LatticeValue latVal) {
         mapValToLatVal[val] = latVal;
+    }
+    void mapParam(unsigned index, LatticeValue latVal) {
+        mapValToLatVal[fun->getParam(index)] = latVal;
+    }
+    LatticeValue getMapValue(Value *val) {
+        if (mapValToLatVal.find(val) != mapValToLatVal.end()) {
+            return mapValToLatVal[val];
+        }
+        // Just for the case that the value is constant and we needn't replace it.
+        return LatticeValue::getNaC();
     }
 
     void runOnEntry() {
@@ -231,7 +247,7 @@ public:
                 cfgWorklist.pop_back();
                 if (!mapBBExcuted[Cur]) {
                     mapBBExcuted[Cur] = true;
-                    for (auto &Instr: Cur->getSubList()) {
+                    for (auto &Instr: *Cur) {
                         evalOnInstruction(&Instr);
                     }
                 }
@@ -253,8 +269,40 @@ class SCCP : public FunctionPass {
 public:
     void runOnFunction(Function &function) override {
         SCCPFunction Func(&function);
+        for (auto &Param: function.getParams()) {
+            Func.mapLatticeVal(Param.get(), LatticeValue::getNaC());
+        }
         Func.runOnEntry();
+        std::vector<BasicBlock *> BBNeedToRemove;
+        for (auto &BB: function) {
+            if (Func.isExecutable(&BB)) {
+                for (auto Iter = BB.begin(); Iter != BB.end();) {
+                    auto &Inst = *Iter++;
+                    auto Val = Func.getMapValue(&Inst);
+                    if (Val.isConstant()) {
+                        Inst.replaceAllUsesWith(Val.getValue());
+                        Inst.eraseFromParent();
+                    }
+                }
+            } else {
+                BBNeedToRemove.push_back(&BB);
+            }
+        }
 
+        for (auto *BB: BBNeedToRemove) {
+            for (auto Iter = BB->user_begin(); Iter != BB->user_end();) {
+                Value &Use = *Iter++;
+                if (auto *Phi = Use.as<PhiInst>()) {
+                    Phi->removeIncoming(BB);
+                }
+                if (auto *Br = Use.as<CondBrInst>()) {
+                    auto *OtherBB = Br->getTrueTarget() == BB ?
+                                    Br->getFalseTarget() : Br->getTrueTarget();
+                    Br->replaceBy(new BranchInst(OtherBB));
+                }
+            }
+            BB->eraseFromParent();
+        }
     }
 };
 

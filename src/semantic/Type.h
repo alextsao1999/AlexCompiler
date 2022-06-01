@@ -47,8 +47,8 @@ protected:
     unsigned containedTypeCount = 0;
 public:
     static Type *getMaxType(Type *type1, Type *type2) {
-        assert(type1 && type2);
-        assert(type1->getTypeId() == type2->getTypeId());
+        ASSERT(type1 && type2);
+        ASSERT(type1->getTypeId() == type2->getTypeId());
         TypeID TypeId = type1->getTypeId();
         switch (TypeId) {
             case TypeInt:
@@ -119,24 +119,24 @@ public:
     Type *getPointerType();
 
     Type *getPointerElementType() const {
-        assert(typeId == TypePointer && containedType);
+        ASSERT(typeId == TypePointer && containedType);
         return *containedType;
     }
 
     Type *getStructElementType(unsigned index) const {
-        assert(index < containedTypeCount);
-        assert(typeId == TypeStruct);
+        ASSERT(index < containedTypeCount);
+        ASSERT(typeId == TypeStruct);
         return containedType[index];
     }
 
     Type *getParameterType(unsigned index) const {
-        assert(typeId == TypeFunction);
-        assert((index + 1) < containedTypeCount);
+        ASSERT(typeId == TypeFunction);
+        ASSERT((index + 1) < containedTypeCount);
         return containedType[index + 1];
     }
 
     Type *getReturnType() const {
-        assert(typeId == TypeFunction);
+        ASSERT(typeId == TypeFunction);
         return containedType[0];
     }
 
@@ -202,7 +202,7 @@ public:
                 os << "error";
                 break;
             default:
-                assert(false);
+                ASSERT(false);
         }
 
     }
@@ -233,7 +233,7 @@ public:
     }
 
     void dump(std::ostream &os) override {
-        assert(types.size() > 0);
+        ASSERT(types.size() > 0);
 
         os << "(";
         for (auto I = 1; I < types.size(); I++) {
@@ -275,7 +275,7 @@ public:
     PointerType(Type *original) : Type(original->getContext(), TypePointer, &elementType), elementType(original) {}
 
     void dump(std::ostream &os) override {
-        assert(elementType);
+        ASSERT(elementType);
         elementType->dump(os);
         os << "*";
     }
@@ -313,7 +313,7 @@ inline unsigned Type::getBitSize() {
         default:
             break;
     }
-    unreachable();
+    UNREACHEABLE();
     return 0;
 }
 

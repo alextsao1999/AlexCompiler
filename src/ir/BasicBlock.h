@@ -51,7 +51,7 @@ public:
         }
 
         inline PredIter &operator++() {
-            assert(!atEnd());
+            ASSERT(!atEnd());
             ++iter;
             advance();
             return *this;
@@ -104,7 +104,7 @@ public:
         }
 
         inline SuccIter &operator++() {
-            assert(!atEnd());
+            ASSERT(!atEnd());
             ++idx;
             return *this;
         }
@@ -148,14 +148,14 @@ public:
     Context *getContext() const;
 
     void replace(Instruction *node, Instruction *by) {
-        assert(node->getOpcode() != OpcodePhi && by->getOpcode() != OpcodePhi);
+        ASSERT(node->getOpcode() != OpcodePhi && by->getOpcode() != OpcodePhi);
         removeInstr(node);
         NodeParent::replace(node, by);
         addInstr(by);
     }
 
     void erase(Instruction *node) {
-        assert(!node->getLastUse()); // check if there is a instruction that use this node.
+        ASSERT(!node->getLastUse()); // check if there is a instruction that use this node.
         removeInstr(node);
         NodeParent::erase(node);
     }
@@ -167,7 +167,7 @@ public:
 
     void append(Instruction *node) {
         if (getTerminator()) {
-            assert(!node->isTerminator() && "BasicBlock already has terminator");
+            ASSERT(!node->isTerminator() && "BasicBlock already has terminator");
             insertBefore(getTerminator(), node);
         } else {
             NodeParent::append(node);
@@ -177,16 +177,16 @@ public:
 
     void insertAfter(Instruction *node, Instruction *after) {
         // FIXME: 这里最好不能插入Phi
-        assert(!node->isTerminator());
-        assert(!(node->getOpcode() == OpcodePhi && lastPhi != node)); // 只能在最后一个phi节点后插入(非phi节点)
+        ASSERT(!node->isTerminator());
+        ASSERT(!(node->getOpcode() == OpcodePhi && lastPhi != node)); // 只能在最后一个phi节点后插入(非phi节点)
         NodeParent::insertAfter(node, after);
         addInstr(after);
     }
 
     void insertBefore(Instruction *node, Instruction *before) {
         // FIXME: 这里最好不能插入Phi
-        assert(!before->isTerminator()); // 不能插入terminator
-        assert(!(node->getOpcode() == OpcodePhi && before->getOpcode() != OpcodePhi)); // phi节点之前不能插入非phi节点
+        ASSERT(!before->isTerminator()); // 不能插入terminator
+        ASSERT(!(node->getOpcode() == OpcodePhi && before->getOpcode() != OpcodePhi)); // phi节点之前不能插入非phi节点
         NodeParent::insertBefore(node, before);
         addInstr(before);
     }
@@ -216,7 +216,7 @@ public:
     }
 
     inline void addPhi(Instruction *phi) {
-        assert(phi->getOpcode() == OpcodePhi);
+        ASSERT(phi->getOpcode() == OpcodePhi);
         phi->setParent(this);
         lastPhi = list.insert_after(lastPhi, phi);
     }
@@ -380,7 +380,7 @@ private:
         }
     }
     inline void removeInstr(Instruction *instr) {
-        assert(instr);
+        ASSERT(instr);
         switch (instr->getOpcode()) {
             case OpcodePhi:
                 if (lastPhi == instr)

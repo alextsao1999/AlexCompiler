@@ -19,12 +19,12 @@ public:
     inline static Value *foldBin(BinaryOp op, Value *lhs, Value *rhs) {
         auto *LType = lhs->getType();
         auto *RType = rhs->getType();
-        assert(LType && RType);
+        ASSERT(LType && RType);
         auto *Context = LType->getContext();
         if (LType->isIntegerType() && RType->isIntegerType()) {
             auto *LHS = lhs->as<IntConstant>();
             auto *RHS = rhs->as<IntConstant>();
-            assert(LHS && RHS);
+            ASSERT(LHS && RHS);
             switch (op) {
                 case BinaryOp::Add:
                     return Context->getInt(LHS->getVal() + RHS->getVal());
@@ -59,7 +59,7 @@ public:
                 case BinaryOp::Ge:
                     return Context->getInt(LHS->getVal() >= RHS->getVal());
                 default:
-                    assert(false);
+                    ASSERT(false);
             }
         }
         return nullptr;

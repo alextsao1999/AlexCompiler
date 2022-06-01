@@ -16,7 +16,7 @@ public:
                 return;
             }
             auto *F = Header->getParent();
-            assert(F);
+            ASSERT(F);
             auto *NewPreheader = new BasicBlock(Header->getName() + ".preheader");
             F->insertBefore(Header, NewPreheader);
 

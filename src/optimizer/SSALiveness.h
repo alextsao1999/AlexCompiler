@@ -34,7 +34,7 @@ public:
         for (auto *Succ: block.succs()) {
             for (auto &Phi: Succ->phis()) {
                 Value *V = Phi.findIncomingValue(&block);
-                assert(V);
+                ASSERT(V);
                 Live.insert(V);
             }
             auto &SuccLiveIn = getBasicBlockLiveIn(Succ);

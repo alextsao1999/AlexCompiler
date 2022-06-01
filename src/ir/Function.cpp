@@ -6,7 +6,7 @@
 #include "Module.h"
 
 Function *Function::Create(Module *module, StrView name, Type *type) {
-    assert(module);
+    ASSERT(module);
     return module->createFunction(name, type);
 }
 

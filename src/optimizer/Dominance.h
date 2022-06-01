@@ -22,7 +22,7 @@ public:
         bbReorder.clear();
 
         auto *EntryBlock = function.getEntryBlock();
-        assert(EntryBlock);
+        ASSERT(EntryBlock);
         // compute reverse post order
         RPO(EntryBlock);
 
